@@ -29,8 +29,8 @@ from bitarray.util import ba2int, int2ba
 
 
 #######################          PROJECT IMPORTS         #######################
-from drv.drv_pwr import DrvPwrPropertiesC, DrvPwrDeviceC, DrvPwrDataC, DrvPwrStatusC
 from drv.drv_can import DrvCanMessageC, DrvCanCmdDataC, DrvCanCmdTypeE, DrvCanFilterC
+
 #######################              ENUMS               #######################
 class DrvEpcLimitE(Enum):
     """
@@ -45,29 +45,96 @@ class DrvEpcModeE(Enum):
     """
     Type of mode the epc can be on
     """
-    DISABLE = 4
+    IDLE = 4
     WAIT    = 0
     CV_MODE = 1
     CC_MODE = 2
     CP_MODE = 3
 
+class DrvEpcStatusE(Enum):
+    '''Status of the epc.
+    '''
+    COMM_ERROR = -1
+    OK = 0
+    INTERNAL_ERROR = 1
+
 class _ConstantsC:
+    ''' Constants the script may need
+    '''
     TO_DECI_WATS = 100000
     MAX_READS    = 100
 
 #######################             CLASSES              #######################
-class DrvEpcPropertiesC(DrvPwrPropertiesC):
+class DrvEpcStatusC:
+    '''Handles status of the driver epc.
+    '''
+    def __init__(self, error: int|DrvEpcStatusE) -> None:
+        if isinstance(error, DrvEpcStatusE):
+            self.__status = error
+            self.__error_code = error.value
+        else:
+            self.__error_code = error
+            if error > 0:
+                self.__status = DrvEpcStatusE.INTERNAL_ERROR
+            else:
+                self.__status = DrvEpcStatusE(error)
+
+    def __str__(self) -> str:
+        result = f"Error code: {self.__error_code} \t Status: {self.__status}"
+        return result
+
+    def __eq__(self, cmp_obj: Enum) -> bool:
+        return self.__status == cmp_obj
+
+    @property
+    def error_code(self) -> int:
+        '''The error code associated with this request .
+        Args:
+            - None
+        Returns:
+            - (int): The error code associated with this request.
+        Raises:
+            - None
+        '''
+        return self.__error_code
+
+    @property
+    def value(self) -> int:
+        ''' Value of status.
+        Args:
+            - None
+        Returns:
+            - (int): Value of status.
+        Raises:
+            - None
+        '''
+        return self.__status.value
+
+    @property
+    def name(self) -> str:
+        ''' Name of status.
+        Args:
+            - None
+        Returns:
+            - (int): name of status.
+        Raises:
+            - None
+        '''
+        return self.__status.name
+
+class DrvEpcPropertiesC():
     '''
     Properties a epc can have
     '''
-    def __init__(self, can_id: int, sw_version: int, hw_version: int,
-                 min_ls_volt_limit: int, max_ls_volt_limit: int,
-                 min_ls_curr_limit: int, max_ls_curr_limit: int,
-                 min_ls_pwr_limit:  int, max_ls_pwr_limit: int,
-                 min_hs_volt_limit: int, max_hs_volt_limit: int,
-                 model: str, serial_number: str, max_volt_limit: int,
-                 max_current_limit: int, max_pwr_limit: int,
-                 max_temp_limit: int, min_temp_limit: int) -> None:
+    def __init__(self, can_id: int, sw_version: int = 0, hw_version: int = 0,
+                 min_ls_volt_limit: int = 400, max_ls_volt_limit: int = 5100,
+                 min_ls_curr_limit: int = -15500, max_ls_curr_limit: int = 15500,
+                 min_ls_pwr_limit:  int = -510, max_ls_pwr_limit: int = 510,
+                 min_hs_volt_limit: int = 5300, max_hs_volt_limit: int = 14100,
+                 min_temp_limit: int = -160, max_temp_limit: int = 660,
+                 model: str = '', serial_number: str = '') -> None:
+        self.model: str|None = model
+        self.serial_number: str|None = serial_number
         #Check can id is correct
         if can_id >= 0x0 and can_id <= 0x7FF:
             self.can_id    = can_id
@@ -89,6 +156,7 @@ class DrvEpcPropertiesC(DrvPwrPropertiesC):
         #Check low side voltage limits are correct
         if (min_ls_volt_limit < max_ls_volt_limit and min_ls_volt_limit >=400
             and max_ls_volt_limit <= 5100):
+            self.max_ls_volt_limit = max_ls_volt_limit
             self.min_ls_volt_limit = min_ls_volt_limit
         else:
             log.error(f"Wrong ls_volt limits, should between 400 and 5100 mV, \
@@ -97,14 +165,16 @@ class DrvEpcPropertiesC(DrvPwrPropertiesC):
         #Check low side current limits are correct
         if (min_ls_curr_limit < max_ls_curr_limit and min_ls_curr_limit >= -15500
             and max_ls_curr_limit <= 15500):
+            self.max_ls_curr_limit = max_ls_curr_limit
             self.min_ls_curr_limit = min_ls_curr_limit
         else:
             log.error(f"Wrong ls current limits, should between +-15500 mA, \
                       but has been introduced {min_ls_curr_limit} and {max_ls_curr_limit}")
             raise ValueError
         #Check low side power limits are correct
-        if (min_ls_pwr_limit < max_ls_pwr_limit and min_ls_pwr_limit >=400
-            and max_ls_pwr_limit <= 5100):
+        if (min_ls_pwr_limit < max_ls_pwr_limit and min_ls_pwr_limit >=-800
+            and max_ls_pwr_limit <= 800):
+            self.max_ls_pwr_limit = max_ls_pwr_limit
             self.min_ls_pwr_limit = min_ls_pwr_limit
         else:
             log.error(f"Wrong ls power limits, should between +-800 dW, \
@@ -125,43 +195,44 @@ class DrvEpcPropertiesC(DrvPwrPropertiesC):
             self.min_temp_limit = min_temp_limit
             self.max_temp_limit = max_temp_limit
         else:
-            log.error(f"Wrong hs volt limits, should between 5300 and 14100 mV, \
-                      but has been introduced {min_hs_volt_limit} and {max_hs_volt_limit}")
+            log.error(f"Wrong temp limits, should between -200 and 700 dºC, \
+                      but has been introduced {min_temp_limit} and {max_temp_limit}")
             raise ValueError
-        #As max ls atributes came from the super class,
-        # if no value error has raise, can be initialize
-        super().__init__(model, serial_number, max_volt_limit, max_current_limit,
-                         max_pwr_limit)
 
-class DrvEpcDataC(DrvPwrDataC):
+class DrvEpcDataC():
     """
     Data that can store the epc device, refered to measurements, status and mode.
     """
-    def __init__(self, status: DrvPwrStatusC, mode: DrvEpcModeE,
-                 voltage: int, current: int, power: int, hs_voltage: int,
-                 temp_body: int, temp_amb: int, temp_anod: int) -> None:
-        super().__init__(status, mode, voltage, current, power)
+    def __init__(self, status: DrvEpcStatusC = DrvEpcStatusC(0),
+                 mode: DrvEpcModeE = DrvEpcModeE.IDLE,
+                 ls_voltage: int = 0, ls_current: int = 0, ls_power: int = 0, hs_voltage: int = 0,
+                 temp_body: int = 0, temp_amb: int = 0, temp_anod: int = 0) -> None:
+        self.mode = mode
+        self.status = status
+        self.ls_voltage = ls_voltage
+        self.ls_current = ls_current
+        self.ls_power = ls_power
         self.hs_voltage = hs_voltage
         self.temp_body = temp_body
         self.temp_amb = temp_amb
         self.temp_anod = temp_anod
-        self.lim_ref : int
-        self.lim_mode : DrvEpcLimitE
-        self.ref : int
+        self.lim_ref : int = 0
+        self.lim_mode : DrvEpcLimitE = DrvEpcLimitE.TIME
+        self.ref : int = 0
 
-class DrvEpcDeviceC(DrvPwrDeviceC):
+class DrvEpcDeviceC():
     """Class to create epc devices with all the properties needed.
 
     """
     def __init__(self, dev_id: int, device_handler: SysShdChanC, tx_can_queue: SysShdChanC) -> None:
-        super().__init__(device_handler)
+        self.__device_handler = device_handler
         self.__dev_id= dev_id
         self.__tx_can = tx_can_queue
-        self.__live_data : DrvEpcDataC
-        self.__properties: DrvEpcPropertiesC
+        self.__live_data : DrvEpcDataC = DrvEpcDataC()
+        self.__properties: DrvEpcPropertiesC = DrvEpcPropertiesC(can_id = dev_id<<4)
 
     def __send_to_can(self, type_msg: DrvCanCmdTypeE, msg: DrvCanMessageC|DrvCanFilterC)-> None:
-        """Send a message to the CAN transmission queue .
+        """Send a message to the CAN transmission queue.
 
         Args:
             msg (DrvCanMessageC): [Message to be send]
@@ -173,35 +244,35 @@ class DrvEpcDeviceC(DrvPwrDeviceC):
         """Receive data from the device .
         """
         if self.__device_handler.is_empty():
-            log.info("The device doesn`t have any message to read")
+            log.debug("The device doesn`t have any message to read")
         else:
             i=0
             while not self.__device_handler.is_empty() and i<=_ConstantsC.MAX_READS:
                 # Read a message from the can queue of the device
                 msg: DrvCanMessageC = self.__device_handler.receive_data()
                 # Get the message id and transform the data to bitarray
-                msg_id= msg.addr & 0xFF0
+                msg_id= msg.addr & 0x00F
                 msg_bitarray = int2ba(int.from_bytes(msg.data,'little'),length=64, endian='little')
                 #------   0xYY0 EPC mode   ------
                 if msg_id == 0x0:
-                    self.__live_data.mode = DrvEpcModeE(ba2int(msg_bitarray[1:4]))
+                    self.__live_data.mode = DrvEpcModeE(ba2int(msg_bitarray[1:4],signed=False))
                     self.__live_data.ref = ba2int(msg_bitarray[16:32],signed=True)
-                    self.__live_data.lim_mode = DrvEpcLimitE(ba2int(msg_bitarray[4:7]))
+                    self.__live_data.lim_mode = DrvEpcLimitE(ba2int(msg_bitarray[4:6],signed=False))
                     self.__live_data.lim_ref = ba2int(msg_bitarray[32:],signed=True)
                 #------   0xYY1 EPC request  ------
                 elif msg_id == 0x1:
                     log.error("The message send to request data has a format error")
                 #------   0xYY2 EPC LS Voltage Limits  ------
                 elif msg_id == 0x2:
-                    self.__properties.max_volt_limit = ba2int(msg_bitarray[:16])
+                    self.__properties.max_ls_volt_limit = ba2int(msg_bitarray[:16])
                     self.__properties.min_ls_volt_limit = ba2int(msg_bitarray[16:32])
-                    log.info(f"LS Voltage limits are /n Max:{self.__properties.max_volt_limit} /n\
+                    log.info(f"LS Voltage limits are /n Max:{self.__properties.max_ls_volt_limit}/n\
                             Min: {self.__properties.min_ls_volt_limit}")
                 #------   0xYY3 EPC LS Current Limits  ------
                 elif msg_id == 0x3:
                     max_curr = ba2int(msg_bitarray[:16],signed=True)
                     min_curr = ba2int(msg_bitarray[16:32],signed=True)
-                    self.__properties.max_current_limit = max_curr
+                    self.__properties.max_ls_curr_limit = max_curr
                     self.__properties.min_ls_curr_limit = min_curr
                     log.info(f"LS Current limits are /n Max:{max_curr} mA /n\
                             Min: {min_curr} mA")
@@ -215,7 +286,7 @@ class DrvEpcDeviceC(DrvPwrDeviceC):
                 elif msg_id == 0x5:
                     max_pwr = ba2int(msg_bitarray[:16],signed=True)
                     min_pwr = ba2int(msg_bitarray[16:32],signed=True)
-                    self.__properties.max_power_limit = max_pwr
+                    self.__properties.max_ls_pwr_limit = max_pwr
                     self.__properties.min_ls_pwr_limit = min_pwr
                     log.info(f"LS Voltage limits are /n Max:{max_pwr} /n\
                             Min: {min_pwr}")
@@ -262,22 +333,22 @@ class DrvEpcDeviceC(DrvPwrDeviceC):
                         log.info("Internal error")
                     error = ba2int(msg_bitarray[:6])
                     if error>0:
-                        self.__live_data.status= DrvPwrStatusC(error)
+                        self.__live_data.status= DrvEpcStatusC(error)
                         log.info(f"Last rised error: {ba2int(msg_bitarray[6:])}")
                 #------   0xYYC EPC Electrical Measures  ------
                 elif msg_id == 0xC:
                     volt = ba2int(msg_bitarray[:16])
-                    self.__live_data.voltage = volt
+                    self.__live_data.ls_voltage = volt
                     log.info(f"LS Voltage [mV]: {volt}")
                     curr = ba2int(msg_bitarray[16:32], signed = True)
-                    self.__live_data.current = curr
+                    self.__live_data.ls_current = curr
                     log.info(f"LS Current [mA]: {curr}")
                     hs_volt = ba2int(msg_bitarray[32:])
                     self.__live_data.hs_voltage = hs_volt
                     log.info(f"HS Voltage [mV]: {hs_volt}")
                     power = curr * volt / _ConstantsC.TO_DECI_WATS
                     log.info(f"LS Power [dW]: {power}")
-                    self.__live_data.power = int(power)
+                    self.__live_data.ls_power = int(power)
                 #------   0xYYD EPC Temperature measures  ------
                 elif msg_id == 0xD:
                     if self.__properties.hw_version[9] == 1:
@@ -293,7 +364,8 @@ class DrvEpcDeviceC(DrvPwrDeviceC):
                         self.__live_data.temp_amb = temp_amb
                         log.info(f"Ambient temperature [dºC]: {temp_amb}")
                 else:
-                    log.error("The id of the message can not be interpreted by the epc")
+                    log.error(f"The id of the message can not \
+                              be interpreted by the epc {hex(msg_id)}")
 
     def set_cv_mode(self, ref: int, limit_type: DrvEpcLimitE, limit_ref: int) -> None:
         """Set the CV mode for a specific reference, limit type and limit reference.
@@ -304,16 +376,16 @@ class DrvEpcDeviceC(DrvPwrDeviceC):
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
             limit_ref (int): [Reference for the limit imposed]
         """
-        if ref <0:
+        if ref < self.__properties.min_ls_volt_limit and ref > self.__properties.max_ls_volt_limit:
             log.error(f"Error setting the refence for CV, \
-                      introduced {ref} and it should be positive")
+                      introduced {ref} and it should be between max and min limits")
             raise ValueError
         elif limit_type == DrvEpcLimitE.VOLTAGE:
             log.error("Limit can not be voltage when mode is CV")
             raise ValueError
-        id_msg = self.__dev_id + 0x0
+        id_msg = self.__properties.can_id << 4 | 0x0
         data_msg= limit_ref << 32 | ref<<16 | limit_type.value << 4 | 1<<1 | 1
-        msg = DrvCanMessageC(addr= id_msg, size= 8, payload = data_msg)
+        msg = DrvCanMessageC(addr= id_msg, size= 8, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
 
@@ -325,16 +397,16 @@ class DrvEpcDeviceC(DrvPwrDeviceC):
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
             limit_ref (int): [Reference for the limit imposed]
         """
-        if ref <0:
-            log.error(f"Error setting the refence for CV, \
-                      introduced {ref} and it should be positive")
+        if ref < self.__properties.min_ls_curr_limit and ref > self.__properties.max_ls_curr_limit:
+            log.error(f"Error setting the refence for CC, \
+                      introduced {ref} and it should be between max and min limits")
             raise ValueError
         elif limit_type == DrvEpcLimitE.CURRENT:
             log.error("Limit can not be current when mode is CC")
             raise ValueError
-        id_msg = self.__dev_id + 0x0
+        id_msg = self.__dev_id << 4 | 0x0
         data_msg= limit_ref << 32 | ref<<16 | limit_type.value << 4 | 2<<1 | 1
-        msg = DrvCanMessageC(addr= id_msg, size= 8, payload = data_msg)
+        msg = DrvCanMessageC(addr= id_msg, size= 8, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
 
@@ -346,12 +418,15 @@ class DrvEpcDeviceC(DrvPwrDeviceC):
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
             limit_ref (int): [Reference for the limit imposed]
         """
-        if limit_type == DrvEpcLimitE.POWER:
+        if ref < self.__properties.min_ls_pwr_limit and ref > self.__properties.max_ls_pwr_limit:
+            log.error(f"Error setting the refence for CC, \
+                      introduced {ref} and it should be between max and min limits")
+        elif limit_type == DrvEpcLimitE.POWER:
             log.error("Limit can not be power when mode is CP")
             raise ValueError
-        id_msg = self.__dev_id + 0x0
+        id_msg = self.__dev_id << 4 | 0x0
         data_msg= limit_ref << 32 | ref<<16 | limit_type.value << 4 | 3<<1 | 1
-        msg = DrvCanMessageC(addr= id_msg, size= 8, payload = data_msg)
+        msg = DrvCanMessageC(addr= id_msg, size= 8, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
 
@@ -362,9 +437,9 @@ class DrvEpcDeviceC(DrvPwrDeviceC):
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
             limit_ref (int): [Reference for the limit imposed]
         """
-        id_msg = self.__dev_id + 0x0
+        id_msg = self.__dev_id << 4 | 0x0
         data_msg= limit_ref << 32 | 0<<16 | limit_type.value << 4 | 0<<1 | 0
-        msg = DrvCanMessageC(addr= id_msg, size= 8, payload = data_msg)
+        msg = DrvCanMessageC(addr= id_msg, size= 8, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
 
@@ -375,9 +450,9 @@ class DrvEpcDeviceC(DrvPwrDeviceC):
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
             limit_ref (int): [Reference for the limit imposed]
         """
-        id_msg = self.__dev_id + 0x0
+        id_msg = self.__dev_id << 4 | 0x0
         data_msg= 10 << 32 | 0<<16 | 0 << 4 | 0<<1 | 0
-        msg = DrvCanMessageC(addr= id_msg, size= 8, payload = data_msg)
+        msg = DrvCanMessageC(addr= id_msg, size= 8, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
 
@@ -402,7 +477,7 @@ class DrvEpcDeviceC(DrvPwrDeviceC):
         self.read_can_buffer()
         return self.__properties
 
-    def get_elec_meas(self, periodic_flag: bool) -> dict|None:
+    def get_elec_meas(self, periodic_flag: bool= False) -> dict:
         """Get the current electric measures of the device .
 
         Returns:
@@ -410,33 +485,33 @@ class DrvEpcDeviceC(DrvPwrDeviceC):
                     and voltage in high side]
         """
         if not periodic_flag:
-            id_msg = self.__dev_id + 0x1
+            id_msg = self.__dev_id << 4 | 0x1
             data_msg = 3
-            msg = DrvCanMessageC(addr= id_msg, size= 1, payload = data_msg)
+            msg = DrvCanMessageC(addr= id_msg, size= 1, data = data_msg)
             self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
-        return {'ls_volt': self.__live_data.voltage, 'ls_curr': self.__live_data.current,
-                'ls_pwr': self.__live_data.power, 'hs_volt': self.__live_data.hs_voltage}
+        return {'ls_volt': self.__live_data.ls_voltage, 'ls_curr': self.__live_data.ls_current,
+                'ls_pwr': self.__live_data.ls_power, 'hs_volt': self.__live_data.hs_voltage}
 
-    def get_temp_meas(self, periodic_flag: bool) -> dict|None:
+    def get_temp_meas(self, periodic_flag: bool = False) -> dict:
         """Get the current temperatures measure of the device .
 
         Returns:
             [dict]: [Dictionary with the 3 possible temperatures the device can measure]
         """
         if not periodic_flag:
-            id_msg = self.__dev_id + 0x1
+            id_msg = self.__dev_id << 4 | 0x1
             data_msg = 4
-            msg = DrvCanMessageC(addr= id_msg, size= 1, payload = data_msg)
+            msg = DrvCanMessageC(addr= id_msg, size= 1, data = data_msg)
             self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
         res = dict()
-        if self.__properties.hw_version[9] == 1:
-            res['body_temperature'] = self.__live_data.temp_body
-        if ba2int(self.__properties.hw_version[7:9]) != 0:
-            res['anode_temperature'] = self.__live_data.temp_anod
-        if self.__properties.hw_version[10] == 1:
-            res['ambient_temperature'] = self.__live_data.temp_amb
+        # if self.__properties.hw_version[9] == 1:
+        res['body_temperature'] = self.__live_data.temp_body
+        # if ba2int(self.__properties.hw_version[7:9]) != 0:
+        res['anode_temperature'] = self.__live_data.temp_anod
+        # if self.__properties.hw_version[10] == 1:
+        res['ambient_temperature'] = self.__live_data.temp_amb
         return res
 
     def set_periodic(self, ack_en: bool = False, ack_period: int = 10,
@@ -452,10 +527,10 @@ class DrvEpcDeviceC(DrvPwrDeviceC):
             temp_en (bool, optional): [description]. Defaults to False.
             temp_period (int, optional): [description]. Defaults to 10.
         """
-        id_msg = self.__dev_id + 0x7
+        id_msg = self.__dev_id << 4 | 0x7
         data_msg= (temp_period << 33 | temp_en<<32 | elect_period<<17
                  | elect_en << 16 | ack_period<<1 | ack_en)
-        msg = DrvCanMessageC(addr= id_msg, size= 8, payload = data_msg)
+        msg = DrvCanMessageC(addr= id_msg, size= 8, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
 
     def set_ls_volt_limit(self, max_lim: int, min_lim: int):
@@ -465,9 +540,9 @@ class DrvEpcDeviceC(DrvPwrDeviceC):
             max_lim (int): [description]
             min_lim (int): [description]
         """
-        id_msg = self.__dev_id + 0x2
+        id_msg = self.__dev_id << 4 | 0x2
         data_msg= min_lim << 16 | max_lim
-        msg = DrvCanMessageC(addr= id_msg, size= 4, payload = data_msg)
+        msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
 
     def set_ls_curr_limit(self, max_lim: int, min_lim: int):
@@ -477,9 +552,9 @@ class DrvEpcDeviceC(DrvPwrDeviceC):
             max_lim (int): [description]
             min_lim (int): [description]
         """
-        id_msg = self.__dev_id + 0x3
+        id_msg = self.__dev_id << 4 | 0x3
         data_msg= min_lim << 16 | max_lim
-        msg = DrvCanMessageC(addr= id_msg, size= 4, payload = data_msg)
+        msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
 
     def set_hs_volt_limit(self, max_lim: int, min_lim: int):
@@ -489,9 +564,9 @@ class DrvEpcDeviceC(DrvPwrDeviceC):
             max_lim (int): [description]
             min_lim (int): [description]
         """
-        id_msg = self.__dev_id + 0x4
+        id_msg = self.__dev_id << 4 | 0x4
         data_msg= min_lim << 16 | max_lim
-        msg = DrvCanMessageC(addr= id_msg, size= 4, payload = data_msg)
+        msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
 
     def set_ls_pwr_limit(self, max_lim: int, min_lim: int):
@@ -501,9 +576,9 @@ class DrvEpcDeviceC(DrvPwrDeviceC):
             max_lim (int): [description]
             min_lim (int): [description]
         """
-        id_msg = self.__dev_id + 0x5
+        id_msg = self.__dev_id << 4 | 0x5
         data_msg= min_lim << 16 | max_lim
-        msg = DrvCanMessageC(addr= id_msg, size= 4, payload = data_msg)
+        msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
 
     def set_temp_limit(self, max_lim: int, min_lim: int):
@@ -513,9 +588,9 @@ class DrvEpcDeviceC(DrvPwrDeviceC):
             max_lim (int): [description]
             min_lim (int): [description]
         """
-        id_msg = self.__dev_id + 0x6
+        id_msg = self.__dev_id << 4 | 0x6
         data_msg= min_lim << 16 | max_lim
-        msg = DrvCanMessageC(addr= id_msg, size= 4, payload = data_msg)
+        msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
 
     def open(self, addr: int, mask: int) -> None:
