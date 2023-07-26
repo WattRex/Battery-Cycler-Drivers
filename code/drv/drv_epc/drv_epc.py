@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """
-This module will manage CAN messages and channels
-in order to configure channels and send/received messages.
+This module will create instances of epc device in order to control
+the device and request info from it.
 """
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
