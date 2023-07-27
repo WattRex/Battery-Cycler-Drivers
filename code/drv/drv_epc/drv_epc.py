@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """
-This module will manage CAN messages and channels
-in order to configure channels and send/received messages.
+This module will create instances of epc device in order to control
+the device and request info from it.
 """
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
@@ -62,7 +62,8 @@ class _ConstantsC:
     ''' Constants the script may need
     '''
     TO_DECI_WATS = 100000
-    MAX_READS    = 100
+    MAX_READS    = 300
+    MASK         = 0x7F0
 
 #######################             CLASSES              #######################
 class DrvEpcStatusC:
@@ -206,7 +207,8 @@ class DrvEpcDataC():
     def __init__(self, status: DrvEpcStatusC = DrvEpcStatusC(0),
                  mode: DrvEpcModeE = DrvEpcModeE.IDLE,
                  ls_voltage: int = 0, ls_current: int = 0, ls_power: int = 0, hs_voltage: int = 0,
-                 temp_body: int = 0, temp_amb: int = 0, temp_anod: int = 0) -> None:
+                 temp_body: int|None = None, temp_amb: int|None = None,
+                 temp_anod: int|None = None) -> None:
         self.mode = mode
         self.status = status
         self.ls_voltage = ls_voltage
@@ -266,38 +268,38 @@ class DrvEpcDeviceC():
                 elif msg_id == 0x2:
                     self.__properties.max_ls_volt_limit = ba2int(msg_bitarray[:16])
                     self.__properties.min_ls_volt_limit = ba2int(msg_bitarray[16:32])
-                    log.info(f"LS Voltage limits are /n Max:{self.__properties.max_ls_volt_limit}/n\
-                            Min: {self.__properties.min_ls_volt_limit}")
+                    log.info(f"LS Voltage limits are Max:{self.__properties.max_ls_volt_limit} mV"+\
+                            f" Min: {self.__properties.min_ls_volt_limit} mV")
                 #------   0xYY3 EPC LS Current Limits  ------
                 elif msg_id == 0x3:
                     max_curr = ba2int(msg_bitarray[:16],signed=True)
                     min_curr = ba2int(msg_bitarray[16:32],signed=True)
                     self.__properties.max_ls_curr_limit = max_curr
                     self.__properties.min_ls_curr_limit = min_curr
-                    log.info(f"LS Current limits are /n Max:{max_curr} mA /n\
-                            Min: {min_curr} mA")
+                    log.info(f"LS Current limits are Max:{max_curr} mA "+\
+                            f"Min: {min_curr} mA")
                 #------   0xYY4 EPC HS Voltage Limits  ------
                 elif msg_id == 0x4:
                     self.__properties.max_hs_volt_limit = ba2int(msg_bitarray[:16])
                     self.__properties.min_hs_volt_limit = ba2int(msg_bitarray[16:32])
-                    log.info(f"HS Voltage limits are /n Max:{self.__properties.max_hs_volt_limit}/n\
-                            Min: {self.__properties.min_hs_volt_limit}")
+                    log.info(f"HS Voltage limits are Max:{self.__properties.max_hs_volt_limit} mV"+\
+                            f" Min: {self.__properties.min_hs_volt_limit} mV")
                 #------   0xYY5 EPC LS Power Limits  ------
                 elif msg_id == 0x5:
                     max_pwr = ba2int(msg_bitarray[:16],signed=True)
                     min_pwr = ba2int(msg_bitarray[16:32],signed=True)
                     self.__properties.max_ls_pwr_limit = max_pwr
                     self.__properties.min_ls_pwr_limit = min_pwr
-                    log.info(f"LS Voltage limits are /n Max:{max_pwr} /n\
-                            Min: {min_pwr}")
+                    log.info(f"LS Power limits are Max:{max_pwr} dW "+ \
+                            f"Min: {min_pwr} dW")
                 #------   0xYY5 EPC Temperature Limits  ------
                 elif msg_id == 0x6:
                     max_temp = ba2int(msg_bitarray[:16],signed=True)
                     min_temp = ba2int(msg_bitarray[16:32],signed=True)
                     self.__properties.max_temp_limit = max_temp
                     self.__properties.min_temp_limit = min_temp
-                    log.info(f"Temperature limits are /n Max:{max_temp} /n\
-                            Min: {min_temp}")
+                    log.info(f"Temperature limits are Max:{max_temp} dºC "+ \
+                            f"Min: {min_temp} dºC")
                 #------   0xYY7 EPC Response Configuration  ------
                 elif msg_id == 0x7:
                     log.info(f"Enable user ACK: {msg_bitarray[0]}")
@@ -456,7 +458,7 @@ class DrvEpcDeviceC():
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
 
-    def get_data(self) -> DrvEpcDataC | None:
+    def get_data(self, update: bool = False) -> DrvEpcDataC:
         """Getter to the private attribute of live_data.
         Before returning the info it check if there is any message in can queue
         and update the attributes
@@ -464,16 +466,28 @@ class DrvEpcDeviceC():
         Returns:
             [DrvEpcDataC]: [description]
         """
+        if update:
+            self.get_elec_meas()
+            self.get_temp_meas()
+            self.get_mode()
+            self.get_status()
         self.read_can_buffer()
         return self.__live_data
 
-    def get_properties(self) -> DrvEpcPropertiesC | None:
+    def get_properties(self, update: bool = False) -> DrvEpcPropertiesC:
         """Getter to the private attribute of __properties.
         Before returning the info it check if there is any message in can queue
         and update the attributes
         Returns:
             [DrvEpcPropertiesC]: [description]
         """
+        if update:
+            self.get_temp_limits()
+            self.get_hs_volt_limits()
+            self.get_ls_curr_limits()
+            self.get_ls_pwr_limits()
+            self.get_ls_volt_limits()
+            self.get_info()
         self.read_can_buffer()
         return self.__properties
 
@@ -497,7 +511,8 @@ class DrvEpcDeviceC():
         """Get the current temperatures measure of the device .
 
         Returns:
-            [dict]: [Dictionary with the 3 possible temperatures the device can measure]
+            [dict]: [Dictionary with the 3 possible temperatures the device can measure
+                    body_temperature, anode_temperature, ambient_temperature]
         """
         if not periodic_flag:
             id_msg = self.__dev_id << 4 | 0x1
@@ -512,6 +527,42 @@ class DrvEpcDeviceC():
         res['anode_temperature'] = self.__live_data.temp_anod
         # if self.__properties.hw_version[10] == 1:
         res['ambient_temperature'] = self.__live_data.temp_amb
+        return res
+
+    def get_mode(self) -> dict:
+        """Get the current mode.
+
+        Returns:
+            dict: [Dictionary with keys: mode, limit, ref and limit_ref]
+        """
+        id_msg = self.__dev_id << 4 | 0x1
+        data_msg = 1
+        msg = DrvCanMessageC(addr= id_msg, size= 1, data = data_msg)
+        self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+        self.read_can_buffer()
+        res = dict()
+        res['mode'] = self.__live_data.mode
+        res['limit'] = self.__live_data.lim_mode
+        res['ref'] = self.__live_data.ref
+        res['limit_ref'] = self.__live_data.lim_ref
+        return res
+
+    def get_status(self) -> dict:
+        """Get the status of the device .
+
+        Returns:
+            dict: [Dictionary with the errors of the device, been the keys the following:
+            error_code, error
+            The value of the error code is a string with the hexadecimal value]
+        """
+        id_msg = self.__dev_id << 4 | 0x1
+        data_msg = 2
+        msg = DrvCanMessageC(addr= id_msg, size= 1, data = data_msg)
+        self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+        self.read_can_buffer()
+        res = dict()
+        res['error_code'] = hex(self.__live_data.status.error_code)
+        res['error'] = self.__live_data.status.name
         return res
 
     def set_periodic(self, ack_en: bool = False, ack_period: int = 10,
@@ -593,20 +644,117 @@ class DrvEpcDeviceC():
         msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
 
-    def open(self, addr: int, mask: int) -> None:
+    def get_ls_volt_limits(self) -> dict:
+        """Get the low side voltage limits .
+
+        Returns:
+            dict: [Dictionary with the keys: max_ls_volt, min_ls_volt]
+        """
+        id_msg = self.__dev_id << 4 | 0x1
+        data_msg = 6
+        msg = DrvCanMessageC(addr= id_msg, size= 1, data = data_msg)
+        self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+        self.read_can_buffer()
+        res = dict()
+        res['max_ls_volt'] = self.__properties.max_ls_volt_limit
+        res['min_ls_volt'] = self.__properties.max_ls_volt_limit
+        return res
+
+    def get_ls_curr_limits(self) -> dict:
+        """Get the low side current limits .
+
+        Returns:
+            dict: [Dictionary with the keys: max_ls_curr, min_ls_curr]
+        """
+        id_msg = self.__dev_id << 4 | 0x1
+        data_msg = 7
+        msg = DrvCanMessageC(addr= id_msg, size= 1, data = data_msg)
+        self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+        self.read_can_buffer()
+        res = dict()
+        res['max_ls_curr'] = self.__properties.max_ls_curr_limit
+        res['min_ls_curr'] = self.__properties.max_ls_curr_limit
+        return res
+
+    def get_hs_volt_limits(self) -> dict:
+        """Get the high side voltage limits for the device .
+
+        Returns:
+            dict: [Dictionary with the keys: max_hs_volt, min_hs_volt]
+        """
+        id_msg = self.__dev_id << 4 | 0x1
+        data_msg = 8
+        msg = DrvCanMessageC(addr= id_msg, size= 1, data = data_msg)
+        self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+        self.read_can_buffer()
+        res = dict()
+        res['max_hs_volt'] = self.__properties.max_hs_volt_limit
+        res['min_hs_volt'] = self.__properties.max_hs_volt_limit
+        return res
+
+    def get_ls_pwr_limits(self) -> dict:
+        """Get the LWM limit limits .
+
+        Returns:
+            dict: [Dictionary with the keys: max_pwr, min_pwr]
+        """
+        id_msg = self.__dev_id << 4 | 0x1
+        data_msg = 9
+        msg = DrvCanMessageC(addr= id_msg, size= 1, data = data_msg)
+        self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+        self.read_can_buffer()
+        res = dict()
+        res['max_pwr'] = self.__properties.max_ls_pwr_limit
+        res['min_pwr'] = self.__properties.max_ls_pwr_limit
+        return res
+
+    def get_temp_limits(self) -> dict:
+        """Get the current temperature limits .
+
+        Returns:
+            dict: [Dictionary with the keys: max_temp, min_temp]
+        """
+        id_msg = self.__dev_id << 4 | 0x1
+        data_msg = 0xA
+        msg = DrvCanMessageC(addr= id_msg, size= 1, data = data_msg)
+        self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+        self.read_can_buffer()
+        res = dict()
+        res['max_temp'] = self.__properties.max_temp_limit
+        res['min_temp'] = self.__properties.min_temp_limit
+        return res
+
+    def get_info(self) -> dict:
+        """Get the current temperature limits .
+
+        Returns:
+            dict: [Dictionary with the keys: dev_id, sw_version, hw_version]
+        """
+        id_msg = self.__dev_id << 4 | 0x1
+        data_msg = 0x0
+        msg = DrvCanMessageC(addr= id_msg, size= 1, data = data_msg)
+        self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+        self.read_can_buffer()
+        res = dict()
+        res['dev_id'] = hex(self.__properties.can_id)
+        res['sw_version'] = hex(self.__properties.sw_version)
+        res['hw_version'] = hex(ba2int(self.__properties.hw_version))
+        return res
+
+    def open(self) -> None:
         """Open a device filter .
 
         Args:
             addr (int): [addr of the device]
             mask (int): [mask apply to the addr in order to save the can messages]
         """
-        open_filter = DrvCanFilterC(addr, mask, self.__device_handler)
+        open_filter = DrvCanFilterC(self.__dev_id << 4, _ConstantsC.MASK, self.__device_handler)
         self.__send_to_can(DrvCanCmdTypeE.ADD_FILTER, open_filter)
 
-    def close(self, addr: int, mask: int) -> None: #
+    def close(self) -> None: #
         """Close the current device, and delete all messages in handler
         """
         self.read_can_buffer()
-        close_filter = DrvCanFilterC(addr, mask, self.__device_handler)
+        close_filter = DrvCanFilterC(self.__dev_id << 4, _ConstantsC.MASK, self.__device_handler)
         self.__send_to_can(DrvCanCmdTypeE.REMOVE_FILTER, close_filter)
         self.__device_handler.delete_until_last()
