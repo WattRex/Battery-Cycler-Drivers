@@ -260,8 +260,8 @@ class DrvCanNodeC(threading.Thread):
                         and not msg.is_error_frame):
                         self.__parse_msg(DrvCanMessageC(msg.arbitration_id,msg.dlc,msg.data))
                     else:
-                        log.error(f"Message receive but can`t be parsed, \
-                                due to id: {msg.arbitration_id}")
+                        log.error(f"Message receive can`t be parsed, id: {hex(msg.arbitration_id)}"+
+                                  f" and frame: {msg.is_error_frame}")
             except Exception as err:
                 log.error(f"Error while sending CAN message\n{err}")
         log.critical("Stop can working")
