@@ -200,27 +200,50 @@ class DrvEpcPropertiesC():
                       but has been introduced {min_temp_limit} and {max_temp_limit}")
             raise ValueError
 
-class DrvEpcDataC():
+class DrvEpcDataElectC():
     """
-    Data that can store the epc device, refered to measurements, status and mode.
+    Data that stores power measurements
     """
-    def __init__(self, status: DrvEpcStatusC = DrvEpcStatusC(0),
-                 mode: DrvEpcModeE = DrvEpcModeE.IDLE,
-                 ls_voltage: int = 0, ls_current: int = 0, ls_power: int = 0, hs_voltage: int = 0,
-                 temp_body: int|None = None, temp_amb: int|None = None,
-                 temp_anod: int|None = None) -> None:
-        self.mode = mode
-        self.status = status
+    def __init__(self, ls_voltage: int = 0, ls_current: int = 0, ls_power: int = 0, 
+                hs_voltage: int = 0) -> None:
         self.ls_voltage = ls_voltage
         self.ls_current = ls_current
         self.ls_power = ls_power
         self.hs_voltage = hs_voltage
+
+class DrvEpcDataTempC():
+    """
+    Data that stores temp measurements
+    """
+    def __init__(self, temp_body: int|None = None, temp_amb: int|None = None,
+                 temp_anod: int|None = None) -> None:
         self.temp_body = temp_body
         self.temp_amb = temp_amb
         self.temp_anod = temp_anod
+
+class DrvEpcDataCtrlC():
+    """
+    Data that stores mode, reference and limit reference
+    """
+    def __init__(self, mode: DrvEpcModeE = DrvEpcModeE.IDLE) -> None:
         self.lim_ref : int = 0
         self.lim_mode : DrvEpcLimitE = DrvEpcLimitE.TIME
+        self.mode : DrvEpcModeE = mode
         self.ref : int = 0
+
+class DrvEpcDataC(DrvEpcDataElectC, DrvEpcDataTempC, DrvEpcDataCtrlC):
+    """
+    Data that can store the epc device, refered to measurements, status and mode.
+    """
+    def __init__(self, ls_voltage: int = 0, ls_current: int = 0, ls_power: int = 0, 
+                hs_voltage: int = 0, temp_body: int|None = None, temp_amb: int|None = None,
+                temp_anod: int|None = None, status: DrvEpcStatusC = DrvEpcStatusC(0),
+                mode: DrvEpcModeE = DrvEpcModeE.IDLE) -> None:
+        DrvEpcDataElectC.__init__(self, ls_voltage, ls_current, ls_power, hs_voltage)
+        DrvEpcDataTempC.__init__(self, temp_body, temp_amb, temp_anod)
+        DrvEpcDataCtrlC.__init__(self, mode)
+        self.status = status
+
 
 class DrvEpcDeviceC():
     """Class to create epc devices with all the properties needed.
@@ -491,7 +514,7 @@ class DrvEpcDeviceC():
         self.read_can_buffer()
         return self.__properties
 
-    def get_elec_meas(self, periodic_flag: bool= False) -> dict:
+    def get_elec_meas(self, periodic_flag: bool= False) -> DrvEpcDataElectC:
         """Get the current electric measures of the device .
 
         Returns:
@@ -504,8 +527,8 @@ class DrvEpcDeviceC():
             msg = DrvCanMessageC(addr= id_msg, size= 1, data = data_msg)
             self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
-        return {'ls_volt': self.__live_data.ls_voltage, 'ls_curr': self.__live_data.ls_current,
-                'ls_pwr': self.__live_data.ls_power, 'hs_volt': self.__live_data.hs_voltage}
+        return DrvEpcDataElectC(self.__live_data.ls_voltage, self.__live_data.ls_current, 
+                                self.__live_data.ls_power, self.__live_data.hs_voltage)
 
     def get_temp_meas(self, periodic_flag: bool = False) -> dict:
         """Get the current temperatures measure of the device .
