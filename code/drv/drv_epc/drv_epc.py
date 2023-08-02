@@ -45,7 +45,8 @@ class DrvEpcModeE(Enum):
     """
     Type of mode the epc can be on
     """
-    IDLE = 4
+    IDLE    = 4
+    ERROR   = 5
     WAIT    = 0
     CV_MODE = 1
     CC_MODE = 2
