@@ -124,16 +124,21 @@ class DrvEpcStatusC:
         '''
         return self.__status.name
 
-class DrvEpcPropertiesC():
+class DrvEpcLimitsC:
+    def __init__(self, max_value: int = None, min_value: int = None) -> None:
+        self.max = max_value
+        self.min = min_value
+
+class DrvEpcPropertiesC:
     '''
     Properties a epc can have
     '''
     def __init__(self, can_id: int, sw_version: int = 0, hw_version: int = 0,
-                 min_ls_volt_limit: int = 400, max_ls_volt_limit: int = 5100,
-                 min_ls_curr_limit: int = -15500, max_ls_curr_limit: int = 15500,
-                 min_ls_pwr_limit:  int = -510, max_ls_pwr_limit: int = 510,
-                 min_hs_volt_limit: int = 5300, max_hs_volt_limit: int = 14100,
-                 min_temp_limit: int = -160, max_temp_limit: int = 660,
+                 ls_volt_limit: DrvEpcLimitsC = DrvEpcLimitsC(5100,400),
+                 ls_curr_limit: DrvEpcLimitsC = DrvEpcLimitsC(5100,400),
+                 ls_pwr_limit:  DrvEpcLimitsC = DrvEpcLimitsC(510,-510),
+                 hs_volt_limit: DrvEpcLimitsC = DrvEpcLimitsC(14100,5300),
+                 temp_limit: DrvEpcLimitsC = DrvEpcLimitsC(660,-160),
                  model: str = '', serial_number: str = '') -> None:
         self.model: str|None = model
         self.serial_number: str|None = serial_number
@@ -156,52 +161,49 @@ class DrvEpcPropertiesC():
             log.error(f"Wrong hw version {hw_version}, should be over 0")
             raise ValueError
         #Check low side voltage limits are correct
-        if (min_ls_volt_limit < max_ls_volt_limit and min_ls_volt_limit >=400
-            and max_ls_volt_limit <= 5100):
-            self.max_ls_volt_limit = max_ls_volt_limit
-            self.min_ls_volt_limit = min_ls_volt_limit
+        if (ls_volt_limit.min < ls_volt_limit.max and ls_volt_limit.min >=400
+            and ls_volt_limit.max <= 5100):
+            self.ls_volt_limit: DrvEpcLimitsC = ls_volt_limit
         else:
             log.error(f"Wrong ls_volt limits, should between 400 and 5100 mV, \
-                      but has been introduced {min_ls_volt_limit} and {max_ls_volt_limit}")
+                      but has been introduced {ls_volt_limit.min} and {ls_volt_limit.max}")
             raise ValueError
         #Check low side current limits are correct
-        if (min_ls_curr_limit < max_ls_curr_limit and min_ls_curr_limit >= -15500
-            and max_ls_curr_limit <= 15500):
-            self.max_ls_curr_limit = max_ls_curr_limit
-            self.min_ls_curr_limit = min_ls_curr_limit
+        if (ls_curr_limit.min < ls_curr_limit.max and ls_curr_limit.min >= -15500
+            and ls_curr_limit.max <= 15500):
+            self.ls_curr_limit: DrvEpcLimitsC = ls_curr_limit
         else:
             log.error(f"Wrong ls current limits, should between +-15500 mA, \
-                      but has been introduced {min_ls_curr_limit} and {max_ls_curr_limit}")
+                      but has been introduced {ls_curr_limit.min} and {ls_curr_limit.max}")
             raise ValueError
         #Check low side power limits are correct
-        if (min_ls_pwr_limit < max_ls_pwr_limit and min_ls_pwr_limit >=-800
-            and max_ls_pwr_limit <= 800):
-            self.max_ls_pwr_limit = max_ls_pwr_limit
-            self.min_ls_pwr_limit = min_ls_pwr_limit
+        if (ls_pwr_limit.min < ls_pwr_limit.max and ls_pwr_limit.min >=-800
+            and ls_pwr_limit.max <= 800):
+            self.ls_pwr_limit: DrvEpcLimitsC = ls_pwr_limit
+
         else:
             log.error(f"Wrong ls power limits, should between +-800 dW, \
-                      but has been introduced {min_ls_pwr_limit} and {max_ls_pwr_limit}")
+                      but has been introduced {ls_pwr_limit.min} and {ls_pwr_limit.max}")
             raise ValueError
         #Check high side voltage limits are correct
-        if (min_hs_volt_limit < max_hs_volt_limit and min_hs_volt_limit >=5300
-            and max_hs_volt_limit <= 14100):
-            self.min_hs_volt_limit = min_hs_volt_limit
-            self.max_hs_volt_limit = max_hs_volt_limit
+        if (hs_volt_limit.min < hs_volt_limit.max and hs_volt_limit.min >=5300
+            and hs_volt_limit.max <= 14100):
+            self.hs_volt_limit: DrvEpcLimitsC = hs_volt_limit
+
         else:
             log.error(f"Wrong hs volt limits, should between 5300 and 14100 mV, \
-                      but has been introduced {min_hs_volt_limit} and {max_hs_volt_limit}")
+                      but has been introduced {hs_volt_limit.min} and {hs_volt_limit.max}")
             raise ValueError
         #Check temperature limits are correct
-        if (min_temp_limit < max_temp_limit and min_temp_limit >=-200
-            and max_temp_limit <= 700):
-            self.min_temp_limit = min_temp_limit
-            self.max_temp_limit = max_temp_limit
+        if (temp_limit.min < temp_limit.max and temp_limit.min >=-200
+            and temp_limit.max <= 700):
+            self.temp_limit: DrvEpcLimitsC = temp_limit
         else:
             log.error(f"Wrong temp limits, should between -200 and 700 dºC, \
-                      but has been introduced {min_temp_limit} and {max_temp_limit}")
+                      but has been introduced {temp_limit.min} and {temp_limit.max}")
             raise ValueError
 
-class DrvEpcDataElectC():
+class DrvEpcDataElectC:
     """
     Data that stores power measurements
     """
@@ -212,7 +214,7 @@ class DrvEpcDataElectC():
         self.ls_power = ls_power
         self.hs_voltage = hs_voltage
 
-class DrvEpcDataTempC():
+class DrvEpcDataTempC:
     """
     Data that stores temp measurements
     """
@@ -222,15 +224,16 @@ class DrvEpcDataTempC():
         self.temp_amb = temp_amb
         self.temp_anod = temp_anod
 
-class DrvEpcDataCtrlC():
+class DrvEpcDataCtrlC:
     """
     Data that stores mode, reference and limit reference
     """
-    def __init__(self, mode: DrvEpcModeE = DrvEpcModeE.IDLE) -> None:
-        self.lim_ref : int = 0
-        self.lim_mode : DrvEpcLimitE = DrvEpcLimitE.TIME
+    def __init__(self, mode: DrvEpcModeE = DrvEpcModeE.IDLE, ref: int = 0,
+                 lim: DrvEpcLimitE = DrvEpcLimitE.TIME, lim_ref: int = 0) -> None:
+        self.lim_ref : int = lim_ref
+        self.lim_mode : DrvEpcLimitE = lim
         self.mode : DrvEpcModeE = mode
-        self.ref : int = 0
+        self.ref : int = ref
 
 class DrvEpcDataC(DrvEpcDataElectC, DrvEpcDataTempC, DrvEpcDataCtrlC):
     """
@@ -246,7 +249,7 @@ class DrvEpcDataC(DrvEpcDataElectC, DrvEpcDataTempC, DrvEpcDataCtrlC):
         self.status = status
 
 
-class DrvEpcDeviceC():
+class DrvEpcDeviceC:
     """Class to create epc devices with all the properties needed.
 
     """
@@ -290,38 +293,38 @@ class DrvEpcDeviceC():
                     log.error("The message send to request data has a format error")
                 #------   0xYY2 EPC LS Voltage Limits  ------
                 elif msg_id == 0x2:
-                    self.__properties.max_ls_volt_limit = ba2int(msg_bitarray[:16])
-                    self.__properties.min_ls_volt_limit = ba2int(msg_bitarray[16:32])
-                    log.info(f"LS Voltage limits are Max:{self.__properties.max_ls_volt_limit} mV"+\
-                            f" Min: {self.__properties.min_ls_volt_limit} mV")
+                    self.__properties.ls_volt_limit.max = ba2int(msg_bitarray[:16])
+                    self.__properties.ls_volt_limit.min = ba2int(msg_bitarray[16:32])
+                    log.info(f"LS Voltage limits are Max:{self.__properties.ls_volt_limit.max} mV"+\
+                            f" Min: {self.__properties.ls_volt_limit.min} mV")
                 #------   0xYY3 EPC LS Current Limits  ------
                 elif msg_id == 0x3:
                     max_curr = ba2int(msg_bitarray[:16],signed=True)
                     min_curr = ba2int(msg_bitarray[16:32],signed=True)
-                    self.__properties.max_ls_curr_limit = max_curr
-                    self.__properties.min_ls_curr_limit = min_curr
+                    self.__properties.ls_curr_limit.max = max_curr
+                    self.__properties.ls_curr_limit.min = min_curr
                     log.info(f"LS Current limits are Max:{max_curr} mA "+\
                             f"Min: {min_curr} mA")
                 #------   0xYY4 EPC HS Voltage Limits  ------
                 elif msg_id == 0x4:
-                    self.__properties.max_hs_volt_limit = ba2int(msg_bitarray[:16])
-                    self.__properties.min_hs_volt_limit = ba2int(msg_bitarray[16:32])
-                    log.info(f"HS Voltage limits are Max:{self.__properties.max_hs_volt_limit} mV"+\
-                            f" Min: {self.__properties.min_hs_volt_limit} mV")
+                    self.__properties.hs_volt_limit.max = ba2int(msg_bitarray[:16])
+                    self.__properties.hs_volt_limit.min = ba2int(msg_bitarray[16:32])
+                    log.info(f"HS Voltage limits are Max:{self.__properties.hs_volt_limit.max} mV"+\
+                            f" Min: {self.__properties.hs_volt_limit.min} mV")
                 #------   0xYY5 EPC LS Power Limits  ------
                 elif msg_id == 0x5:
                     max_pwr = ba2int(msg_bitarray[:16],signed=True)
                     min_pwr = ba2int(msg_bitarray[16:32],signed=True)
-                    self.__properties.max_ls_pwr_limit = max_pwr
-                    self.__properties.min_ls_pwr_limit = min_pwr
+                    self.__properties.ls_pwr_limit.max = max_pwr
+                    self.__properties.ls_pwr_limit.min = min_pwr
                     log.info(f"LS Power limits are Max:{max_pwr} dW "+ \
                             f"Min: {min_pwr} dW")
                 #------   0xYY5 EPC Temperature Limits  ------
                 elif msg_id == 0x6:
                     max_temp = ba2int(msg_bitarray[:16],signed=True)
                     min_temp = ba2int(msg_bitarray[16:32],signed=True)
-                    self.__properties.max_temp_limit = max_temp
-                    self.__properties.min_temp_limit = min_temp
+                    self.__properties.temp_limit.max = max_temp
+                    self.__properties.temp_limit.min = min_temp
                     log.info(f"Temperature limits are Max:{max_temp} dºC "+ \
                             f"Min: {min_temp} dºC")
                 #------   0xYY7 EPC Response Configuration  ------
@@ -402,7 +405,7 @@ class DrvEpcDeviceC():
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
             limit_ref (int): [Reference for the limit imposed]
         """
-        if ref < self.__properties.min_ls_volt_limit and ref > self.__properties.max_ls_volt_limit:
+        if ref < self.__properties.ls_volt_limit.min and ref > self.__properties.ls_volt_limit.max:
             log.error(f"Error setting the refence for CV, \
                       introduced {ref} and it should be between max and min limits")
             raise ValueError
@@ -423,7 +426,7 @@ class DrvEpcDeviceC():
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
             limit_ref (int): [Reference for the limit imposed]
         """
-        if ref < self.__properties.min_ls_curr_limit and ref > self.__properties.max_ls_curr_limit:
+        if ref < self.__properties.ls_curr_limit.min and ref > self.__properties.ls_curr_limit.max:
             log.error(f"Error setting the refence for CC, \
                       introduced {ref} and it should be between max and min limits")
             raise ValueError
@@ -444,7 +447,7 @@ class DrvEpcDeviceC():
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
             limit_ref (int): [Reference for the limit imposed]
         """
-        if ref < self.__properties.min_ls_pwr_limit and ref > self.__properties.max_ls_pwr_limit:
+        if ref < self.__properties.ls_pwr_limit.min and ref > self.__properties.ls_pwr_limit.max:
             log.error(f"Error setting the refence for CC, \
                       introduced {ref} and it should be between max and min limits")
         elif limit_type == DrvEpcLimitE.POWER:
@@ -528,10 +531,10 @@ class DrvEpcDeviceC():
             msg = DrvCanMessageC(addr= id_msg, size= 1, data = data_msg)
             self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
-        return DrvEpcDataElectC(self.__live_data.ls_voltage, self.__live_data.ls_current, 
+        return DrvEpcDataElectC(self.__live_data.ls_voltage, self.__live_data.ls_current,
                                 self.__live_data.ls_power, self.__live_data.hs_voltage)
 
-    def get_temp_meas(self, periodic_flag: bool = False) -> dict:
+    def get_temp_meas(self, periodic_flag: bool = False) -> DrvEpcDataTempC:
         """Get the current temperatures measure of the device .
 
         Returns:
@@ -544,16 +547,10 @@ class DrvEpcDeviceC():
             msg = DrvCanMessageC(addr= id_msg, size= 1, data = data_msg)
             self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
-        res = dict()
-        # if self.__properties.hw_version[9] == 1:
-        res['body_temperature'] = self.__live_data.temp_body
-        # if ba2int(self.__properties.hw_version[7:9]) != 0:
-        res['anode_temperature'] = self.__live_data.temp_anod
-        # if self.__properties.hw_version[10] == 1:
-        res['ambient_temperature'] = self.__live_data.temp_amb
-        return res
+        return DrvEpcDataTempC(self.__live_data.temp_body, self.__live_data.temp_amb,
+                               self.__live_data.temp_anod)
 
-    def get_mode(self) -> dict:
+    def get_mode(self) -> DrvEpcDataCtrlC:
         """Get the current mode.
 
         Returns:
@@ -564,12 +561,9 @@ class DrvEpcDeviceC():
         msg = DrvCanMessageC(addr= id_msg, size= 1, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
-        res = dict()
-        res['mode'] = self.__live_data.mode
-        res['limit'] = self.__live_data.lim_mode
-        res['ref'] = self.__live_data.ref
-        res['limit_ref'] = self.__live_data.lim_ref
-        return res
+
+        return DrvEpcDataCtrlC(self.__live_data.mode, self.__live_data.ref, 
+                                self.__live_data.lim_mode, self.__live_data.lim_ref)
 
     def get_status(self) -> dict:
         """Get the status of the device .
@@ -584,10 +578,7 @@ class DrvEpcDeviceC():
         msg = DrvCanMessageC(addr= id_msg, size= 1, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
-        res = dict()
-        res['error_code'] = hex(self.__live_data.status.error_code)
-        res['error'] = self.__live_data.status.name
-        return res
+        return self.__live_data.status
 
     def set_periodic(self, ack_en: bool = False, ack_period: int = 10,
                      elect_en: bool = False, elect_period: int = 10,
@@ -680,8 +671,8 @@ class DrvEpcDeviceC():
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
         res = dict()
-        res['max_ls_volt'] = self.__properties.max_ls_volt_limit
-        res['min_ls_volt'] = self.__properties.max_ls_volt_limit
+        res['max_ls_volt'] = self.__properties.ls_volt_limit.max
+        res['min_ls_volt'] = self.__properties.ls_volt_limit.max
         return res
 
     def get_ls_curr_limits(self) -> dict:
@@ -696,8 +687,8 @@ class DrvEpcDeviceC():
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
         res = dict()
-        res['max_ls_curr'] = self.__properties.max_ls_curr_limit
-        res['min_ls_curr'] = self.__properties.max_ls_curr_limit
+        res['max_ls_curr'] = self.__properties.ls_curr_limit.max
+        res['min_ls_curr'] = self.__properties.ls_curr_limit.max
         return res
 
     def get_hs_volt_limits(self) -> dict:
@@ -712,8 +703,8 @@ class DrvEpcDeviceC():
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
         res = dict()
-        res['max_hs_volt'] = self.__properties.max_hs_volt_limit
-        res['min_hs_volt'] = self.__properties.max_hs_volt_limit
+        res['max_hs_volt'] = self.__properties.hs_volt_limit.max
+        res['min_hs_volt'] = self.__properties.hs_volt_limit.max
         return res
 
     def get_ls_pwr_limits(self) -> dict:
@@ -728,8 +719,8 @@ class DrvEpcDeviceC():
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
         res = dict()
-        res['max_pwr'] = self.__properties.max_ls_pwr_limit
-        res['min_pwr'] = self.__properties.max_ls_pwr_limit
+        res['max_pwr'] = self.__properties.ls_pwr_limit.max
+        res['min_pwr'] = self.__properties.ls_pwr_limit.max
         return res
 
     def get_temp_limits(self) -> dict:
@@ -744,8 +735,8 @@ class DrvEpcDeviceC():
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
         res = dict()
-        res['max_temp'] = self.__properties.max_temp_limit
-        res['min_temp'] = self.__properties.min_temp_limit
+        res['max_temp'] = self.__properties.temp_limit.max
+        res['min_temp'] = self.__properties.temp_limit.min
         return res
 
     def get_info(self) -> dict:

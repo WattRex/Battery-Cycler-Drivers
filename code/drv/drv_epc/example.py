@@ -109,13 +109,16 @@ if __name__ == '__main__':
         while len(list_dev)>0:
             time.sleep(0.100)
             for epc_dev in list_dev:
-                elec_meas = list(epc_dev.epc.get_elec_meas(periodic_flag=False).values())
-                temp_meas = list(epc_dev.epc.get_temp_meas(periodic_flag=False).values())
+                elec_meas = epc_dev.epc.get_elec_meas(periodic_flag=False)
+                temp_meas = epc_dev.epc.get_temp_meas(periodic_flag=False)
 
                 data = epc_dev.epc.get_data(update=True)
                 epc_dev.df_epc.loc[len(epc_dev.df_epc)] = [datetime.now().astimezone(
                     timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]]+\
-                    [data.mode.name, data.ref, data.lim_mode.name, data.lim_ref]+elec_meas+temp_meas
+                    [data.mode.name, data.ref, data.lim_mode.name, data.lim_ref]+\
+                    [elec_meas.ls_current, elec_meas.ls_current,
+                    elec_meas.ls_power, elec_meas.hs_voltage]+\
+                    [temp_meas.temp_body, temp_meas.temp_anod, temp_meas.temp_amb]
                 if data.mode is DrvEpcModeE.IDLE and epc_dev.last_mode is not DrvEpcModeE.IDLE:
                     cmd = epc_dev.file.readline()
                     if not cmd :
@@ -135,13 +138,16 @@ if __name__ == '__main__':
         j = 0
         while 1:
 
-            elec_meas = list(epc_dev.epc.get_elec_meas(periodic_flag=False).values())
-            temp_meas = list(epc_dev.epc.get_temp_meas(periodic_flag=False).values())
+            elec_meas = epc_dev.epc.get_elec_meas(periodic_flag=False)
+            temp_meas = epc_dev.epc.get_temp_meas(periodic_flag=False)
             data = epc_dev.epc.get_data(update=True)
             #save measures in pandas
             epc_dev.df_epc.loc[len(epc_dev.df_epc)] = [datetime.now().astimezone(
                     timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]]+\
-                 [data.mode.name, data.ref, data.lim_mode.name, data.lim_ref]+elec_meas+temp_meas
+                    [data.mode.name, data.ref, data.lim_mode.name, data.lim_ref]+\
+                    [elec_meas.ls_current, elec_meas.ls_current,
+                    elec_meas.ls_power, elec_meas.hs_voltage]+\
+                    [temp_meas.temp_body, temp_meas.temp_anod, temp_meas.temp_amb]
             
             if data.mode is DrvEpcModeE.IDLE and epc_dev.last_mode is not DrvEpcModeE.IDLE:
                 if j == 0:
