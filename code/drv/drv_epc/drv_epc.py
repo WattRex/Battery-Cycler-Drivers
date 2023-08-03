@@ -249,7 +249,7 @@ class DrvEpcDataC(DrvEpcDataElectC, DrvEpcDataTempC, DrvEpcDataCtrlC):
         self.status = status
 
 
-class DrvEpcDeviceC:
+class DrvEpcDeviceC :
     """Class to create epc devices with all the properties needed.
 
     """
@@ -413,6 +413,9 @@ class DrvEpcDeviceC:
             log.error("Limit can not be voltage when mode is CV")
             raise ValueError
         id_msg = self.__properties.can_id << 4 | 0x0
+        ref = ba2int(int2ba(ref,length=16, signed = True), signed = False)
+        if (limit_type.name == DrvEpcLimitE.CURRENT or limit_type.name == DrvEpcLimitE.POWER):
+            limit_ref = ba2int(int2ba(limit_ref,length=32, signed = True), signed = False)
         data_msg= limit_ref << 32 | ref<<16 | limit_type.value << 4 | 1<<1 | 1
         msg = DrvCanMessageC(addr= id_msg, size= 8, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
@@ -434,6 +437,10 @@ class DrvEpcDeviceC:
             log.error("Limit can not be current when mode is CC")
             raise ValueError
         id_msg = self.__dev_id << 4 | 0x0
+        ref = ba2int(int2ba(ref,length=16, signed = True), signed = False)
+        if (limit_type.name == DrvEpcLimitE.CURRENT or limit_type.name == DrvEpcLimitE.POWER):
+            limit_ref = ba2int(int2ba(limit_ref,length=32, signed = True), signed = False)
+        limit_ref = ba2int(int2ba(limit_ref,length=32, signed = True), signed = False)
         data_msg= limit_ref << 32 | ref<<16 | limit_type.value << 4 | 2<<1 | 1
         msg = DrvCanMessageC(addr= id_msg, size= 8, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
@@ -454,6 +461,10 @@ class DrvEpcDeviceC:
             log.error("Limit can not be power when mode is CP")
             raise ValueError
         id_msg = self.__dev_id << 4 | 0x0
+        ref = ba2int(int2ba(ref,length=16, signed = True), signed = False)
+        if (limit_type.name == DrvEpcLimitE.CURRENT or limit_type.name == DrvEpcLimitE.POWER):
+            limit_ref = ba2int(int2ba(limit_ref,length=32, signed = True), signed = False)
+        limit_ref = ba2int(int2ba(limit_ref,length=32, signed = True), signed = False)
         data_msg= limit_ref << 32 | ref<<16 | limit_type.value << 4 | 3<<1 | 1
         msg = DrvCanMessageC(addr= id_msg, size= 8, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
