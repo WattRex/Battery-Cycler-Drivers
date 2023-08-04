@@ -46,7 +46,8 @@ class _ManageEpcC():
                             'LS_Volt[mV]','LS_Curr[mA]','LS_Power[dW]',
                              'HS_Volt[mV]', 'Temp_body[dºC]', 'Temp_anod[dºC]', 'Temp_amb[dºC]'])
         if len(txt)!=0:
-            self.file = open(os.path.join(path,txt+'.txt'), 'r', encoding="utf-8")
+            self.file = open( # pylint: disable= consider-using-with
+                os.path.join(path,txt+'.txt'), 'r', encoding="utf-8")
         else:
             self.file = None
         self.last_mode : DrvEpcModeE = DrvEpcModeE.WAIT
@@ -90,17 +91,19 @@ if __name__ == '__main__':
     can = DrvCanNodeC(can_queue, _working_can)
 
     path = os.path.join(os.getcwd(),'drv','drv_epc','example')
+    if not os.path.exists(path):
+        os.mkdir(path)
     n_dev = input("Introduce the can_id of "+
                     "the devices separated by commas: ").replace(' ','').split(',')
     if len(n_dev)>0:
         n_dev = [int(x,16) for x in n_dev if 'x' in x]+[int(x) for x in n_dev if 'x' not in x]
     n_txt = input("Introduce the name of files, must follow same order as device "+
                     " and not end in .txt: ").replace(' ','').split(',')
-    if len(n_dev)!= len(n_txt) or n_txt[0] is '':
+    if len(n_dev)!= len(n_txt) or n_txt[0] == '':
         log.error('Number of devices and files does not match')
 
     can.start()
-    if n_txt[0] is not '' and len(n_dev) == len(n_txt):
+    if n_txt[0] == '' and len(n_dev) == len(n_txt):
         list_dev = [_ManageEpcC(int(dev),txt,can_queue) for dev,txt in zip(n_dev,n_txt)]
         for epc_dev in list_dev:
             log.info(f"Device can id: {hex(epc_dev.epc.get_properties().can_id)}")

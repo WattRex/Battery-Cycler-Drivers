@@ -157,11 +157,12 @@ class DrvEpcPropInfoC:
             log.error(f"Wrong hw version {hw_version}, should positive")
             raise ValueError
 
-class DrvEpcPropertiesC(DrvEpcPropInfoC):
+class DrvEpcPropertiesC(DrvEpcPropInfoC): # pylint: disable= too-many-instance-attributes
     '''
     Properties a epc can have
     '''
-    def __init__(self, can_id: int = 0 , sw_version: int = 0, hw_version: int = 0,
+    def __init__(self, can_id: int = 0 , # pylint: disable= too-many-arguments
+                 sw_version: int = 0, hw_version: int = 0,
                  ls_volt_limit: DrvEpcLimitsC = DrvEpcLimitsC(5100,400),
                  ls_curr_limit: DrvEpcLimitsC = DrvEpcLimitsC(5100,400),
                  ls_pwr_limit:  DrvEpcLimitsC = DrvEpcLimitsC(510,-510),
@@ -245,11 +246,14 @@ class DrvEpcDataCtrlC:
         self.mode : DrvEpcModeE = mode
         self.ref : int = ref
 
-class DrvEpcDataC(DrvEpcDataElectC, DrvEpcDataTempC, DrvEpcDataCtrlC):
+class DrvEpcDataC(DrvEpcDataElectC, # pylint: disable= too-many-instance-attributes
+                  DrvEpcDataTempC,
+                  DrvEpcDataCtrlC):
     """
     Data that can store the epc device, refered to measurements, status and mode.
     """
-    def __init__(self, ls_voltage: int = 0, ls_current: int = 0, ls_power: int = 0,
+    def __init__(self, # pylint: disable= too-many-arguments
+                ls_voltage: int = 0, ls_current: int = 0, ls_power: int = 0,
                 hs_voltage: int = 0, temp_body: int|None = None, temp_amb: int|None = None,
                 temp_anod: int|None = None, status: DrvEpcStatusC = DrvEpcStatusC(0),
                 mode: DrvEpcModeE = DrvEpcModeE.IDLE) -> None:
@@ -259,7 +263,7 @@ class DrvEpcDataC(DrvEpcDataElectC, DrvEpcDataTempC, DrvEpcDataCtrlC):
         self.status = status
 
 
-class DrvEpcDeviceC :
+class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
     """Class to create epc devices with all the properties needed.
 
     """
@@ -279,7 +283,8 @@ class DrvEpcDeviceC :
         cmd = DrvCanCmdDataC(type_msg, msg)
         self.__tx_can.send_data(cmd)
 
-    def read_can_buffer(self):
+    def read_can_buffer( # pylint: disable= too-many-statements, too-many-branches, too-many-locals
+            self):
         """Receive data from the device .
         """
         if self.__device_handler.is_empty():
@@ -416,7 +421,7 @@ class DrvEpcDeviceC :
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
             limit_ref (int): [Reference for the limit imposed]
         """
-        if not (self.__properties.ls_volt_limit.min <= ref <= self.__properties.ls_volt_limit.max):
+        if not self.__properties.ls_volt_limit.min <= ref <= self.__properties.ls_volt_limit.max:
             log.error(f"Error setting the refence for CV, \
                       introduced {ref} and it should be between max and min limits")
             raise ValueError
@@ -440,7 +445,7 @@ class DrvEpcDeviceC :
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
             limit_ref (int): [Reference for the limit imposed]
         """
-        if not (self.__properties.ls_curr_limit.min <= ref <= self.__properties.ls_curr_limit.max):
+        if not self.__properties.ls_curr_limit.min <= ref <= self.__properties.ls_curr_limit.max:
             log.error(f"Error setting the refence for CC, \
                       introduced {ref} and it should be "+
                     f" between max {self.__properties.ls_curr_limit.max}  and "+
@@ -467,7 +472,7 @@ class DrvEpcDeviceC :
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
             limit_ref (int): [Reference for the limit imposed]
         """
-        if not (self.__properties.ls_pwr_limit.min <= ref <= self.__properties.ls_pwr_limit.max):
+        if not self.__properties.ls_pwr_limit.min <= ref <= self.__properties.ls_pwr_limit.max:
             log.error(f"Error setting the refence for CC, \
                       introduced {ref} and it should be between max and min limits")
         if limit_type == DrvEpcLimitE.POWER:
@@ -604,7 +609,8 @@ class DrvEpcDeviceC :
         self.read_can_buffer()
         return self.__live_data.status
 
-    def set_periodic(self, ack_en: bool = False, ack_period: int = 10,
+    def set_periodic(self, # pylint: disable= too-many-arguments
+                     ack_en: bool = False, ack_period: int = 10,
                      elect_en: bool = False, elect_period: int = 10,
                      temp_en: bool = False, temp_period: int = 10):
         """Set the periodic messages for the device .
