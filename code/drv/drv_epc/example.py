@@ -92,17 +92,16 @@ if __name__ == '__main__':
     path = os.path.join(os.getcwd(),'drv','drv_epc','example')
     n_dev = input("Introduce the can_id of "+
                     "the devices separated by commas: ").replace(' ','').split(',')
-    log.info('Not devices introduced')
     if len(n_dev)>0:
         n_dev = [int(x,16) for x in n_dev if 'x' in x]+[int(x) for x in n_dev if 'x' not in x]
     n_txt = input("Introduce the name of files, must follow same order as device "+
                     " and not end in .txt: ").replace(' ','').split(',')
-    if len(n_dev)!= len(n_txt):
+    if len(n_dev)!= len(n_txt) or n_txt[0] is '':
         log.error('Number of devices and files does not match')
 
     can.start()
-    if len(n_txt) != 0 and len(n_dev)!= len(n_txt):
-        list_dev = [_ManageEpcC(dev,txt,can_queue) for dev,txt in zip(n_dev,n_txt)]
+    if n_txt[0] is not '' and len(n_dev) == len(n_txt):
+        list_dev = [_ManageEpcC(int(dev),txt,can_queue) for dev,txt in zip(n_dev,n_txt)]
         for epc_dev in list_dev:
             log.info(f"Device can id: {hex(epc_dev.epc.get_properties().can_id)}")
             epc_dev.epc.open()
@@ -117,8 +116,8 @@ if __name__ == '__main__':
                     timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]]+\
                     [data.mode.name, data.ref, data.lim_mode.name, data.lim_ref]+\
                     [elec_meas.ls_current, elec_meas.ls_current,
-                    elec_meas.ls_power, elec_meas.hs_voltage]+\
-                    [temp_meas.temp_body, temp_meas.temp_anod, temp_meas.temp_amb]
+                    elec_meas.ls_power, elec_meas.hs_voltage,
+                    temp_meas.temp_body, temp_meas.temp_anod, temp_meas.temp_amb]
                 if data.mode is DrvEpcModeE.IDLE and epc_dev.last_mode is not DrvEpcModeE.IDLE:
                     cmd = epc_dev.file.readline()
                     if not cmd :
@@ -132,7 +131,7 @@ if __name__ == '__main__':
                 if epc_dev.last_mode != data.mode:
                     epc_dev.last_mode = data.mode
     else:
-        epc_dev = _ManageEpcC(n_dev[0],'',can_queue)
+        epc_dev = _ManageEpcC(int(n_dev[0]),'',can_queue)
         epc_dev.epc.open()
         i=0
         j = 0
@@ -144,24 +143,26 @@ if __name__ == '__main__':
             #save measures in pandas
             epc_dev.df_epc.loc[len(epc_dev.df_epc)] = [datetime.now().astimezone(
                     timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]]+\
-                    [data.mode.name, data.ref, data.lim_mode.name, data.lim_ref]+\
-                    [elec_meas.ls_current, elec_meas.ls_current,
-                    elec_meas.ls_power, elec_meas.hs_voltage]+\
-                    [temp_meas.temp_body, temp_meas.temp_anod, temp_meas.temp_amb]
-            
+                    [data.mode.name, data.ref, data.lim_mode.name, data.lim_ref,
+                    elec_meas.ls_current, elec_meas.ls_current,
+                    elec_meas.ls_power, elec_meas.hs_voltage,
+                    temp_meas.temp_body, temp_meas.temp_anod, temp_meas.temp_amb]
+
             if data.mode is DrvEpcModeE.IDLE and epc_dev.last_mode is not DrvEpcModeE.IDLE:
                 if j == 0:
-                    epc_dev.epc.set_cc_mode(1000, DrvEpcLimitE.TIME, 3000)
+                    epc_dev.epc.set_cc_mode(500, DrvEpcLimitE.TIME, 3000)
                     j = 1
                 else:
                     epc_dev.epc.set_wait_mode(limit_type= DrvEpcLimitE.TIME, limit_ref=3000)
                     j = 0
 
+            if epc_dev.last_mode != data.mode:
+                epc_dev.last_mode = data.mode
 
             if i %120 == 0:
                 epc_dev.df_epc.to_csv(os.path.join(path,
                         f'epc{hex(epc_dev.epc.get_properties().can_id)}_data.csv'), index=False)
 
-            time.sleep(0.1)
+            time.sleep(0.01)
             i+=1
     print("fin")
