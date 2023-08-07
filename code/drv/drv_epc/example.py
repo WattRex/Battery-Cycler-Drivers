@@ -103,7 +103,7 @@ if __name__ == '__main__':
         log.error('Number of devices and files does not match')
 
     can.start()
-    if n_txt[0] == '' and len(n_dev) == len(n_txt):
+    if n_txt[0] != '' and len(n_dev) == len(n_txt):
         list_dev = [_ManageEpcC(int(dev),txt,can_queue) for dev,txt in zip(n_dev,n_txt)]
         for epc_dev in list_dev:
             log.info(f"Device can id: {hex(epc_dev.epc.get_properties().can_id)}")
@@ -136,6 +136,7 @@ if __name__ == '__main__':
     else:
         epc_dev = _ManageEpcC(int(n_dev[0]),'',can_queue)
         epc_dev.epc.open()
+        epc_dev.epc.get_properties(update=True)
         i=0
         j = 0
         while 1:
@@ -153,7 +154,7 @@ if __name__ == '__main__':
 
             if data.mode is DrvEpcModeE.IDLE and epc_dev.last_mode is not DrvEpcModeE.IDLE:
                 if j == 0:
-                    epc_dev.epc.set_cc_mode(500, DrvEpcLimitE.TIME, 3000)
+                    epc_dev.epc.set_cc_mode(1000, DrvEpcLimitE.TIME, 3000)
                     j = 1
                 else:
                     epc_dev.epc.set_wait_mode(limit_type= DrvEpcLimitE.TIME, limit_ref=3000)

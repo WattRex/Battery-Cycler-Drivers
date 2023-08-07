@@ -359,7 +359,7 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
                     fw_ver = ba2int(msg_bitarray[6:11])
                     self.__properties.sw_version = fw_ver
                     log.info(f"Device fw version: {fw_ver}")
-                    hw_ver = msg_bitarray[11:]
+                    hw_ver = msg_bitarray[11:24]
                     self.__properties.hw_version = hw_ver
                     log.info(f"Device hw version: {ba2int(hw_ver)}")
                 #------   0xYYB EPC Status register  ------
