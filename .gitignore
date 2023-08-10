@@ -6,10 +6,12 @@
 config.*
 *.ini
 *.cred.*
-log/*
+*log/*
 *.log*
 *.yaml
-.vscode*
+*.yml
+*__version__.py
+
 
 ### Software IDEAS ###
 *.simp.bak
