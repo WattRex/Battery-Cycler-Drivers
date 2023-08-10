@@ -5,26 +5,22 @@ in order to configure channels and send/received messages.
 """
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
-import os
-import sys
 
 #######################         GENERIC IMPORTS          #######################
 import threading
 from typing import Any, Iterable, Callable, Mapping
 from enum import Enum
-#######################    SYSTEM ABSTRACTION IMPORTS    #######################
-# sys.path.append(os.path.join(os.getcwd(),'code'))  #get absolute path
-sys.path.append(os.getcwd())  #get absolute path
 
-from sys_abs.sys_shd import SysShdChanC
-from sys_abs.sys_log import sys_log_logger_get_module_logger
-if __name__ == '__main__':
-    from sys_abs.sys_log import SysLogLoggerC
-    cycler_logger = SysLogLoggerC('./sys_abs/sys_log/logginConfig.conf')
-log = sys_log_logger_get_module_logger(__name__)
 
 #######################       THIRD PARTY IMPORTS        #######################
-from can import ThreadSafeBus, Message, CanOperationError #pip3 install python-can
+from can import ThreadSafeBus, Message, CanOperationError
+from system_shared_tool import SysShdChanC
+import system_logger_tool as sys_log
+
+#######################    SYSTEM ABSTRACTION IMPORTS    #######################
+if __name__ == '__main__':
+    cycler_logger = sys_log.SysLogLoggerC()
+log = sys_log.sys_log_logger_get_module_logger(__name__)
 
 #######################          MODULE IMPORTS          #######################
 
@@ -257,7 +253,7 @@ class DrvCanNodeC(threading.Thread):
         Main method executed by the CAN thread. It receive data from EPCs and PLAKs
         and store it on the corresponding chan.
         '''
-        log.critical("Start running process")
+        log.info("Start running process")
         while self.working_flag.isSet():
             try:
                 if not self.tx_buffer.is_empty():

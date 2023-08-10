@@ -4,23 +4,21 @@ This is an example of use of the can module.
 """
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
-import os
-import sys
 
 #######################         GENERIC IMPORTS          #######################
 import threading
 import time
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
-sys.path.append(os.getcwd())  #get absolute path
-from sys_abs.sys_shd import SysShdChanC
-from sys_abs.sys_log import sys_log_logger_get_module_logger
+from system_shared_tool import SysShdChanC
+import system_logger_tool as sys_log
+
+#######################       LOGGER CONFIGURATION       #######################
 if __name__ == '__main__':
-    from sys_abs.sys_log import SysLogLoggerC
-    cycler_logger = SysLogLoggerC('./sys_abs/sys_log/logginConfig.conf')
-log = sys_log_logger_get_module_logger(__name__)
+    cycler_logger = sys_log.SysLogLoggerC()
+log = sys_log.sys_log_logger_get_module_logger(__name__)
 
 #######################          MODULE IMPORTS          #######################
-from drv.drv_can import DrvCanCmdDataC, DrvCanCmdTypeE, DrvCanFilterC, DrvCanNodeC, DrvCanMessageC
+from can_sniffer import DrvCanCmdDataC, DrvCanCmdTypeE, DrvCanFilterC, DrvCanNodeC, DrvCanMessageC
 
 #######################            FUNCTIONS             #######################
 def translate(msg_epc: DrvCanMessageC):
