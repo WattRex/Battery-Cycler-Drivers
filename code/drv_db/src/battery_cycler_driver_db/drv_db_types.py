@@ -3,21 +3,17 @@
 Enumerations defined to standardize names.
 '''
 #######################        MANDATORY IMPORTS         #######################
-import sys
-import os
 
 #######################         GENERIC IMPORTS          #######################
-
 
 #######################       THIRD PARTY IMPORTS        #######################
 from sqlalchemy import Enum
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
-sys.path.append(os.getcwd())  #get absolute path
-from sys_abs.sys_log import sys_log_logger_get_module_logger
+from system_logger_tool import sys_log_logger_get_module_logger
 if __name__ == '__main__':
-    from sys_abs.sys_log import SysLogLoggerC
-    cycler_logger = SysLogLoggerC('./sys_abs/sys_log/logginConfig.conf')
+    from system_logger_tool import SysLogLoggerC
+    cycler_logger = SysLogLoggerC()
 log = sys_log_logger_get_module_logger(__name__)
 
 #######################          PROJECT IMPORTS         #######################

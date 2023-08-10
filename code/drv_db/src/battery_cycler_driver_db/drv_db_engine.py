@@ -7,28 +7,25 @@ Raises:
     ConnectionError: Max db connection resets reached. Connection with db may have been lost.
 '''
 #######################        MANDATORY IMPORTS         #######################
-import sys
-import os
 
 #######################         GENERIC IMPORTS          #######################
-
 
 #######################       THIRD PARTY IMPORTS        #######################
 # SQL Alchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
-import mysql.connector as dbConnector
+from mysql.connector.errors import Error
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
-sys.path.append(os.getcwd())  #get absolute path
-from sys_abs.sys_log import sys_log_logger_get_module_logger
+from system_config_tool import sys_conf_read_config_params
+
+from system_logger_tool import sys_log_logger_get_module_logger
 if __name__ == '__main__':
-    from sys_abs.sys_log import SysLogLoggerC
-    cycler_logger = SysLogLoggerC('./sys_abs/sys_log/logginConfig.conf')
+    from system_logger_tool import SysLogLoggerC
+    cycler_logger = SysLogLoggerC()
 log = sys_log_logger_get_module_logger(__name__)
 
 #######################          PROJECT IMPORTS         #######################
-from sys_abs.sys_conf.sys_conf import sys_conf_read_config_params
 
 #######################          MODULE IMPORTS          #######################
 
@@ -64,7 +61,7 @@ class DrvDbSqlEngineC:
             self.session.begin()
             self.n_resets = 0
 
-        except dbConnector.Error as err:
+        except Error as err:
             log.error(err)
             raise err
 

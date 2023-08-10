@@ -8,11 +8,8 @@ Attributes in this script does not follow PEP8 snake_case naming convention.
 sqlacodegen mysql+mysqlconnector://user:password@ip:port/db_name --outfile drv_db_dao.py
 '''
 #######################        MANDATORY IMPORTS         #######################
-import sys
-import os
 
 #######################         GENERIC IMPORTS          #######################
-
 
 #######################       THIRD PARTY IMPORTS        #######################
 from sqlalchemy import Column, DateTime, ForeignKey, ForeignKeyConstraint, \
@@ -22,11 +19,10 @@ from sqlalchemy.dialects.mysql import INTEGER, MEDIUMINT, SMALLINT
 from sqlalchemy.ext.declarative import declarative_base
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
-sys.path.append(os.getcwd())  #get absolute path
-from sys_abs.sys_log import sys_log_logger_get_module_logger
+from system_logger_tool import sys_log_logger_get_module_logger
 if __name__ == '__main__':
-    from sys_abs.sys_log import SysLogLoggerC
-    cycler_logger = SysLogLoggerC('./sys_abs/sys_log/logginConfig.conf')
+    from system_logger_tool import SysLogLoggerC
+    cycler_logger = SysLogLoggerC()
 log = sys_log_logger_get_module_logger(__name__)
 
 #######################          PROJECT IMPORTS         #######################
