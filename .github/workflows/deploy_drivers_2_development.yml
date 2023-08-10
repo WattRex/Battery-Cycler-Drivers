@@ -6,30 +6,29 @@ on:
   push:
     branches: [ "drv_can", "drv_epc", "drv_bms", "drv_db",
                 "drv_ea", "drv_bk", "drv_rs", "drv_scpi" ]
-  
+    
   pull_request_review:
     # types: [edited]
     review:
       state: [approved]
-    pull_request:
-      base:
-        ref: [  "drv_can", "drv_epc", "drv_bms", "drv_db",
-                "drv_ea", "drv_bk", "drv_rs", "drv_scpi" ] 
-
+      pull_request:
+        base:
+          ref: [  "drv_can", "drv_epc", "drv_bms", "drv_db",
+                  "drv_ea", "drv_bk", "drv_rs", "drv_scpi" ] 
 
 jobs:
   
   build-package-on-push:
     if: ${{ github.event_name == 'push'}}
     name: Build package ${{ github.ref_name }}
-    uses: WattRex/System-Tools/.github/workflows/build_python_package.yml
+    uses: WattRex/System-Tools/.github/workflows/build_python_package.yml@develop
     with:
       module_name: ${{ github.ref_name }}
   
   build-package-on-pull-request:
     if: ${{ github.event_name == 'pull_request_review' }}
     name: Build package  ${{ github.event.pull_request.head.ref }}
-    uses: WattRex/System-Tools/.github/workflows/build_python_package.yml
+    uses: WattRex/System-Tools/.github/workflows/build_python_package.yml@develop
     with:
       module_name: ${{ github.event.pull_request.head.ref }}
     
