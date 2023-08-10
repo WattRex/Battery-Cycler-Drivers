@@ -5,26 +5,22 @@ in order to configure channels and send/received messages.
 """
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
-import os
-import sys
 
 #######################         GENERIC IMPORTS          #######################
 import threading
 from typing import Any, Iterable, Callable, Mapping
 from enum import Enum
-#######################    SYSTEM ABSTRACTION IMPORTS    #######################
-# sys.path.append(os.path.join(os.getcwd(),'code'))  #get absolute path
-sys.path.append(os.getcwd())  #get absolute path
 
-from sys_abs.sys_shd import SysShdChanC
-from sys_abs.sys_log import sys_log_logger_get_module_logger
-if __name__ == '__main__':
-    from sys_abs.sys_log import SysLogLoggerC
-    cycler_logger = SysLogLoggerC('./sys_abs/sys_log/logginConfig.conf')
-log = sys_log_logger_get_module_logger(__name__)
 
 #######################       THIRD PARTY IMPORTS        #######################
-from can import ThreadSafeBus, Message, CanOperationError #pip3 install python-can
+from can import ThreadSafeBus, Message, CanOperationError
+from system_shared_tool import SysShdChanC
+import system_logger_tool as sys_log
+
+#######################    SYSTEM ABSTRACTION IMPORTS    #######################
+if __name__ == '__main__':
+    cycler_logger = sys_log.SysLogLoggerC()
+log = sys_log.sys_log_logger_get_module_logger(__name__)
 
 #######################          MODULE IMPORTS          #######################
 
@@ -44,8 +40,8 @@ class DrvCanCmdTypeE(Enum):
     """
     Type of command for the CAN
     """
-    MESSAGE = 0,
-    ADD_FILTER = 1,
+    MESSAGE = 0
+    ADD_FILTER = 1
     REMOVE_FILTER = 2
 
 class DrvCanMessageC:
@@ -70,7 +66,7 @@ class DrvCanMessageC:
                       is higher than {_MAX_DLC_SIZE}")
             raise BytesWarning("To many element for a CAN message")
         if isinstance(data,int):
-            self.data = data.to_bytes(size, byteorder='little', signed=False)
+            self.data = data.to_bytes(size, byteorder='little', signed = True)
         else:
             self.data = data
 
@@ -79,13 +75,13 @@ class DrvCanFilterC():
     works as messages to make write or erase filters in can .
     """
     def __init__(self, addr : int, mask : int, chan):
-        if (addr >=0 and addr <= 0x7FF):
+        if 0 <= addr <= 0x7FF:
             self.addr = addr
         else:
             log.error("Wrong value for address, value must be between 0-0x7ff")
             raise ValueError
 
-        if (mask >=0 and mask <= 0x7FF ):
+        if 0 <= mask <= 0x7FF:
             self.mask = mask
         else:
             log.error("Wrong value for mask, value must be between 0 and 0x7ff")
@@ -115,6 +111,19 @@ class DrvCanCmdDataC():
         self.data_type = data_type
         self.payload = payload
 
+class DrvCanParamsC:
+    """
+    Class that contains the can parameters in order to create the thread correctly
+    """
+    def __init__(self, target: Callable[..., object] | None = ...,
+        name: str | None = ..., args: Iterable[Any] = ...,
+        kwargs: Mapping[str, Any] | None = ..., *, daemon: bool | None = ...):
+        self.target = target
+        self.name = name
+        self.args = args
+        self.kwargs = kwargs
+        self.daemon = daemon
+
 class DrvCanNodeC(threading.Thread):
     """Returns a removable version of the DRv command .
 
@@ -123,9 +132,8 @@ class DrvCanNodeC(threading.Thread):
     """
 
     def __init__(self, tx_buffer: SysShdChanC,
-        working_flag : threading.Event, target: Callable[..., object] | None = ...,
-        name: str | None = ..., args: Iterable[Any] = ...,
-        kwargs: Mapping[str, Any] | None = ..., *, daemon: bool | None = ...) -> None:
+        working_flag : threading.Event, can_params: DrvCanParamsC =
+        DrvCanParamsC()) -> None:
         '''
         Initialize the thread node used to received messages from CAN network.
 
@@ -134,7 +142,9 @@ class DrvCanNodeC(threading.Thread):
             chanEPC (SysShdChanC): Chan used to store messages received from EPCs.
         '''
 
-        super().__init__(None, target, name, args, kwargs, daemon=daemon)
+        super().__init__(group = None, target = can_params.target, name = can_params.name,
+                         args = can_params.args, kwargs = can_params.kwargs,
+                         daemon = can_params.daemon)
         self.working_flag = working_flag
         # cmd_can_down = 'sudo ip link set down can0'
         self.__can_bus : ThreadSafeBus = ThreadSafeBus(interface='socketcan',
@@ -144,7 +154,7 @@ class DrvCanNodeC(threading.Thread):
 
         self.tx_buffer: SysShdChanC = tx_buffer
 
-        self.__active_filter = list()
+        self.__active_filter = []
 
 
     def __parse_msg(self, message: DrvCanMessageC) -> None:
@@ -197,11 +207,9 @@ class DrvCanNodeC(threading.Thread):
         except CanOperationError as err:
             log.error(err)
             raise err
-        else:
-            pass
-            # log.debug(f"CAN Message sent: \tarbitration_id :
-            # {msg.arbitration_id:04X} \tdlc : {msg.dlc} \tdata :
-            # 0x{data_frame.data}, 0x{data_frame.data.hex()}")
+        # log.debug(f"CAN Message sent: \tarbitration_id :
+        # {msg.arbitration_id:04X} \tdlc : {msg.dlc} \tdata :
+        # 0x{data_frame.data}, 0x{data_frame.data.hex()}")
 
     def __apply_command(self, command : DrvCanCmdDataC) -> None:
         '''Apply a command to the CAN drv of the device.
@@ -245,7 +253,7 @@ class DrvCanNodeC(threading.Thread):
         Main method executed by the CAN thread. It receive data from EPCs and PLAKs
         and store it on the corresponding chan.
         '''
-        log.critical("Start running process")
+        log.info("Start running process")
         while self.working_flag.isSet():
             try:
                 if not self.tx_buffer.is_empty():
@@ -256,12 +264,12 @@ class DrvCanNodeC(threading.Thread):
                     self.__apply_command(command)
                 msg : Message = self.__can_bus.recv(timeout=_TIMEOUT_RX_MSG)
                 if isinstance(msg,Message):
-                    if (msg.arbitration_id > 0x000 and msg.arbitration_id <= 0x7FF
+                    if (0x000 <= msg.arbitration_id <= 0x7FF
                         and not msg.is_error_frame):
                         self.__parse_msg(DrvCanMessageC(msg.arbitration_id,msg.dlc,msg.data))
                     else:
-                        log.error(f"Message receive but can`t be parsed, \
-                                due to id: {msg.arbitration_id}")
+                        log.error(f"Message receive can`t be parsed, id: {hex(msg.arbitration_id)}"+
+                                  f" and frame: {msg.is_error_frame}")
             except Exception as err:
                 log.error(f"Error while sending CAN message\n{err}")
         log.critical("Stop can working")
