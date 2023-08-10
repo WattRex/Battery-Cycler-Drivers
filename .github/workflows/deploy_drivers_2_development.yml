@@ -15,9 +15,6 @@ on:
           base:
             ref: [  "drv_can", "drv_epc", "drv_bms", "drv_db",
                     "drv_ea", "drv_bk", "drv_rs", "drv_scpi" ] 
-  
-  workflow_dispatch:
-            
 
 jobs:
   
