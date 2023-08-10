@@ -11,6 +11,7 @@ config.*
 *.yaml
 *.yml
 *__version__.py
+.github/
 
 
 ### Software IDEAS ###

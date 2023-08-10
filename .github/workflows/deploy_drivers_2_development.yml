@@ -1,10 +1,11 @@
 # This workflow deploy system tools to development environment
 
-name: Deployment of system tools modules to development env
+name: Deployment of battery cycler drivers to development env
 
 on:
   push:
-    branches: [ "sys_conf", "sys_log", "sys_shd" ]
+    branches: [ "drv_can", "drv_epc", "drv_bms", "drv_db",
+                "drv_ea", "drv_bk", "drv_rs", "drv_scpi" ]
   
   pull_request_review:
     # types: [edited]
@@ -12,7 +13,8 @@ on:
       state: [approved]
     pull_request:
       base:
-        ref: [ "sys_conf", "sys_log", "sys_shd" ] 
+        ref: [  "drv_can", "drv_epc", "drv_bms", "drv_db",
+                "drv_ea", "drv_bk", "drv_rs", "drv_scpi" ] 
 
 
 jobs:
@@ -20,14 +22,14 @@ jobs:
   build-package-on-push:
     if: ${{ github.event_name == 'push'}}
     name: Build package ${{ github.ref_name }}
-    uses: ./.github/workflows/build_python_package.yml
+    uses: WattRex/System-Tools/.github/workflows/build_python_package.yml
     with:
       module_name: ${{ github.ref_name }}
   
   build-package-on-pull-request:
     if: ${{ github.event_name == 'pull_request_review' }}
     name: Build package  ${{ github.event.pull_request.head.ref }}
-    uses: ./.github/workflows/build_python_package.yml
+    uses: WattRex/System-Tools/.github/workflows/build_python_package.yml
     with:
       module_name: ${{ github.event.pull_request.head.ref }}
     
