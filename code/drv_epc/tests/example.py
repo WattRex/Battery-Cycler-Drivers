@@ -20,16 +20,16 @@ import pandas as pd
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
 sys.path.append(os.getcwd())  #get absolute path
 
-from sys_abs.sys_shd import SysShdChanC
-from sys_abs.sys_log import sys_log_logger_get_module_logger
+from system_shared_tool import SysShdChanC
+from system_logger_tool import sys_log_logger_get_module_logger
 if __name__ == '__main__':
-    from sys_abs.sys_log import SysLogLoggerC
+    from system_logger_tool import SysLogLoggerC
     cycler_logger = SysLogLoggerC('./sys_abs/sys_log/logginConfig.conf')
 log = sys_log_logger_get_module_logger(__name__)
 
 #######################          MODULE IMPORTS          #######################
-from drv.drv_can import DrvCanNodeC
-from drv.drv_epc import DrvEpcDeviceC, DrvEpcLimitE, DrvEpcModeE
+from can_sniffer import DrvCanNodeC
+from battery_cycler_drv_epc import DrvEpcDeviceC, DrvEpcLimitE, DrvEpcModeE
 #######################          PROJECT IMPORTS         #######################
 
 #######################              ENUMS               #######################

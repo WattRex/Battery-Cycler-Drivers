@@ -15,9 +15,10 @@ from enum import Enum
 from bitarray.util import ba2int, int2ba
 import system_logger_tool as sys_log
 from system_shared_tool import SysShdChanC
-from drv_can import DrvCanMessageC, DrvCanCmdDataC, DrvCanCmdTypeE, DrvCanFilterC
+from can_sniffer import DrvCanMessageC, DrvCanCmdDataC, DrvCanCmdTypeE, DrvCanFilterC
+
 if __name__ == '__main__':
-    cycler_logger = sys_log.SysLogLoggerC('./sys_abs/sys_log/logginConfig.conf')
+    cycler_logger = sys_log.SysLogLoggerC()
 log = sys_log.sys_log_logger_get_module_logger(__name__)
 
 #######################          MODULE IMPORTS          #######################
