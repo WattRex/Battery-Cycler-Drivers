@@ -1,0 +1,7 @@
+WAIT, 5
+CC, 0.5, TIME, 5
+WAIT, 5
+CC, 1.7, TIME, 6
+WAIT, 6
+CC, 2, TIME, 5
+WAIT, 7.5

@@ -5,31 +5,24 @@ the device and request info from it.
 """
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
-import os
-import sys
 
 #######################         GENERIC IMPORTS          #######################
 # from typing import Any, Iterable, Callable, Mapping
 from enum import Enum
 
 
-#######################    SYSTEM ABSTRACTION IMPORTS    #######################
-sys.path.append(os.getcwd())  #get absolute path
-
-from sys_abs.sys_shd import SysShdChanC
-from sys_abs.sys_log import sys_log_logger_get_module_logger
-if __name__ == '__main__':
-    from sys_abs.sys_log import SysLogLoggerC
-    cycler_logger = SysLogLoggerC('./sys_abs/sys_log/logginConfig.conf')
-log = sys_log_logger_get_module_logger(__name__)
-
 #######################       THIRD PARTY IMPORTS        #######################
 from bitarray.util import ba2int, int2ba
+import system_logger_tool as sys_log
+from system_shared_tool import SysShdChanC
+from drv_can import DrvCanMessageC, DrvCanCmdDataC, DrvCanCmdTypeE, DrvCanFilterC
+if __name__ == '__main__':
+    cycler_logger = sys_log.SysLogLoggerC('./sys_abs/sys_log/logginConfig.conf')
+log = sys_log.sys_log_logger_get_module_logger(__name__)
+
 #######################          MODULE IMPORTS          #######################
 
-
 #######################          PROJECT IMPORTS         #######################
-from drv.drv_can import DrvCanMessageC, DrvCanCmdDataC, DrvCanCmdTypeE, DrvCanFilterC
 
 #######################              ENUMS               #######################
 class DrvEpcLimitE(Enum):
@@ -779,6 +772,9 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         """
         open_filter = DrvCanFilterC(self.__dev_id << 4, _ConstantsC.MASK, self.__device_handler)
         self.__send_to_can(DrvCanCmdTypeE.ADD_FILTER, open_filter)
+        # Once the device can receive messages it has to know which hw version has
+        # in order to identificate which sensors are present
+        self.get_info()
 
     def close(self) -> None:
         """Close the current device, and delete all messages in handler

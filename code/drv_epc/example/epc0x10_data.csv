@@ -1,0 +1,2 @@
+Time,Mode,Ref[m/dU],Limit,Limit_ref[m/dU],LS_Volt[mV],LS_Curr[mA],LS_Power[dW],HS_Volt[mV],Temp_body[dºC],Temp_anod[dºC],Temp_amb[dºC]
+2023-07-26 14:34:14.641,IDLE,0,TIME,0,0,0,0,0,,,
