@@ -6,3 +6,4 @@ as compatible and employed devices within individual cycler stations. Battery de
 and associated experiment profiles are also housed. Additionally, it contains generic 
 power metrics captured during experiment runs, complemented by custom measures confgiured 
 by the user.
+
