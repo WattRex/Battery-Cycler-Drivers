@@ -9,7 +9,6 @@ from __future__ import annotations
 #######################         GENERIC IMPORTS          #######################
 from enum import Enum
 
-
 #######################       THIRD PARTY IMPORTS        #######################
 from bitarray.util import ba2int, int2ba
 from system_logger_tool import SysLogLoggerC, sys_log_logger_get_module_logger
