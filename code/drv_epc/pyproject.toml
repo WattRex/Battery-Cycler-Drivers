@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 # users can install this project, e.g.:
 #
 # $ pip install <sampleproject>
-name = "battery-cycler-drv-epc"
+name = "battery-cycler-driver-epc"
 
 # Versions should comply with PEP 440:
 # https://www.python.org/dev/peps/pep-0440/
@@ -49,7 +49,7 @@ license = {file = "LICENSE.txt"}
 # Note that this is a list of additional keywords, separated
 # by commas, to be used to assist searching for the distribution in a
 # larger catalog.
-keywords= ["driver", "EPC"]  # Optional
+keywords= ["CANBus", "Embedded Systems", "Power Control", "PID", "EPC", "Electronic Power Control"]  # Optional
 
 # This should be your name or the name of the organization who originally
 # authored the project, and a valid email address corresponding to the name

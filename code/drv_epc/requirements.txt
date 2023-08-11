@@ -1,6 +1,5 @@
 bitarray>=2.8.1
-can_sniffer>=0.1.0.dev21+g47602d8.d20230810
+can_sniffer>=0.0.2
 pandas>=1.3.5
-pytz>=2023.3
 system_logger_tool>=0.0.1
 system_shared_tool>=0.0.1

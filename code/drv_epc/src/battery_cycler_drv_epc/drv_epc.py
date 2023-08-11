@@ -7,19 +7,18 @@ the device and request info from it.
 from __future__ import annotations
 
 #######################         GENERIC IMPORTS          #######################
-# from typing import Any, Iterable, Callable, Mapping
 from enum import Enum
 
 
 #######################       THIRD PARTY IMPORTS        #######################
 from bitarray.util import ba2int, int2ba
-import system_logger_tool as sys_log
+from system_logger_tool import SysLogLoggerC, sys_log_logger_get_module_logger
 from system_shared_tool import SysShdChanC
 from can_sniffer import DrvCanMessageC, DrvCanCmdDataC, DrvCanCmdTypeE, DrvCanFilterC
 
 if __name__ == '__main__':
-    cycler_logger = sys_log.SysLogLoggerC()
-log = sys_log.sys_log_logger_get_module_logger(__name__)
+    cycler_logger = SysLogLoggerC()
+log = sys_log_logger_get_module_logger(__name__)
 
 #######################          MODULE IMPORTS          #######################
 
@@ -413,7 +412,8 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         Args:
             ref (int): [Value in mV dessire to be set as reference, must be a positive value]
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
-            limit_ref (int): [Reference for the limit imposed]
+            limit_ref (int): [Reference for the limit imposed,
+                depending on the limit units will be mA/dW/ms]
         """
         if not self.__properties.ls_volt_limit.min <= ref <= self.__properties.ls_volt_limit.max:
             log.error(f"Error setting the refence for CV, \
@@ -437,7 +437,8 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         Args:
             ref (int): [Value in mA dessire to be set as reference]
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
-            limit_ref (int): [Reference for the limit imposed]
+            limit_ref (int): [Reference for the limit imposed,
+                depending on the limit units will be mV/dW/ms]
         """
         if not self.__properties.ls_curr_limit.min <= ref <= self.__properties.ls_curr_limit.max:
             log.error(f"Error setting the refence for CC, \
@@ -464,7 +465,8 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         Args:
             ref (int): [Value in dW dessire to be set as reference]
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
-            limit_ref (int): [Reference for the limit imposed]
+            limit_ref (int): [Reference for the limit imposed,
+                depending on the limit units will be mV/mA/ms]
         """
         if not self.__properties.ls_pwr_limit.min <= ref <= self.__properties.ls_pwr_limit.max:
             log.error(f"Error setting the refence for CC, \
@@ -487,7 +489,8 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
 
         Args:
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
-            limit_ref (int): [Reference for the limit imposed]
+            limit_ref (int): [Reference for the limit imposed,
+                depending on the limit units will be mV/mA/dW/ms]
         """
         id_msg = self.__dev_id << 4 | 0x0
         data_msg= limit_ref << 32 | 0<<16 | limit_type.value << 4 | 0<<1 | 0
@@ -496,11 +499,8 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         self.read_can_buffer()
 
     def disable(self) -> None:
-        """Disable the output
-
-        Args:
-            limit_type (DrvEpcLimitE): [Type of limit dessired to have]
-            limit_ref (int): [Reference for the limit imposed]
+        """
+        Disable the output
         """
         id_msg = self.__dev_id << 4 | 0x0
         data_msg= 10 << 32 | 0<<16 | 0 << 4 | 0<<1 | 0
@@ -511,10 +511,15 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
     def get_data(self, update: bool = False) -> DrvEpcDataC:
         """Getter to the private attribute of live_data.
         Before returning the info it check if there is any message in can queue
-        and update the attributes
-
+        and update the attributes. If update is false, it won´t send the request messages
+        to the epc and return the last values of the attributes. This can be useful in order to 
+        not jam the can bus when the periodic messages are enable.
+        
+        Args:
+            update (bool): [Choose between (True) sending a request message to the device
+                  and update all the data or (False) just read the last updated attributes]
         Returns:
-            [DrvEpcDataC]: [description]
+            [DrvEpcDataC]: [Return ]
         """
         if update:
             self.get_elec_meas()
@@ -527,7 +532,14 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
     def get_properties(self, update: bool = False) -> DrvEpcPropertiesC:
         """Getter to the private attribute of __properties.
         Before returning the info it check if there is any message in can queue
-        and update the attributes
+        and update the attributes.
+        If update is false, it won´t send the request messages
+        to the epc and return the last values of the attributes. This can be useful in order to 
+        not jam the can bus when the periodic messages are enable.
+        
+        Args:
+            update (bool): [Choose between (True) sending a request message to the device
+                  and update all the data or (False) just read the last updated attributes]
         Returns:
             [DrvEpcPropertiesC]: [description]
         """
@@ -542,11 +554,13 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         return self.__properties
 
     def get_elec_meas(self, periodic_flag: bool= False) -> DrvEpcDataElectC:
-        """Get the current electric measures of the device .
+        """Get the current electric measures of the device.
+        The units of the electric measures are the same as the epc has.
+        In this case mV mA dW
 
         Returns:
-            [dict]: [Dictionary with the voltage, current and power in low side 
-                    and voltage in high side]
+            [DrvEpcDataElectC]: [Object with the voltage, current and power in low side 
+                    and voltage in high side as attributes]
         """
         if not periodic_flag:
             id_msg = self.__dev_id << 4 | 0x1
@@ -558,11 +572,13 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
                                 self.__live_data.ls_power, self.__live_data.hs_voltage)
 
     def get_temp_meas(self, periodic_flag: bool = False) -> DrvEpcDataTempC:
-        """Get the current temperatures measure of the device .
+        """Get the current temperatures measure of the device.
+        The units of the temperature measures are the same as the epc has.
+        In this case dºC
 
         Returns:
-            [dict]: [Dictionary with the 3 possible temperatures the device can measure
-                    body_temperature, anode_temperature, ambient_temperature]
+            [DrvEpcDataTempC]: [Object with the 3 possible temperatures the device can measure
+                    body_temperature, anode_temperature, ambient_temperature as attributes]
         """
         if not periodic_flag:
             id_msg = self.__dev_id << 4 | 0x1
@@ -577,7 +593,7 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         """Get the current mode.
 
         Returns:
-            dict: [Dictionary with keys: mode, limit, ref and limit_ref]
+            DrvEpcDataCtrlC: [Object with attributes: mode, limit, ref and limit_ref]
         """
         id_msg = self.__dev_id << 4 | 0x1
         data_msg = 1
@@ -592,7 +608,8 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         """Get the status of the device .
 
         Returns:
-            dict: [Dictionary with the errors of the device, been the keys the following:
+            DrvEpcDataCtrlC: [Object with the errors of the device, 
+            been the attributes the following:
             error_code, error
             The value of the error code is a string with the hexadecimal value]
         """
@@ -610,17 +627,20 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         """Set the periodic messages for the device .
 
         Args:
-            ack_en (bool, optional): [description]. Defaults to False.
-            ack_period (int, optional): [description]. Defaults to 10.
-            elect_en (bool, optional): [description]. Defaults to False.
-            elect_period (int, optional): [description]. Defaults to 10.
-            temp_en (bool, optional): [description]. Defaults to False.
-            temp_period (int, optional): [description]. Defaults to 10.
+            ack_en (bool, optional): [description]. Defaults to False. \
+            ack_period (int, optional): [Period to reset the device in 
+            case it has not receive any message, the units are ms]. Defaults to 10. \
+            elect_en (bool, optional): [description]. Defaults to False. \
+            elect_period (int, optional): [Period in which the epc will send electric measures,
+              the units are ms]. Defaults to 10. \
+            temp_en (bool, optional): [description]. Defaults to False. \
+            temp_period (int, optional): [Period in which the epc will send temperature measures,
+              the units are ms]. Defaults to 10. \
         """
         id_msg = self.__dev_id << 4 | 0x7
         data_msg= (temp_period << 33 | temp_en<<32 | elect_period<<17
                  | elect_en << 16 | ack_period<<1 | ack_en)
-        msg = DrvCanMessageC(addr= id_msg, size= 8, data = data_msg)
+        msg = DrvCanMessageC(addr= id_msg, size= 6, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
 
     def set_ls_volt_limit(self, max_lim: int, min_lim: int):

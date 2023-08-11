@@ -24,7 +24,7 @@ from system_shared_tool import SysShdChanC
 from system_logger_tool import sys_log_logger_get_module_logger
 if __name__ == '__main__':
     from system_logger_tool import SysLogLoggerC
-    cycler_logger = SysLogLoggerC('./sys_abs/sys_log/logginConfig.conf')
+    cycler_logger = SysLogLoggerC()
 log = sys_log_logger_get_module_logger(__name__)
 
 #######################          MODULE IMPORTS          #######################
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     #Create the thread for CAN
     can = DrvCanNodeC(can_queue, _working_can)
 
-    path = os.path.join(os.getcwd(),'drv','drv_epc','example')
+    path = os.path.join(os.getcwd(),'example')
     if not os.path.exists(path):
         os.mkdir(path)
     n_dev = input("Introduce the can_id of "+
@@ -137,6 +137,7 @@ if __name__ == '__main__':
         epc_dev = _ManageEpcC(int(n_dev[0]),'',can_queue)
         epc_dev.epc.open()
         epc_dev.epc.get_properties(update=True)
+        epc_dev.epc.set_periodic(False, 1000, True, 100, True, 100)
         i=0
         j = 0
         while 1:
