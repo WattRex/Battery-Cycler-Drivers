@@ -5,7 +5,7 @@ This readme explain how to use the example and the different ways you can try th
 This example has been tested using a Raspberry PI Zero with the <[RS485 CAN HAT]>.
 Also the hat has a manual that can be found <[here]>
 However the most important commands and instructions to follow are the next:
-`sudo nano /boot/config.tx`
+`sudo nano /boot/config.txt`
 
 Write the following configuration:
 ```console
