@@ -4,8 +4,6 @@ Driver for communication with SCPI devices.
 '''
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
-import sys
-import os
 
 #######################         GENERIC IMPORTS          #######################
 from enum import Enum
@@ -20,7 +18,6 @@ log = sys_log.sys_log_logger_get_module_logger(__name__)
 
 #######################          PROJECT IMPORTS         #######################
 from system_shared_tool import SysShdChanC
-
 
 #######################          MODULE IMPORTS          #######################
 from .drv_scpi_iface import DrvScpiHandlerC
@@ -49,5 +46,6 @@ class DrvScpiDeviceC:
     Principal class of the driver.
     '''
     def __init__(self, port: str, payload: DrvScpiHandlerC, chan: SysShdChanC):
-        self.payload: DrvScpiHandlerC = payload
-        self.chan: SysShdChanC = chan
+        self.port : str= port
+        self.payload : DrvScpiHandlerC = payload
+        self.chan : SysShdChanC = chan
