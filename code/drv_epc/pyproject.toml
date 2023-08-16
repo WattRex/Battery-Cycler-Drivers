@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 # users can install this project, e.g.:
 #
 # $ pip install <sampleproject>
-name = "battery-cycler-driver-epc"
+name = "wattrex-driver-epc"
 
 # Versions should comply with PEP 440:
 # https://www.python.org/dev/peps/pep-0440/
@@ -157,6 +157,6 @@ dependencies = {file = ["requirements.txt"]}
 
 [tool.setuptools_scm]
 root = "../../"
-write_to = "code/drv_epc/src/battery_cycler_drv_epc/__version__.py"
+write_to = "code/drv_epc/src/wattrex_driver_epc/__version__.py"
 version_scheme="python-simplified-semver"
 normalize="True"
