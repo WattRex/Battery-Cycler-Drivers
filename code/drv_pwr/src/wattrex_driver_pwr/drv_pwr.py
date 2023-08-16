@@ -4,8 +4,6 @@ Driver for power devices.
 '''
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
-import sys
-import os
 
 #######################         GENERIC IMPORTS          #######################
 from typing import Any
@@ -14,13 +12,13 @@ from typing import Any
 from enum import Enum
 
 #######################      SYSTEM ABSTRACTION IMPORTS  #######################
+from system_logger_tool import SysLogLoggerC, sys_log_logger_get_module_logger
 if __name__ == '__main__':
     cycler_logger = SysLogLoggerC()
 log = sys_log_logger_get_module_logger(__name__)
 
 
 #######################          PROJECT IMPORTS         #######################
-from SCPI_sniffer import DrvScpiHandlerC
 
 #######################          MODULE IMPORTS          #######################
 
