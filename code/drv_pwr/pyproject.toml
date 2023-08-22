@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 # users can install this project, e.g.:
 #
 # $ pip install <sampleproject>
-name = "wattrex_driver_db"
+name = "wattrex-driver-pwr"
 
 # Versions should comply with PEP 440:
 # https://www.python.org/dev/peps/pep-0440/
@@ -20,9 +20,7 @@ dynamic = ["version","dependencies"]
 # This is a one-line description or tagline of what your project does. This
 # corresponds to the "Summary" metadata field:
 # https://packaging.python.org/specifications/core-metadata/#summary
-description='''A simple database connector for SQLAlchemy. It is used to 
-      connect to specific databases and execute queries.
-      ''' # Optional
+description ="Template used to communicate with power devices." # Optional
 
 # This is an optional longer description of your project that represents
 # the body of text which users will see when they visit PyPI.
@@ -51,7 +49,7 @@ license = {file = "LICENSE.txt"}
 # Note that this is a list of additional keywords, separated
 # by commas, to be used to assist searching for the distribution in a
 # larger catalog.
-keywords= ["ORM", "database", "connector", "mysql", "sqlite", "SQLAlchemy", "Database abstraction"]  # Optional
+keywords= ["Embedded Systems", "Template", "Power Control"]  # Optional
 
 # This should be your name or the name of the organization who originally
 # authored the project, and a valid email address corresponding to the name
@@ -59,9 +57,9 @@ keywords= ["ORM", "database", "connector", "mysql", "sqlite", "SQLAlchemy", "Dat
 authors = [
   # Optional
   { name="Marius Crisan", email="mariuscrsn+pypi@gmail.com" },
+  { name="Roberto Aldea", email="r.aldea.csic+pypi@gmail.com" },
   { name="Pablo Pastor", email="pastorpflores+pypi@gmail.com" },
   { name="Javier Sanz", email="javiersanzmoline@gmail.com" },
-  { name="Roberto Aldea", email="r.aldea.csic+pypi@gmail.com" },
   { name="Luis Roche", email="luis.roche@hotmail.com" }
 ]
 
@@ -84,10 +82,7 @@ classifiers = [  # Optional
 
   # Indicate who your project is intended for
   "Topic :: Software Development :: Embedded Systems",
-  "Topic :: Database :: Front-Ends",
-  "Topic :: Software Development :: Libraries :: Python Modules",
   "Operating System :: OS Independent",
-
 
 
   # Pick your license as you wish
@@ -103,7 +98,6 @@ classifiers = [  # Optional
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: SQL",
 ]
 
 # This field lists other packages that your project depends on to run.
@@ -144,7 +138,7 @@ dependencies = {file = ["requirements.txt"]}
 "Homepage" = "https://github.com/WattRex/Battery-Cycler-Drivers"
 "Bug Reports" = "https://github.com/WattRex/Battery-Cycler-Drivers/issues"
 "Bug Tracker" = "https://github.com/WattRex/Battery-Cycler-Drivers/issues"
-"Source" = "https://github.com/WattRex/Battery-Cycler-Drivers"
+"Source" = "https://github.com/WattRex/Battery-Cycler-Drivers/code/drv/drv_epc"
 "Funding" = "https://donate.pypi.org"
 # "Say Thanks!" = "http://saythanks.io/to/example"
 
@@ -163,6 +157,6 @@ dependencies = {file = ["requirements.txt"]}
 
 [tool.setuptools_scm]
 root = "../../"
-write_to = "code/drv_db/src/wattrex_driver_db/__version__.py"
+write_to = "code/drv_pwr/src/wattrex_driver_pwr/__version__.py"
 version_scheme="python-simplified-semver"
 normalize="True"

@@ -1,0 +1,4 @@
+pyserial>=3.5
+SCPI_sniffer>=0.0.1
+system_logger_tool>=0.0.1
+wattrex_driver_pwr>=0.0.1
