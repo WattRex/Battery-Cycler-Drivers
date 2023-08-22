@@ -66,7 +66,7 @@ class DrvCanMessageC:
                       is higher than {_MAX_DLC_SIZE}")
             raise BytesWarning("To many element for a CAN message")
         if isinstance(data,int):
-            self.data = data.to_bytes(size, byteorder='little', signed = True)
+            self.data = data.to_bytes(size, byteorder='little', signed = False)
         else:
             self.data = data
 
