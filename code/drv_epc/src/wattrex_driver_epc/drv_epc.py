@@ -304,7 +304,7 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
     """
     def __init__(self, dev_id: int, device_handler: SysShdChanC, tx_can_queue: SysShdChanC) -> None:
         self.__device_handler = device_handler
-        self.__dev_id= dev_id
+        self.__dev_id= dev_id #pylint: disable=unused-private-member
         self.__tx_can = tx_can_queue
         self.__live_data : DrvEpcDataC = DrvEpcDataC()
         self.__properties: DrvEpcPropertiesC = DrvEpcPropertiesC(can_id = dev_id)
