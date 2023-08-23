@@ -29,7 +29,7 @@ log = sys_log_logger_get_module_logger(__name__)
 
 #######################          MODULE IMPORTS          #######################
 from can_sniffer import DrvCanNodeC
-from battery_cycler_drv_epc import DrvEpcDeviceC, DrvEpcLimitE, DrvEpcModeE
+from wattrex_driver_epc import DrvEpcDeviceC, DrvEpcLimitE, DrvEpcModeE
 #######################          PROJECT IMPORTS         #######################
 
 #######################              ENUMS               #######################
