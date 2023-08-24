@@ -35,7 +35,8 @@ log = sys_log.sys_log_logger_get_module_logger(__name__)
 _TIMEOUT_SEND_MSG : float = 0.2
 _TIMEOUT_RX_MSG : float = 0.02
 _MAX_DLC_SIZE : int = 8
-
+_MIN_ID          = 0x000     # As the last 4 bits will identify the messages are reserved
+_MAX_ID          = 0x7FF     # In standard mode the can id max value is 0x7FF
 class DrvCanCmdTypeE(Enum):
     """
     Type of command for the CAN
@@ -75,23 +76,24 @@ class DrvCanFilterC():
     works as messages to make write or erase filters in can .
     """
     def __init__(self, addr : int, mask : int, chan):
-        if 0 <= addr <= 0x7FF:
+        if _MIN_ID <= addr <= _MAX_ID:
             self.addr = addr
         else:
             log.error("Wrong value for address, value must be between 0-0x7ff")
-            raise ValueError
+            raise ValueError("Wrong value for address, value must be between 0-0x7ff")
 
-        if 0 <= mask <= 0x7FF:
+        if _MIN_ID <= mask <= _MAX_ID:
             self.mask = mask
         else:
             log.error("Wrong value for mask, value must be between 0 and 0x7ff")
-            raise ValueError
+            raise ValueError("Wrong value for mask, value must be between 0 and 0x7ff")
 
         if isinstance(chan, SysShdChanC):
             self.chan = chan
         else:
             log.error("Wrong type for channel, must be a SysShdChanC object")
-            raise ValueError
+            raise ValueError("Wrong type for channel, must be a SysShdChanC object")
+
     def match(self, id_can: int) -> bool:
         """Checks if the id_can matches with the selected filter.
 
