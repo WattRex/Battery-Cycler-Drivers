@@ -211,21 +211,21 @@ class DrvEpcPropertiesC(DrvEpcPropInfoC): # pylint: disable= too-many-instance-a
             and ls_volt_limit.max <= _ConstC.MAX_LS_VOLT):
             self.ls_volt_limit: DrvEpcLimitsC = ls_volt_limit
         else:
-            log.error(f"Wrong ls_volt limits, should between {_ConstC.MIN_LS_VOLT} and \
-                    {_ConstC.MAX_LS_VOLT} mV, but has been introduced {ls_volt_limit.min} and \
-                        {ls_volt_limit.max}")
-            raise ValueError(f"Wrong ls_volt limits, should between {_ConstC.MIN_LS_VOLT} and \
-                    {_ConstC.MAX_LS_VOLT} mV, but has been introduced {ls_volt_limit.min} and \
-                        {ls_volt_limit.max}")
+            log.error((f"Wrong ls_volt limits, should between {_ConstC.MIN_LS_VOLT} and "
+                    f"{_ConstC.MAX_LS_VOLT} mV, but has been introduced {ls_volt_limit.min} and "
+                    f"{ls_volt_limit.max}"))
+            raise ValueError((f"Wrong ls_volt limits, should between {_ConstC.MIN_LS_VOLT} and "
+                    f"{_ConstC.MAX_LS_VOLT} mV, but has been introduced {ls_volt_limit.min} and "
+                    f"{ls_volt_limit.max}"))
         #Check low side current limits are correct
         if (ls_curr_limit.min < ls_curr_limit.max and ls_curr_limit.min >= _ConstC.MIN_LS_CURR
             and ls_curr_limit.max <= _ConstC.MAX_LS_CURR):
             self.ls_curr_limit: DrvEpcLimitsC = ls_curr_limit
         else:
-            log.error(f"Wrong ls current limits, should between +-{_ConstC.MAX_LS_CURR} mA, \
-                      but has been introduced {ls_curr_limit.min} and {ls_curr_limit.max}")
-            raise ValueError(f"""Wrong ls current limits, should between +-{_ConstC.MAX_LS_CURR} mA,
-                         but has been introduced {ls_curr_limit.min} and {ls_curr_limit.max}""")
+            log.error((f"Wrong ls current limits, should between +-{_ConstC.MAX_LS_CURR} mA,"
+                        f" but has been introduced {ls_curr_limit.min} and {ls_curr_limit.max}"))
+            raise ValueError((f"Wrong ls current limits, should between +-{_ConstC.MAX_LS_CURR} mA,"
+                        f" but has been introduced {ls_curr_limit.min} and {ls_curr_limit.max}"))
         #Check low side power limits are correct
         if (ls_pwr_limit.min < ls_pwr_limit.max and ls_pwr_limit.min >=_ConstC.MIN_LS_PWR
             and ls_pwr_limit.max <= _ConstC.MAX_LS_PWR):
@@ -234,29 +234,29 @@ class DrvEpcPropertiesC(DrvEpcPropInfoC): # pylint: disable= too-many-instance-a
         else:
             log.error((f"Wrong ls power limits, should between +-{_ConstC.MAX_LS_PWR} dW, "
                       f"but has been introduced {ls_pwr_limit.min} and {ls_pwr_limit.max}"))
-            raise ValueError(f"""Wrong ls power limits, should between +-{_ConstC.MAX_LS_PWR} dW,
-                             but has been introduced {ls_pwr_limit.min} and {ls_pwr_limit.max}""")
+            raise ValueError((f"Wrong ls power limits, should between +-{_ConstC.MAX_LS_PWR} dW, "
+                             f"but has been introduced {ls_pwr_limit.min} and {ls_pwr_limit.max}"))
         #Check high side voltage limits are correct
         if (hs_volt_limit.min < hs_volt_limit.max and hs_volt_limit.min >=_ConstC.MIN_HS_VOLT
             and hs_volt_limit.max <= _ConstC.MAX_HS_VOLT):
             self.hs_volt_limit: DrvEpcLimitsC = hs_volt_limit
 
         else:
-            log.error(f"Wrong hs volt limits, should between {_ConstC.MIN_HS_VOLT} and \
-                      {_ConstC.MAX_HS_VOLT} mV, but has been introduced {hs_volt_limit.min} and \
-                      {hs_volt_limit.max}")
-            raise ValueError(f"Wrong hs volt limits, should between 5300 and 14100 mV, \
-                      but has been introduced {hs_volt_limit.min} and {hs_volt_limit.max}")
+            log.error((f"Wrong hs volt limits, should between {_ConstC.MIN_HS_VOLT} and "
+                    f"{_ConstC.MAX_HS_VOLT} mV, but has been introduced {hs_volt_limit.min} "
+                    f"and {hs_volt_limit.max}"))
+            raise ValueError((f"Wrong hs volt limits, should between {_ConstC.MIN_HS_VOLT} and "
+                    f"{_ConstC.MAX_HS_VOLT} mV, but has been introduced {hs_volt_limit.min} "
+                    f"and {hs_volt_limit.max}"))
         #Check temperature limits are correct
         if (temp_limit.min < temp_limit.max and temp_limit.min >=_ConstC.MIN_TEMP
             and temp_limit.max <= _ConstC.MAX_TEMP):
             self.temp_limit: DrvEpcLimitsC = temp_limit
         else:
-            log.error(f"Wrong temp limits, should between {_ConstC.MIN_TEMP} and {_ConstC.MAX_TEMP}\
-                       dºC, but has been introduced {temp_limit.min} and {temp_limit.max}")
-            raise ValueError(f"Wrong temp limits, should between {_ConstC.MIN_TEMP} and \
-                    {_ConstC.MAX_TEMP} dºC, but has been introduced {temp_limit.min} and \
-                        {temp_limit.max}")
+            log.error((f"Wrong temp limits, should between {_ConstC.MIN_TEMP} and "
+        f"{_ConstC.MAX_TEMP} dºC, but has been introduced {temp_limit.min} and {temp_limit.max}"))
+            raise ValueError((f"Wrong temp limits, should between {_ConstC.MIN_TEMP} and "
+        f"{_ConstC.MAX_TEMP} dºC, but has been introduced {temp_limit.min} and {temp_limit.max}"))
 
 class DrvEpcDataElectC:
     """
@@ -363,8 +363,8 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
                         msg_bits[:_ConstC.LOW_SIDE_BITFIELD])
                     self.__properties.ls_volt_limit.min = ba2int(
                         msg_bits[_ConstC.LOW_SIDE_BITFIELD:_ConstC.MID_SIDE_BITFIELD])
-                    log.info(f"LS Voltage limits are Max:{self.__properties.ls_volt_limit.max} mV"+\
-                            f" Min: {self.__properties.ls_volt_limit.min} mV")
+                    log.info((f"LS Voltage limits are Max:{self.__properties.ls_volt_limit.max} mV"
+                            f" Min: {self.__properties.ls_volt_limit.min} mV"))
                 #------   0xYY3 EPC LS Current Limits  ------
                 elif msg_id == _EpcMsgTypeE.LS_CURR_LIM.value:
                     max_curr = ba2int(msg_bits[:_ConstC.LOW_SIDE_BITFIELD],signed=True)
@@ -373,16 +373,15 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
                         signed=True)
                     self.__properties.ls_curr_limit.max = max_curr
                     self.__properties.ls_curr_limit.min = min_curr
-                    log.info(f"LS Current limits are Max:{max_curr} mA "+\
-                            f"Min: {min_curr} mA")
+                    log.info(f"LS Current limits are Max:{max_curr} mA Min: {min_curr} mA")
                 #------   0xYY4 EPC HS Voltage Limits  ------
                 elif msg_id == _EpcMsgTypeE.HS_VOLT_LIM.value:
                     self.__properties.hs_volt_limit.max = ba2int(
                         msg_bits[:_ConstC.LOW_SIDE_BITFIELD])
                     self.__properties.hs_volt_limit.min = ba2int(
                         msg_bits[_ConstC.LOW_SIDE_BITFIELD:_ConstC.MID_SIDE_BITFIELD])
-                    log.info(f"HS Voltage limits are Max:{self.__properties.hs_volt_limit.max} mV"+\
-                            f" Min: {self.__properties.hs_volt_limit.min} mV")
+                    log.info((f"HS Voltage limits are Max:{self.__properties.hs_volt_limit.max} mV "
+                            f" Min: {self.__properties.hs_volt_limit.min} mV"))
                 #------   0xYY5 EPC LS Power Limits  ------
                 elif msg_id == _EpcMsgTypeE.LS_PWR_LIM.value:
                     max_pwr = ba2int(msg_bits[:_ConstC.LOW_SIDE_BITFIELD],signed=True)
