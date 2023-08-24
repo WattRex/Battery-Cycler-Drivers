@@ -3,6 +3,7 @@
 This module will create instances of epc device in order to control
 the device and request info from it.
 """
+# TODO: Reorganize code to have a smaller file
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
 
@@ -14,7 +15,6 @@ from bitarray.util import ba2int, int2ba
 from system_logger_tool import SysLogLoggerC, sys_log_logger_get_module_logger
 from system_shared_tool import SysShdChanC
 from can_sniffer import DrvCanMessageC, DrvCanCmdDataC, DrvCanCmdTypeE, DrvCanFilterC
-
 if __name__ == '__main__':
     cycler_logger = SysLogLoggerC()
 log = sys_log_logger_get_module_logger(__name__)
@@ -73,7 +73,7 @@ class _ConstC:
     '''
     TO_DECI_WATS        = 100000
     MAX_READS           = 300
-    MIN_CAN_ID          = 0x00F     # As the last 4 bits will identify the messages are reserved
+    MIN_CAN_ID          = 0x000     # As the last 4 bits will identify the messages are reserved
     MAX_CAN_ID          = 0x7FF     # In standard mode the can id max value is 0x7FF
     MASK_CAN_DEVICE     = 0x7F0
     MASK_CAN_MESSAGE    = 0x00F
@@ -167,7 +167,7 @@ class DrvEpcPropInfoC:
             self.can_id :int = can_id
         else:
             log.error(f"Wrong can id {hex(can_id)}, should be between 0x0 and 0x7ff")
-            raise ValueError
+            raise ValueError(f"Wrong can id {hex(can_id)}, should be between 0x0 and 0x7ff")
         #Check software version is correct
         if sw_version is None:
             self.sw_version= None
@@ -175,7 +175,7 @@ class DrvEpcPropInfoC:
             self.sw_version : int = sw_version
         else:
             log.error(f"Wrong sw version {sw_version}, should be positive")
-            raise ValueError
+            raise ValueError(f"Wrong sw version {sw_version}, should be positive")
         #Check hardware version is correct
         if hw_version is None:
             self.hw_version= None
@@ -183,7 +183,7 @@ class DrvEpcPropInfoC:
             self.hw_version    = int2ba(hw_version, length=13, endian= 'little')
         else:
             log.error(f"Wrong hw version {hw_version}, should positive")
-            raise ValueError
+            raise ValueError(f"Wrong hw version {hw_version}, should positive")
 
 class DrvEpcPropertiesC(DrvEpcPropInfoC): # pylint: disable= too-many-instance-attributes
     '''
@@ -211,43 +211,52 @@ class DrvEpcPropertiesC(DrvEpcPropInfoC): # pylint: disable= too-many-instance-a
             and ls_volt_limit.max <= _ConstC.MAX_LS_VOLT):
             self.ls_volt_limit: DrvEpcLimitsC = ls_volt_limit
         else:
-            log.error(f"Wrong ls_volt limits, should between 400 and 5100 mV, \
-                      but has been introduced {ls_volt_limit.min} and {ls_volt_limit.max}")
-            raise ValueError
+            log.error(f"Wrong ls_volt limits, should between {_ConstC.MIN_LS_VOLT} and \
+                    {_ConstC.MAX_LS_VOLT} mV, but has been introduced {ls_volt_limit.min} and \
+                        {ls_volt_limit.max}")
+            raise ValueError(f"Wrong ls_volt limits, should between {_ConstC.MIN_LS_VOLT} and \
+                    {_ConstC.MAX_LS_VOLT} mV, but has been introduced {ls_volt_limit.min} and \
+                        {ls_volt_limit.max}")
         #Check low side current limits are correct
         if (ls_curr_limit.min < ls_curr_limit.max and ls_curr_limit.min >= _ConstC.MIN_LS_CURR
             and ls_curr_limit.max <= _ConstC.MAX_LS_CURR):
             self.ls_curr_limit: DrvEpcLimitsC = ls_curr_limit
         else:
-            log.error(f"Wrong ls current limits, should between +-15500 mA, \
+            log.error(f"Wrong ls current limits, should between +-{_ConstC.MAX_LS_CURR} mA, \
                       but has been introduced {ls_curr_limit.min} and {ls_curr_limit.max}")
-            raise ValueError
+            raise ValueError(f"""Wrong ls current limits, should between +-{_ConstC.MAX_LS_CURR} mA,
+                         but has been introduced {ls_curr_limit.min} and {ls_curr_limit.max}""")
         #Check low side power limits are correct
         if (ls_pwr_limit.min < ls_pwr_limit.max and ls_pwr_limit.min >=_ConstC.MIN_LS_PWR
             and ls_pwr_limit.max <= _ConstC.MAX_LS_PWR):
             self.ls_pwr_limit: DrvEpcLimitsC = ls_pwr_limit
 
         else:
-            log.error(f"Wrong ls power limits, should between +-800 dW, \
-                      but has been introduced {ls_pwr_limit.min} and {ls_pwr_limit.max}")
-            raise ValueError
+            log.error((f"Wrong ls power limits, should between +-{_ConstC.MAX_LS_PWR} dW, "
+                      f"but has been introduced {ls_pwr_limit.min} and {ls_pwr_limit.max}"))
+            raise ValueError(f"""Wrong ls power limits, should between +-{_ConstC.MAX_LS_PWR} dW,
+                             but has been introduced {ls_pwr_limit.min} and {ls_pwr_limit.max}""")
         #Check high side voltage limits are correct
         if (hs_volt_limit.min < hs_volt_limit.max and hs_volt_limit.min >=_ConstC.MIN_HS_VOLT
             and hs_volt_limit.max <= _ConstC.MAX_HS_VOLT):
             self.hs_volt_limit: DrvEpcLimitsC = hs_volt_limit
 
         else:
-            log.error(f"Wrong hs volt limits, should between 5300 and 14100 mV, \
+            log.error(f"Wrong hs volt limits, should between {_ConstC.MIN_HS_VOLT} and \
+                      {_ConstC.MAX_HS_VOLT} mV, but has been introduced {hs_volt_limit.min} and \
+                      {hs_volt_limit.max}")
+            raise ValueError(f"Wrong hs volt limits, should between 5300 and 14100 mV, \
                       but has been introduced {hs_volt_limit.min} and {hs_volt_limit.max}")
-            raise ValueError
         #Check temperature limits are correct
         if (temp_limit.min < temp_limit.max and temp_limit.min >=_ConstC.MIN_TEMP
             and temp_limit.max <= _ConstC.MAX_TEMP):
             self.temp_limit: DrvEpcLimitsC = temp_limit
         else:
-            log.error(f"Wrong temp limits, should between -200 and 700 dºC, \
-                      but has been introduced {temp_limit.min} and {temp_limit.max}")
-            raise ValueError
+            log.error(f"Wrong temp limits, should between {_ConstC.MIN_TEMP} and {_ConstC.MAX_TEMP}\
+                       dºC, but has been introduced {temp_limit.min} and {temp_limit.max}")
+            raise ValueError(f"Wrong temp limits, should between {_ConstC.MIN_TEMP} and \
+                    {_ConstC.MAX_TEMP} dºC, but has been introduced {temp_limit.min} and \
+                        {temp_limit.max}")
 
 class DrvEpcDataElectC:
     """
@@ -282,8 +291,7 @@ class DrvEpcDataCtrlC:
         self.ref : int = ref
 
 class DrvEpcDataC(DrvEpcDataElectC, # pylint: disable= too-many-instance-attributes
-                  DrvEpcDataTempC,
-                  DrvEpcDataCtrlC):
+                  DrvEpcDataTempC, DrvEpcDataCtrlC):
     """
     Data that can store the epc device, refered to measurements, status and mode.
     """
@@ -496,12 +504,13 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
                 depending on the limit units will be mA/dW/ms]
         """
         if not self.__properties.ls_volt_limit.min <= ref <= self.__properties.ls_volt_limit.max:
-            log.error(f"Error setting the refence for CV, \
-                      introduced {ref} and it should be between max and min limits")
-            raise ValueError
+            log.error(("Error setting the refence for CV, "
+                      f"introduced {ref} and it should be between max and min limits"))
+            raise ValueError(("Error setting the refence for CV, "
+                      f"introduced {ref} and it should be between max and min limits"))
         if limit_type == DrvEpcLimitE.VOLTAGE:
             log.error("Limit can not be voltage when mode is CV")
-            raise ValueError
+            raise ValueError("Limit can not be voltage when mode is CV")
         # The id send is the union of the device can id and type of the message to send
         id_msg = self.__properties.can_id | _EpcMsgTypeE.MODE.value
         ref = ba2int(int2ba(ref,length=16, signed = True), signed = False)
@@ -523,14 +532,15 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
                 depending on the limit units will be mV/dW/ms]
         """
         if not self.__properties.ls_curr_limit.min <= ref <= self.__properties.ls_curr_limit.max:
-            log.error(f"Error setting the refence for CC, \
-                      introduced {ref} and it should be "+
-                    f" between max {self.__properties.ls_curr_limit.max}  and "+
-                    f"min {self.__properties.ls_curr_limit.min} limits")
-            raise ValueError
+            log.error((f"Error setting the refence for CC, introduced {ref} and it should be"
+                    f" between max {self.__properties.ls_curr_limit.max}  and "
+                    f"min {self.__properties.ls_curr_limit.min} limits"))
+            raise ValueError((f"Error setting the refence for CC, introduced {ref} and it should be"
+                    f" between max {self.__properties.ls_curr_limit.max}  and "
+                    f"min {self.__properties.ls_curr_limit.min} limits"))
         if limit_type == DrvEpcLimitE.CURRENT:
             log.error("Limit can not be current when mode is CC")
-            raise ValueError
+            raise ValueError("Limit can not be current when mode is CC")
         # The id send is the union of the device can id and type of the message to send
         id_msg = self.__properties.can_id | _EpcMsgTypeE.MODE.value
         ref = ba2int(int2ba(ref,length=16, signed = True), signed = False)
@@ -553,11 +563,13 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
                 depending on the limit units will be mV/mA/ms]
         """
         if not self.__properties.ls_pwr_limit.min <= ref <= self.__properties.ls_pwr_limit.max:
-            log.error(f"Error setting the refence for CC, \
-                      introduced {ref} and it should be between max and min limits")
+            log.error(("Error setting the refence for CC, "
+                      f"introduced {ref} and it should be between max and min limits"))
+            raise ValueError(("Error setting the refence for CC, "
+                      f"introduced {ref} and it should be between max and min limits"))
         if limit_type == DrvEpcLimitE.POWER:
             log.error("Limit can not be power when mode is CP")
-            raise ValueError
+            raise ValueError("Limit can not be power when mode is CP")
         # The id send is the union of the device can id and type of the message to send
         id_msg = self.__properties.can_id | _EpcMsgTypeE.MODE.value
         ref = ba2int(int2ba(ref,length=16, signed = True), signed = False)
@@ -570,7 +582,7 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
 
-    def set_wait_mode(self, limit_type: DrvEpcLimitE, limit_ref: int) -> None:
+    def set_wait_mode(self, limit_type: DrvEpcLimitE, limit_ref: int = 10) -> None:
         """Set the WAIT mode with a specific limit type and limit reference.
 
         Args:
@@ -604,17 +616,16 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
                      elect_en: bool = False, elect_period: int = 10,
                      temp_en: bool = False, temp_period: int = 10):
         """Set the periodic messages for the device .
-
         Args:
-            ack_en (bool, optional): [description]. Defaults to False. \
-            ack_period (int, optional): [Period to reset the device in 
-            case it has not receive any message, the units are ms]. Defaults to 10. \
-            elect_en (bool, optional): [description]. Defaults to False. \
+            ack_en (bool, optional): [description]. Defaults to False.
+            ack_period (int, optional): [Period to reset the device in
+            case it has not receive any message, the units are ms]. Defaults to 10.
+            elect_en (bool, optional): [description]. Defaults to False.
             elect_period (int, optional): [Period in which the epc will send electric measures,
-              the units are ms]. Defaults to 10. \
-            temp_en (bool, optional): [description]. Defaults to False. \
+              the units are ms]. Defaults to 10.
+            temp_en (bool, optional): [description]. Defaults to False.
             temp_period (int, optional): [Period in which the epc will send temperature measures,
-              the units are ms]. Defaults to 10. \
+              the units are ms]. Defaults to 10.
         """
         # The id send is the union of the device can id and type of the message to send
         id_msg = self.__properties.can_id | _EpcMsgTypeE.PERIODIC.value
@@ -628,16 +639,21 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
 
     def set_ls_volt_limit(self, max_lim: int, min_lim: int):
         """Set the Low Side voltage limits on the device.
-
         Args:
             max_lim (int): [description]
             min_lim (int): [description]
         """
-        # The id send is the union of the device can id and type of the message to send
-        id_msg = self.__properties.can_id | _EpcMsgTypeE.LS_VOLT_LIM.value
-        data_msg= union_limits(max_lim, min_lim)
-        msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
-        self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+        if _ConstC.MIN_LS_VOLT <= min_lim < max_lim <= _ConstC.MAX_LS_VOLT:
+            # The id send is the union of the device can id and type of the message to send
+            id_msg = self.__properties.can_id | _EpcMsgTypeE.LS_VOLT_LIM.value
+            data_msg= union_limits(max_lim, min_lim)
+            msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
+            self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+        else:
+            log.error((f"Wrong ls_volt limits, should between {_ConstC.MIN_LS_VOLT} and "
+                    f"{_ConstC.MAX_LS_VOLT} mV, but has been introduced {min_lim} and {max_lim}"))
+            raise ValueError((f"Wrong ls_volt limits, should between {_ConstC.MIN_LS_VOLT} and "
+                    f"{_ConstC.MAX_LS_VOLT} mV, but has been introduced {min_lim} and {max_lim}"))
 
     def set_ls_curr_limit(self, max_lim: int, min_lim: int):
         """Set the Low Side current limit on the device.
@@ -646,11 +662,17 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
             max_lim (int): [description]
             min_lim (int): [description]
         """
-        # The id send is the union of the device can id and type of the message to send
-        id_msg = self.__properties.can_id | _EpcMsgTypeE.LS_CURR_LIM.value
-        data_msg= union_limits(max_lim, min_lim)
-        msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
-        self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+        if _ConstC.MIN_LS_CURR <= min_lim < max_lim <=_ConstC.MAX_LS_CURR:
+            # The id send is the union of the device can id and type of the message to send
+            id_msg = self.__properties.can_id | _EpcMsgTypeE.LS_CURR_LIM.value
+            data_msg= union_limits(max_lim, min_lim)
+            msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
+            self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+        else:
+            log.error(f"Wrong ls current limits, should between +-{_ConstC.MAX_LS_CURR} mA, \
+                      but has been introduced {min_lim} and {max_lim}")
+            raise ValueError(f"Wrong ls current limits, should between +-{_ConstC.MAX_LS_CURR} mA, \
+                      but has been introduced {min_lim} and {max_lim}")
 
     def set_hs_volt_limit(self, max_lim: int, min_lim: int):
         """Set the high side voltage limit of the device .
@@ -659,11 +681,19 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
             max_lim (int): [description]
             min_lim (int): [description]
         """
-        # The id send is the union of the device can id and type of the message to send
-        id_msg = self.__properties.can_id | _EpcMsgTypeE.HS_VOLT_LIM.value
-        data_msg= union_limits(max_lim, min_lim)
-        msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
-        self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+        #Check high side voltage limits are correct
+        if _ConstC.MIN_HS_VOLT <= min_lim < max_lim <= _ConstC.MAX_HS_VOLT:
+            # The id send is the union of the device can id and type of the message to send
+            id_msg = self.__properties.can_id | _EpcMsgTypeE.HS_VOLT_LIM.value
+            data_msg= union_limits(max_lim, min_lim)
+            msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
+            self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+
+        else:
+            log.error((f"Wrong hs volt limits, should between {_ConstC.MIN_HS_VOLT} and "
+            f"{_ConstC.MAX_HS_VOLT} mV, but has been introduced {min_lim} and {max_lim}"))
+            raise ValueError((f"Wrong hs volt limits, should between {_ConstC.MIN_HS_VOLT} and "
+            f"{_ConstC.MAX_HS_VOLT} mV, but has been introduced {min_lim} and {max_lim}"))
 
     def set_ls_pwr_limit(self, max_lim: int, min_lim: int):
         """Set the low side `power` limit of the device
@@ -672,11 +702,19 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
             max_lim (int): [description]
             min_lim (int): [description]
         """
-        # The id send is the union of the device can id and type of the message to send
-        id_msg = self.__properties.can_id | _EpcMsgTypeE.LS_PWR_LIM.value
-        data_msg= union_limits(max_lim, min_lim)
-        msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
-        self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+        #Check low side power limits are correct
+        if _ConstC.MIN_LS_PWR <= min_lim < max_lim <=_ConstC.MAX_LS_PWR:
+            # The id send is the union of the device can id and type of the message to send
+            id_msg = self.__properties.can_id | _EpcMsgTypeE.LS_PWR_LIM.value
+            data_msg= union_limits(max_lim, min_lim)
+            msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
+            self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+
+        else:
+            log.error(f"Wrong ls power limits, should between +-{_ConstC.MAX_LS_PWR} dW, \
+                      but has been introduced {min_lim} and {max_lim}")
+            raise ValueError(f"Wrong ls power limits, should between +-{_ConstC.MAX_LS_PWR} dW, \
+                      but has been introduced {min_lim} and {max_lim}")
 
     def set_temp_limit(self, max_lim: int, min_lim: int):
         """Set the temperature limits of the device .
@@ -685,11 +723,19 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
             max_lim (int): [description]
             min_lim (int): [description]
         """
-        # The id send is the union of the device can id and type of the message to send
-        id_msg = self.__properties.can_id | _EpcMsgTypeE.TEMP_LIM.value
-        data_msg= union_limits(max_lim, min_lim)
-        msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
-        self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+        #Check temperature limits are correct
+        if _ConstC.MIN_TEMP <= min_lim < max_lim <= _ConstC.MAX_TEMP:
+            # The id send is the union of the device can id and type of the message to send
+            id_msg = self.__properties.can_id | _EpcMsgTypeE.TEMP_LIM.value
+            data_msg= union_limits(max_lim, min_lim)
+            msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
+            self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+
+        else:
+            log.error((f"Wrong temp limits, should between {_ConstC.MIN_TEMP} and "
+                f"{_ConstC.MAX_TEMP} dºC, but has been introduced {min_lim} and {max_lim}"))
+            raise ValueError((f"Wrong temp limits, should between {_ConstC.MIN_TEMP} and "
+                f"{_ConstC.MAX_TEMP} dºC, but has been introduced {min_lim} and {max_lim}"))
 
     def get_data(self, update: bool = False) -> DrvEpcDataC:
         """Getter to the private attribute of live_data.
@@ -697,7 +743,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         and update the attributes. If update is false, it won´t send the request messages
         to the epc and return the last values of the attributes. This can be useful in order to 
         not jam the can bus when the periodic messages are enable.
-        
         Args:
             update (bool): [Choose between (True) sending a request message to the device
                   and update all the data or (False) just read the last updated attributes]
@@ -719,7 +764,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         If update is false, it won´t send the request messages
         to the epc and return the last values of the attributes. This can be useful in order to 
         not jam the can bus when the periodic messages are enable.
-        
         Args:
             update (bool): [Choose between (True) sending a request message to the device
                   and update all the data or (False) just read the last updated attributes]
@@ -738,7 +782,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
 
     def get_info(self) -> DrvEpcPropInfoC:
         """Get the current temperature limits .
-
         Returns:
             DrvEpcPropInfoC: [Object with attributes: sw_verion, hw_version, can_id, serial_number]
         """
@@ -925,11 +968,9 @@ def union_limits(max_value: int, min_value:int) -> int:
     Following the specifications of the device messages,
     the first 16 bits correspond to the max value and the following 16 to the min values.
     So the min value needs to be shifted 16 to the left
-
     Args:
         max_value ([int]): [Max value to apply]
         min_value ([int]): [Min value to apply]
-
     Returns:
         int: []
     """
@@ -938,14 +979,12 @@ def union_limits(max_value: int, min_value:int) -> int:
 def union_control(enable:bool, mode:DrvEpcModeE,
                   lim_mode: DrvEpcLimitE, ref:int, lim_ref:int) -> int:
     """Return a union control number .
-
     Args:
         enable (bool): [Bool to describe if the output is enable or not]
         mode (DrvEpcModeE): [Mode desired]
         lim_mode (DrvEpcLimitE): [Type of limit desired]]
         ref (int): [Value to set as reference]
         lim_ref (int): [Value given for the limit]
-
     Returns:
         int: [description]
     """
