@@ -581,7 +581,7 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
 
-    def set_wait_mode(self, limit_type: DrvEpcLimitE, limit_ref: int = 10) -> None:
+    def set_wait_mode(self, limit_ref: int) -> None:
         """Set the WAIT mode with a specific limit type and limit reference.
 
         Args:
@@ -590,10 +590,12 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
                 depending on the limit units will be mV/mA/dW/ms]
         """
         # The id send is the union of the device can id and type of the message to send
+        if limit_ref<0:
+            log.error(f"The reference must be positive, value given: {limit_ref}")
+            raise ValueError(f"The reference must be positive, value given: {limit_ref}")
         id_msg = self.__properties.can_id | _EpcMsgTypeE.MODE.value
-        data_msg= union_control(enable= False, mode= DrvEpcModeE.WAIT, lim_mode= limit_type,
+        data_msg= union_control(enable= False, mode= DrvEpcModeE.WAIT, lim_mode= DrvEpcLimitE.TIME,
                                 ref=0, lim_ref= limit_ref)
-        #limit_ref << 32 | 0<<16 | limit_type.value << 4 | 0<<1 | 0
         msg = DrvCanMessageC(addr= id_msg, size= 8, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
@@ -603,11 +605,7 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         Disable the output
         """
         # The id send is the union of the device can id and type of the message to send
-        id_msg = self.__properties.can_id | _EpcMsgTypeE.MODE.value
-        data_msg= union_control(enable= False, mode= DrvEpcModeE.WAIT, lim_mode= DrvEpcLimitE.TIME,
-                                ref=0, lim_ref= 10) # 10 << 32 | 0<<16 | 0 << 4 | 0<<1 | 0
-        msg = DrvCanMessageC(addr= id_msg, size= 8, data = data_msg)
-        self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
+        self.set_wait_mode(1)
         self.read_can_buffer()
 
     def set_periodic(self, # pylint: disable= too-many-arguments
