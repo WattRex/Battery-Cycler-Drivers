@@ -39,18 +39,13 @@ class DrvEaModeE(Enum):
 #######################             CLASSES              #######################
 class DrvEaPropertiesC(DrvPwrPropertiesC):
     "Properties of ea power supply device"
-    def __init__(self, model: str|None = None, serial_number: str|None = None,
-                 max_volt_limit: int = 0, max_current_limit: int = 0,
-                 max_power_limit: int = 0) -> None:
-        super(DrvPwrPropertiesC, self).__init__(model, serial_number,\
-                        max_volt_limit, max_current_limit, max_power_limit)
 
 
 class DrvEaDataC(DrvPwrDataC):
     "Data class of ea power supply device"
     def __init__(self, mode: DrvEaModeE, status: DrvPwrStatusC,\
                  voltage: int, current: int, power: int) -> None:
-        super(DrvPwrDataC, self).__init__(status = status, mode = mode, voltage = voltage,\
+        super().__init__(status = status, mode = mode, voltage = voltage, \
                          current = current, power = power)
         self.mode: DrvEaModeE = mode
 
@@ -59,7 +54,7 @@ class DrvEaDeviceC(DrvPwrDeviceC):
     "Principal class of ea power supply device"
     def __init__(self, handler: DrvScpiHandlerC) -> None:
         self.device_handler: DrvScpiHandlerC
-        super(DrvPwrDeviceC, self).__init__(handler)
+        super().__init__(handler)
         self.__actual_data: DrvEaDataC = DrvEaDataC(mode = DrvEaModeE.STANDBY,
                                                      status=DrvPwrStatusC(DrvPwrStatusE.OK),
                                                      current=0, voltage=0, power=0)
