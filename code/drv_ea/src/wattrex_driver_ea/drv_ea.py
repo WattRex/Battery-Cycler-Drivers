@@ -39,10 +39,6 @@ class DrvEaModeE(Enum):
 #######################             CLASSES              #######################
 class DrvEaPropertiesC(DrvPwrPropertiesC):
     "Properties of ea power supply device"
-    def __init__(self, model: str|None = None, serial_number: str|None = None,
-                 max_volt_limit: int = 0, max_current_limit: int = 0,
-                 max_power_limit: int = 0) -> None:
-        super().__init__(model, serial_number, max_volt_limit, max_current_limit, max_power_limit)
 
 
 class DrvEaDataC(DrvPwrDataC):
