@@ -10,18 +10,20 @@ from __future__ import annotations
 import threading
 from typing import Any, Iterable, Callable, Mapping
 from enum import Enum
+from can import ThreadSafeBus, Message, CanOperationError
 
 
 #######################       THIRD PARTY IMPORTS        #######################
-from can import ThreadSafeBus, Message, CanOperationError
-from system_shared_tool import SysShdChanC
-import system_logger_tool as sys_log
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
-if __name__ == '__main__':
-    cycler_logger = sys_log.SysLogLoggerC()
-log = sys_log.sys_log_logger_get_module_logger(__name__)
+from system_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
 
+#######################       LOGGER CONFIGURATION       #######################
+if __name__ == '__main__':
+    cycler_logger = SysLogLoggerC(file_log_levels='../log_config.yaml')
+log: Logger = sys_log_logger_get_module_logger(__name__)
+
+from system_shared_tool import SysShdIpcChanC
 #######################          MODULE IMPORTS          #######################
 
 
@@ -31,7 +33,7 @@ log = sys_log.sys_log_logger_get_module_logger(__name__)
 
 
 #######################             CLASSES              #######################
-
+_MAX_MESSAGE_SIZE: int = 250
 _TIMEOUT_SEND_MSG : float = 0.2
 _TIMEOUT_RX_MSG : float = 0.02
 _MAX_DLC_SIZE : int = 8
@@ -75,7 +77,7 @@ class DrvCanFilterC():
     """This class is used to create objects that
     works as messages to make write or erase filters in can .
     """
-    def __init__(self, addr : int, mask : int, chan):
+    def __init__(self, addr : int, mask : int, chan_name: str):
         if _MIN_ID <= addr <= _MAX_ID:
             self.addr = addr
         else:
@@ -88,11 +90,17 @@ class DrvCanFilterC():
             log.error("Wrong value for mask, value must be between 0 and 0x7ff")
             raise ValueError("Wrong value for mask, value must be between 0 and 0x7ff")
 
-        if isinstance(chan, SysShdChanC):
-            self.chan = chan
-        else:
-            log.error("Wrong type for channel, must be a SysShdChanC object")
-            raise ValueError("Wrong type for channel, must be a SysShdChanC object")
+        self.chan_name = chan_name
+        self.chan: SysShdIpcChanC|None = None
+    def open_chan(self):
+        """Open the channel to use for communication with Posix .
+        """
+        self.chan: SysShdIpcChanC = SysShdIpcChanC(name= self.chan_name, max_message_size= 150)
+
+    def close_chan(self):
+        """Closes the communication channel .
+        """
+        self.chan.close()
 
     def match(self, id_can: int) -> bool:
         """Checks if the id_can matches with the selected filter.
@@ -133,7 +141,7 @@ class DrvCanNodeC(threading.Thread):
         threading ([type]): [description]
     """
 
-    def __init__(self, tx_buffer: SysShdChanC,
+    def __init__(self, tx_buffer_size: int,
         working_flag : threading.Event, can_params: DrvCanParamsC =
         DrvCanParamsC()) -> None:
         '''
@@ -154,9 +162,11 @@ class DrvCanNodeC(threading.Thread):
                                 receive_own_messages=False, fd=True)
         self.__can_bus.flush_tx_buffer()
 
-        self.tx_buffer: SysShdChanC = tx_buffer
+        self.tx_buffer: SysShdIpcChanC = SysShdIpcChanC(name='TX_CAN',
+                                            max_msg = int(tx_buffer_size),
+                                            max_message_size= _MAX_MESSAGE_SIZE)
 
-        self.__active_filter = []
+        self.__active_filter: list = []
 
 
     def __parse_msg(self, message: DrvCanMessageC) -> None:
@@ -180,6 +190,7 @@ class DrvCanNodeC(threading.Thread):
         Args:
             data_frame (DrvCanFilterC): Filter to apply.
         '''
+        add_filter.open_chan()
         self.__active_filter.append(add_filter)
         log.debug("Filter added correctly")
 
@@ -189,7 +200,9 @@ class DrvCanNodeC(threading.Thread):
         Args:
             del_filter (DrvCanFilterC): Filter to remove.
         '''
-        self.__active_filter.remove(del_filter)
+
+        filter_chn: DrvCanFilterC = self.__active_filter.pop(del_filter)
+        filter_chn.close_chan()
         log.debug("Filter removed correctly")
 
     def __send_message(self, data : DrvCanMessageC) -> None:
