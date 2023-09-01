@@ -10,14 +10,16 @@ from __future__ import annotations
 #######################         GENERIC IMPORTS          #######################
 from enum import Enum
 
-#######################       THIRD PARTY IMPORTS        #######################
-from bitarray.util import ba2int, int2ba
+#######################    SYSTEM ABSTRACTION IMPORTS    #######################
 from system_logger_tool import SysLogLoggerC, sys_log_logger_get_module_logger
-from system_shared_tool import SysShdChanC
-from can_sniffer import DrvCanMessageC, DrvCanCmdDataC, DrvCanCmdTypeE, DrvCanFilterC
 if __name__ == '__main__':
     cycler_logger = SysLogLoggerC()
 log = sys_log_logger_get_module_logger(__name__)
+from system_shared_tool import SysShdIpcChanC
+
+#######################       THIRD PARTY IMPORTS        #######################
+from bitarray.util import ba2int, int2ba
+from can_sniffer import DrvCanMessageC, DrvCanCmdDataC, DrvCanCmdTypeE, DrvCanFilterC
 
 #######################          MODULE IMPORTS          #######################
 
@@ -89,6 +91,7 @@ class _ConstC:
     MIN_TEMP            = -200      # Min temperature the epc has as hardware limits
     LOW_SIDE_BITFIELD   = 16
     MID_SIDE_BITFIELD   = 32
+    MIN_MSG_SIZE        = 150
 
 #######################             CLASSES              #######################
 class DrvEpcStatusC:
@@ -310,10 +313,10 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
     """Class to create epc devices with all the properties needed.
 
     """
-    def __init__(self, dev_id: int, device_handler: SysShdChanC, tx_can_queue: SysShdChanC) -> None:
-        self.__device_handler = device_handler
+    def __init__(self, dev_id: int) -> None:
+        self.__device_handler: SysShdIpcChanC
         self.__dev_id= dev_id #pylint: disable=unused-private-member
-        self.__tx_can = tx_can_queue
+        self.__tx_can = SysShdIpcChanC('TX_CAN')
         self.__live_data : DrvEpcDataC = DrvEpcDataC()
         self.__properties: DrvEpcPropertiesC = DrvEpcPropertiesC(can_id = dev_id)
 
@@ -582,12 +585,11 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         self.read_can_buffer()
 
     def set_wait_mode(self, limit_ref: int) -> None:
-        """Set the WAIT mode with a specific limit type and limit reference.
+        """Set the WAIT mode for a specific time  limit reference.
 
         Args:
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
-            limit_ref (int): [Reference for the limit imposed,
-                depending on the limit units will be mV/mA/dW/ms]
+            limit_ref (int): [Reference for the limit in time in ms]
         """
         # The id send is the union of the device can id and type of the message to send
         if limit_ref<0:
@@ -936,13 +938,15 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
 
     def open(self) -> None:
         """Open a device filter .
-
         Args:
             addr (int): [addr of the device]
             mask (int): [mask apply to the addr in order to save the can messages]
         """
-        open_filter = DrvCanFilterC(self.__properties.can_id,
-                    _ConstC.MASK_CAN_DEVICE, self.__device_handler)
+        # After same test the posix channel needs to have a minimum message size of 150 bytes
+        self.__device_handler = SysShdIpcChanC(name= 'RX_CAN_'+hex(self.__properties.can_id),
+                                               max_message_size=_ConstC.MIN_MSG_SIZE)
+        open_filter = DrvCanFilterC(addr=self.__properties.can_id,mask= _ConstC.MASK_CAN_DEVICE,
+                                    chan_name= 'RX_CAN_'+hex(self.__properties.can_id))
         self.__send_to_can(DrvCanCmdTypeE.ADD_FILTER, open_filter)
         # Once the device can receive messages it has to know which hw version has
         # in order to identificate which sensors are present
@@ -953,10 +957,11 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         """Close the current device, and delete all messages in handler
         """
         self.read_can_buffer()
-        close_filter = DrvCanFilterC(self.__properties.can_id,
-                    _ConstC.MASK_CAN_DEVICE, self.__device_handler)
+        close_filter = DrvCanFilterC(addr=self.__properties.can_id,mask= _ConstC.MASK_CAN_DEVICE,
+                                    chan_name= 'RX_CAN_'+hex(self.__properties.can_id))
         self.__send_to_can(DrvCanCmdTypeE.REMOVE_FILTER, close_filter)
         self.__device_handler.delete_until_last()
+        self.__device_handler.terminate()
 
 #######################             FUNCTIONS              #######################
 

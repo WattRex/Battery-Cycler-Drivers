@@ -9,6 +9,7 @@ import os
 import sys
 import threading
 import time
+from subprocess import run, PIPE
 
 #######################         GENERIC IMPORTS          #######################
 from datetime import datetime
@@ -20,7 +21,6 @@ import pandas as pd
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
 sys.path.append(os.getcwd())  #get absolute path
 
-from system_shared_tool import SysShdChanC
 from system_logger_tool import sys_log_logger_get_module_logger
 if __name__ == '__main__':
     from system_logger_tool import SysLogLoggerC
@@ -40,8 +40,8 @@ class _ConstantsC():
     TO_DECIS = 100
 
 class _ManageEpcC():
-    def __init__(self, can_id: int, txt: str, tx_queue: SysShdChanC) -> None:
-        self.epc= DrvEpcDeviceC(can_id, SysShdChanC(500), tx_queue)
+    def __init__(self, can_id: int, txt: str) -> None:
+        self.epc= DrvEpcDeviceC(can_id)
         self.df_epc = pd.DataFrame(columns=['Time','Mode', 'Ref[m/dU]', 'Limit', 'Limit_ref[m/dU]',
                             'LS_Volt[mV]','LS_Curr[mA]','LS_Power[dW]',
                              'HS_Volt[mV]', 'Temp_body[dºC]', 'Temp_anod[dºC]', 'Temp_amb[dºC]'])
@@ -82,92 +82,96 @@ def apply_txt_cmd(command: str, epc_device: DrvEpcDeviceC):
 
 
 if __name__ == '__main__':
-    can_queue = SysShdChanC(100000000)
-    can_queue.delete_until_last()
+
     # Flag to know if the can is working
     _working_can = threading.Event()
     _working_can.set()
     #Create the thread for CAN
-    can = DrvCanNodeC(can_queue, _working_can)
+    try:
+        can = DrvCanNodeC(tx_buffer_size = 150, working_flag = _working_can)
+        can.start()
 
-    path = os.path.join(os.getcwd(),'example')
-    if not os.path.exists(path):
-        os.mkdir(path)
-    n_dev = input("Introduce the can_id of "+
-                    "the devices separated by commas: ").replace(' ','').split(',')
-    if len(n_dev)>0:
-        n_dev = [int(x,16) for x in n_dev if 'x' in x]+[int(x) for x in n_dev if 'x' not in x]
-    n_txt = input("Introduce the name of files, must follow same order as device "+
-                    " and not end in .txt: ").replace(' ','').split(',')
-    if len(n_dev)!= len(n_txt) or n_txt[0] == '':
-        log.error('Number of devices and files does not match')
+        path = os.path.join(os.getcwd(),'example')
+        if not os.path.exists(path):
+            os.mkdir(path)
+        n_dev = input("Introduce the can_id of "+
+                        "the devices separated by commas: ").replace(' ','').split(',')
+        if len(n_dev)>0:
+            n_dev = [int(x,16) for x in n_dev if 'x' in x]+[int(x) for x in n_dev if 'x' not in x]
+        n_txt = input("Introduce the name of files, must follow same order as device "+
+                        " and not end in .txt: ").replace(' ','').split(',')
+        if len(n_dev)!= len(n_txt) or n_txt[0] == '':
+            log.error('Number of devices and files does not match')
 
-    can.start()
-    if n_txt[0] != '' and len(n_dev) == len(n_txt):
-        list_dev = [_ManageEpcC(int(dev),txt,can_queue) for dev,txt in zip(n_dev,n_txt)]
-        for epc_dev in list_dev:
-            log.info(f"Device can id: {hex(epc_dev.epc.get_properties().can_id)}")
-            epc_dev.epc.open()
-        while len(list_dev)>0:
-            time.sleep(0.100)
+        if n_txt[0] != '' and len(n_dev) == len(n_txt):
+            list_dev = [_ManageEpcC(int(dev),txt) for dev,txt in zip(n_dev,n_txt)]
             for epc_dev in list_dev:
+                log.info(f"Device can id: {hex(epc_dev.epc.get_properties().can_id)}")
+                epc_dev.epc.open()
+            while len(list_dev)>0:
+                time.sleep(0.100)
+                for epc_dev in list_dev:
+                    elec_meas = epc_dev.epc.get_elec_meas(periodic_flag=False)
+                    temp_meas = epc_dev.epc.get_temp_meas(periodic_flag=False)
+
+                    data = epc_dev.epc.get_data(update=True)
+                    epc_dev.df_epc.loc[len(epc_dev.df_epc)] = [datetime.now().astimezone(
+                        timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]]+\
+                        [data.mode.name, data.ref, data.lim_mode.name, data.lim_ref]+\
+                        [elec_meas.ls_current, elec_meas.ls_current,
+                        elec_meas.ls_power, elec_meas.hs_voltage,
+                        temp_meas.temp_body, temp_meas.temp_anod, temp_meas.temp_amb]
+                    if data.mode is DrvEpcModeE.IDLE and epc_dev.last_mode is not DrvEpcModeE.IDLE:
+                        cmd = epc_dev.file.readline()
+                        if not cmd :
+                            epc_dev.df_epc.to_csv(os.path.join(path,
+                                    f'epc{hex(epc_dev.epc.get_properties().can_id)}_data.csv'),
+                                    index=False)
+                            epc_dev.file.close()
+                            list_dev.remove(epc_dev)
+                        else:
+                            apply_txt_cmd(cmd, epc_dev.epc)
+                    if epc_dev.last_mode != data.mode:
+                        epc_dev.last_mode = data.mode
+        else:
+            epc_dev = _ManageEpcC(int(n_dev[0]),'')
+            epc_dev.epc.open()
+            epc_dev.epc.get_properties(update=True)
+            epc_dev.epc.set_periodic(False, 1000, True, 100, True, 100)
+            i=0
+            j = 0
+            while 1:
+
                 elec_meas = epc_dev.epc.get_elec_meas(periodic_flag=False)
                 temp_meas = epc_dev.epc.get_temp_meas(periodic_flag=False)
-
                 data = epc_dev.epc.get_data(update=True)
+                #save measures in pandas
                 epc_dev.df_epc.loc[len(epc_dev.df_epc)] = [datetime.now().astimezone(
-                    timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]]+\
-                    [data.mode.name, data.ref, data.lim_mode.name, data.lim_ref]+\
-                    [elec_meas.ls_current, elec_meas.ls_current,
-                    elec_meas.ls_power, elec_meas.hs_voltage,
-                    temp_meas.temp_body, temp_meas.temp_anod, temp_meas.temp_amb]
+                        timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]]+\
+                        [data.mode.name, data.ref, data.lim_mode.name, data.lim_ref,
+                        elec_meas.ls_current, elec_meas.ls_current,
+                        elec_meas.ls_power, elec_meas.hs_voltage,
+                        temp_meas.temp_body, temp_meas.temp_anod, temp_meas.temp_amb]
+
                 if data.mode is DrvEpcModeE.IDLE and epc_dev.last_mode is not DrvEpcModeE.IDLE:
-                    cmd = epc_dev.file.readline()
-                    if not cmd :
-                        epc_dev.df_epc.to_csv(os.path.join(path,
-                                f'epc{hex(epc_dev.epc.get_properties().can_id)}_data.csv'),
-                                index=False)
-                        epc_dev.file.close()
-                        list_dev.remove(epc_dev)
+                    if j == 0:
+                        epc_dev.epc.set_cc_mode(1000, DrvEpcLimitE.TIME, 3000)
+                        j = 1
                     else:
-                        apply_txt_cmd(cmd, epc_dev.epc)
+                        epc_dev.epc.set_wait_mode(limit_ref=3000)
+                        j = 0
+
                 if epc_dev.last_mode != data.mode:
                     epc_dev.last_mode = data.mode
-    else:
-        epc_dev = _ManageEpcC(int(n_dev[0]),'',can_queue)
-        epc_dev.epc.open()
-        epc_dev.epc.get_properties(update=True)
-        epc_dev.epc.set_periodic(False, 1000, True, 100, True, 100)
-        i=0
-        j = 0
-        while 1:
 
-            elec_meas = epc_dev.epc.get_elec_meas(periodic_flag=False)
-            temp_meas = epc_dev.epc.get_temp_meas(periodic_flag=False)
-            data = epc_dev.epc.get_data(update=True)
-            #save measures in pandas
-            epc_dev.df_epc.loc[len(epc_dev.df_epc)] = [datetime.now().astimezone(
-                    timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]]+\
-                    [data.mode.name, data.ref, data.lim_mode.name, data.lim_ref,
-                    elec_meas.ls_current, elec_meas.ls_current,
-                    elec_meas.ls_power, elec_meas.hs_voltage,
-                    temp_meas.temp_body, temp_meas.temp_anod, temp_meas.temp_amb]
+                if i %120 == 0:
+                    epc_dev.df_epc.to_csv(os.path.join(path,
+                            f'epc{hex(epc_dev.epc.get_properties().can_id)}_data.csv'), index=False)
 
-            if data.mode is DrvEpcModeE.IDLE and epc_dev.last_mode is not DrvEpcModeE.IDLE:
-                if j == 0:
-                    epc_dev.epc.set_cc_mode(1000, DrvEpcLimitE.TIME, 3000)
-                    j = 1
-                else:
-                    epc_dev.epc.set_wait_mode(limit_type= DrvEpcLimitE.TIME, limit_ref=3000)
-                    j = 0
-
-            if epc_dev.last_mode != data.mode:
-                epc_dev.last_mode = data.mode
-
-            if i %120 == 0:
-                epc_dev.df_epc.to_csv(os.path.join(path,
-                        f'epc{hex(epc_dev.epc.get_properties().can_id)}_data.csv'), index=False)
-
-            time.sleep(0.01)
-            i+=1
-    print("fin")
+                time.sleep(0.01)
+                i+=1
+        print("fin")
+    except Exception:
+        # If there has been any problem, the posix queues might not close properly and have to be
+        # deleted manually with the following command in linux
+        run(args="rm -r /dev/mqueue/*", shell =True, stdout=PIPE, stderr=PIPE, check=False)
