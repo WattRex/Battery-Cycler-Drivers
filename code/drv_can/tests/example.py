@@ -6,7 +6,8 @@ This is an example of use of the can module.
 from __future__ import annotations
 
 #######################         GENERIC IMPORTS          #######################
-import threading
+from signal import signal, SIGINT
+from threading import Event
 import time
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
 from system_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
@@ -57,44 +58,44 @@ def translate(msg_epc: DrvCanMessageC):
         log.info(f"Anode T: {int(binary_string[3]+binary_string[2],2)}")
         log.info(f"Amb T: {int(binary_string[5]+binary_string[4],2)}")
 
-
-
-
 if __name__ == '__main__':
     # Flag to know if the can is working
-    _working_can = threading.Event()
+    _working_can = Event()
     _working_can.set()
     #Create the thread for CAN
     can = DrvCanNodeC(tx_buffer_size= 150, working_flag=_working_can)
-    can.start()
-    #Example of messages
-    msg1 = DrvCanMessageC(addr = 0x030, size = 8, data= 0x00000b803e80020) # Change to wait mode
-    msg2 = DrvCanMessageC(addr = 0x037, size = 6, data= 0x1900190000) # Change periodic every 10ms
-    msg3 = DrvCanMessageC(addr = 0x030, size = 8, data= 0x13E003E80015) # CC 1A limV 5.1V
-    filter_cmd = DrvCanFilterC(addr=0x030, mask= 0x7F0, chan_name= 'RX_CAN_0X3')
-    #In order to apply the messages should be wrap in the DrvCanCmdDataC to know which type is it
-    cmd = DrvCanCmdDataC(data_type= DrvCanCmdTypeE.ADD_FILTER, payload= filter_cmd)
-    can_queue = SysShdIpcChanC(name= 'TX_CAN')
-    time.sleep(1)
-    can_queue.send_data(cmd)
-    for i in range(0,6):
-        filter_cmd = DrvCanFilterC(addr=(i<<4), mask= 0x7F0, chan_name= f'RX_CAN_0X{i}')
-        #In order to apply the messages should be wrap in the DrvCanCmdDataC,
-        # to know which type is it
+    try:
+        can.start()
+        #Example of messages
+        msg1 = DrvCanMessageC(addr = 0x030,
+                              size = 8, data= 0x00000b803e80020) # Change to wait mode
+        msg2 = DrvCanMessageC(addr = 0x037,
+                              size = 6, data= 0x1900190000) # Change periodic every 10ms
+        msg3 = DrvCanMessageC(addr = 0x030,
+                              size = 8, data= 0x13E003E80015) # CC 1A limV 5.1V
+        filter_cmd = DrvCanFilterC(addr=0x030, mask= 0x7F0, chan_name= 'RX_CAN_0X3')
+        #In order to apply the messages should be wrap in the DrvCanCmdDataC to know which type is it
+        cmd = DrvCanCmdDataC(data_type= DrvCanCmdTypeE.ADD_FILTER, payload= filter_cmd)
+        can_queue = SysShdIpcChanC(name= 'TX_CAN')
+        time.sleep(1)
+        can_queue.send_data(cmd)
+        for i in range(0,6):
+            filter_cmd = DrvCanFilterC(addr=(i<<4), mask= 0x7F0, chan_name= f'RX_CAN_0X{i}')
+            #In order to apply the messages should be wrap in the DrvCanCmdDataC,
+            # to know which type is it
+            cmd = DrvCanCmdDataC(data_type= DrvCanCmdTypeE.ADD_FILTER, payload= filter_cmd)
+            can_queue.send_data(cmd)
+        filter_cmd = DrvCanFilterC(addr=0x030, mask= 0x7F0, chan_name= 'RX_CAN_0X3')
         cmd = DrvCanCmdDataC(data_type= DrvCanCmdTypeE.ADD_FILTER, payload= filter_cmd)
         can_queue.send_data(cmd)
-    filter_cmd = DrvCanFilterC(addr=0x030, mask= 0x7F0, chan_name= 'RX_CAN_0X3')
-    cmd = DrvCanCmdDataC(data_type= DrvCanCmdTypeE.ADD_FILTER, payload= filter_cmd)
-    can_queue.send_data(cmd)
-    filter_cmd = DrvCanFilterC(addr=0x020, mask= 0x7F0, chan_name= 'RX_CAN_0X2')
-    cmd = DrvCanCmdDataC(data_type= DrvCanCmdTypeE.REMOVE_FILTER, payload= filter_cmd)
-    can_queue.send_data(cmd)
-    filter_cmd = DrvCanFilterC(addr=0x020, mask= 0x7F0, chan_name= 'RX_CAN_0X2')
-    cmd = DrvCanCmdDataC(data_type= DrvCanCmdTypeE.REMOVE_FILTER, payload= filter_cmd)
-    can_queue.send_data(cmd)
-    time.sleep(2)
-    rx_queue= SysShdIpcChanC(name='RX_CAN_0X3')
-    try:
+        filter_cmd = DrvCanFilterC(addr=0x020, mask= 0x7F0, chan_name= 'RX_CAN_0X2')
+        cmd = DrvCanCmdDataC(data_type= DrvCanCmdTypeE.REMOVE_FILTER, payload= filter_cmd)
+        can_queue.send_data(cmd)
+        filter_cmd = DrvCanFilterC(addr=0x020, mask= 0x7F0, chan_name= 'RX_CAN_0X2')
+        cmd = DrvCanCmdDataC(data_type= DrvCanCmdTypeE.REMOVE_FILTER, payload= filter_cmd)
+        can_queue.send_data(cmd)
+        time.sleep(2)
+        rx_queue= SysShdIpcChanC(name='RX_CAN_0X3')
         can_queue.send_data(DrvCanCmdDataC(DrvCanCmdTypeE.MESSAGE, msg1))
         log.debug('Msg1 a cola enviado')
         can_queue.send_data(DrvCanCmdDataC(DrvCanCmdTypeE.MESSAGE, msg2))
@@ -117,7 +118,10 @@ if __name__ == '__main__':
                 #Chante to wait mode
                 can_queue.send_data(DrvCanCmdDataC(DrvCanCmdTypeE.MESSAGE, msg1))
                 # log.debug('Msg1 a cola enviado')
-    except Exception:
-        can_queue.close()
-        can_queue.unlink()
-        rx_queue.unlink()
+    except KeyboardInterrupt:
+        _working_can.clear()
+        can_queue.terminate()
+        rx_queue.terminate()
+        can.join()
+        log.info('closing everything')
+        exit(0)

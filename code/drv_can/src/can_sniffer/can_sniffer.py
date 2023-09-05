@@ -10,8 +10,8 @@ from __future__ import annotations
 import threading
 from typing import Any, Iterable, Callable, Mapping
 from enum import Enum
+from signal import signal, SIGINT
 from can import ThreadSafeBus, Message, CanOperationError
-
 
 #######################       THIRD PARTY IMPORTS        #######################
 
@@ -169,7 +169,6 @@ class DrvCanNodeC(threading.Thread):
 
         self.__active_filter: list = []
 
-
     def __parse_msg(self, message: DrvCanMessageC) -> None:
         '''
         Check if the received message matches any of the active filter, in case it matches will
@@ -285,8 +284,8 @@ class DrvCanNodeC(threading.Thread):
         log.critical("Stopping CAN thread.")
         for filters in self.__active_filter:
             filters.close_chan()
-        self.__can_bus.shutdown()
         self.working_flag.clear()
+        self.__can_bus.shutdown()
 
     def run(self) -> None:
         '''
@@ -309,9 +308,14 @@ class DrvCanNodeC(threading.Thread):
                         self.__parse_msg(DrvCanMessageC(msg.arbitration_id,msg.dlc,msg.data))
                     else:
                         log.error(f"Message receive can`t be parsed, id: {hex(msg.arbitration_id)}"+
-                                  f" and frame: {msg.is_error_frame}")
-            except Exception as err:
+                                  f" and error in frame is: {msg.is_error_frame}")
+            except CanOperationError as err:
                 log.error(f"Error while sending CAN message\n{err}")
+            except ValueError as err:
+                log.error(f"Error while applying/removing filter with error {err}")
+            except Exception:
+                log.error("Error in can thread")
+                self.working_flag.clear()
         log.critical("Stop can working")
         self.stop()
 #######################            FUNCTIONS             #######################
