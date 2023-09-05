@@ -956,6 +956,8 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
     def close(self) -> None:
         """Close the current device, and delete all messages in handler
         """
+        #Disable periodic messages to avoid jamming the can bus
+        self.set_periodic(ack_en= False, elect_en= False, temp_en= False)
         self.read_can_buffer()
         close_filter = DrvCanFilterC(addr=self.__properties.can_id,mask= _ConstC.MASK_CAN_DEVICE,
                                     chan_name= 'RX_CAN_'+hex(self.__properties.can_id))
