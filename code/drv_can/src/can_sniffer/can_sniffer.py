@@ -92,6 +92,7 @@ class DrvCanFilterC():
 
         self.chan_name = chan_name
         self.chan: SysShdIpcChanC|None = None
+
     def open_chan(self):
         """Open the channel to use for communication with Posix .
         """
@@ -100,7 +101,7 @@ class DrvCanFilterC():
     def close_chan(self):
         """Closes the communication channel .
         """
-        self.chan.close()
+        self.chan.terminate()
 
     def match(self, id_can: int) -> bool:
         """Checks if the id_can matches with the selected filter.
@@ -194,8 +195,14 @@ class DrvCanNodeC(threading.Thread):
         for act_filter in self.__active_filter:
             if act_filter.addr == add_filter.addr and act_filter.mask == add_filter.mask:
                 already_in = True
-                log.warning("Filter already added")
+                if act_filter.chan_name != add_filter.chan_name:
+                    log.error("Filter already added with different channel name")
+                    raise ValueError("Filter already added with different channel name")
+                else:
+                    log.warning("Filter already added")
         if not already_in:
+            log.info(f"Adding new filter with id {hex(add_filter.addr)} "+
+            f"and mask {hex(add_filter.mask)}")
             add_filter.open_chan()
             self.__active_filter.append(add_filter)
             log.debug("Filter added correctly")
@@ -206,10 +213,24 @@ class DrvCanNodeC(threading.Thread):
         Args:
             del_filter (DrvCanFilterC): Filter to remove.
         '''
-
-        filter_chn: DrvCanFilterC = self.__active_filter.pop(del_filter)
-        filter_chn.close_chan()
-        log.debug("Filter removed correctly")
+        already_out = True
+        filter_pos=0
+        for act_filter in self.__active_filter:
+            if act_filter.addr == del_filter.addr and act_filter.mask == del_filter.mask:
+                already_out = False
+                if act_filter.chan_name != del_filter.chan_name:
+                    log.error("Filter in with different channel name")
+                    raise ValueError("Filter already added with different channel name")
+                else:
+                    log.info(f"Removing filter with id {hex(del_filter.addr)} "+
+                        f"and mask {hex(del_filter.mask)}")
+                    filter_chn: DrvCanFilterC = self.__active_filter.pop(filter_pos)
+                    filter_chn.close_chan()
+                    log.debug("Filter removed correctly")
+            else:
+                filter_pos += 1
+        if already_out:
+            log.warning("Filter already removed")
 
     def __send_message(self, data : DrvCanMessageC) -> None:
         '''Send a CAN message
@@ -248,13 +269,9 @@ class DrvCanNodeC(threading.Thread):
             self.__send_message(command.payload)
         elif (command.data_type == DrvCanCmdTypeE.ADD_FILTER
             and isinstance(command.payload,DrvCanFilterC)):
-            log.info(f"Adding new filter with id {hex(command.payload.addr)} "+
-                        f"and mask {hex(command.payload.mask)}")
             self.__apply_filter(command.payload)
         elif (command.data_type == DrvCanCmdTypeE.REMOVE_FILTER
             and isinstance(command.payload,DrvCanFilterC)):
-            log.info(f"Removing filter with id {hex(command.payload.addr)} "+
-                        f"and mask {hex(command.payload.mask)}")
             self.__remove_filter(command.payload)
         else:
             log.error("Can`t apply command. \
@@ -266,6 +283,8 @@ class DrvCanNodeC(threading.Thread):
         Stop the CAN thread .
         """
         log.critical("Stopping CAN thread.")
+        for filters in self.__active_filter:
+            filters.close_chan()
         self.__can_bus.shutdown()
         self.working_flag.clear()
 

@@ -86,6 +86,12 @@ if __name__ == '__main__':
     filter_cmd = DrvCanFilterC(addr=0x030, mask= 0x7F0, chan_name= 'RX_CAN_0X3')
     cmd = DrvCanCmdDataC(data_type= DrvCanCmdTypeE.ADD_FILTER, payload= filter_cmd)
     can_queue.send_data(cmd)
+    filter_cmd = DrvCanFilterC(addr=0x020, mask= 0x7F0, chan_name= 'RX_CAN_0X2')
+    cmd = DrvCanCmdDataC(data_type= DrvCanCmdTypeE.REMOVE_FILTER, payload= filter_cmd)
+    can_queue.send_data(cmd)
+    filter_cmd = DrvCanFilterC(addr=0x020, mask= 0x7F0, chan_name= 'RX_CAN_0X2')
+    cmd = DrvCanCmdDataC(data_type= DrvCanCmdTypeE.REMOVE_FILTER, payload= filter_cmd)
+    can_queue.send_data(cmd)
     time.sleep(2)
     rx_queue= SysShdIpcChanC(name='RX_CAN_0X3')
     try:
