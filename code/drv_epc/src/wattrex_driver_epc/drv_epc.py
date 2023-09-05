@@ -359,7 +359,8 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
                                                       signed=True)
                 #------   0xYY1 EPC request  ------
                 elif msg_id == _EpcMsgTypeE.REQUEST.value:
-                    log.error("The message send to request data has a format error")
+                    log.error(("The message send to request data has a format error, "
+                               f"receive {hex(ba2int(msg_bits))}"))
                 #------   0xYY2 EPC LS Voltage Limits  ------
                 elif msg_id == _EpcMsgTypeE.LS_VOLT_LIM.value:
                     self.__properties.ls_volt_limit.max = ba2int(
