@@ -74,14 +74,18 @@ if __name__ == '__main__':
     filter_cmd = DrvCanFilterC(addr=0x030, mask= 0x7F0, chan_name= 'RX_CAN_0X3')
     #In order to apply the messages should be wrap in the DrvCanCmdDataC to know which type is it
     cmd = DrvCanCmdDataC(data_type= DrvCanCmdTypeE.ADD_FILTER, payload= filter_cmd)
-    time.sleep(2)
     can_queue = SysShdIpcChanC(name= 'TX_CAN')
+    time.sleep(1)
+    can_queue.send_data(cmd)
     for i in range(0,6):
         filter_cmd = DrvCanFilterC(addr=(i<<4), mask= 0x7F0, chan_name= f'RX_CAN_0X{i}')
         #In order to apply the messages should be wrap in the DrvCanCmdDataC,
         # to know which type is it
         cmd = DrvCanCmdDataC(data_type= DrvCanCmdTypeE.ADD_FILTER, payload= filter_cmd)
         can_queue.send_data(cmd)
+    filter_cmd = DrvCanFilterC(addr=0x030, mask= 0x7F0, chan_name= 'RX_CAN_0X3')
+    cmd = DrvCanCmdDataC(data_type= DrvCanCmdTypeE.ADD_FILTER, payload= filter_cmd)
+    can_queue.send_data(cmd)
     time.sleep(2)
     rx_queue= SysShdIpcChanC(name='RX_CAN_0X3')
     try:

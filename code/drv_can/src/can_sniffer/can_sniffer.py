@@ -190,9 +190,15 @@ class DrvCanNodeC(threading.Thread):
         Args:
             data_frame (DrvCanFilterC): Filter to apply.
         '''
-        add_filter.open_chan()
-        self.__active_filter.append(add_filter)
-        log.debug("Filter added correctly")
+        already_in = False
+        for act_filter in self.__active_filter:
+            if act_filter.addr == add_filter.addr and act_filter.mask == add_filter.mask:
+                already_in = True
+                log.warning("Filter already added")
+        if not already_in:
+            add_filter.open_chan()
+            self.__active_filter.append(add_filter)
+            log.debug("Filter added correctly")
 
     def __remove_filter(self, del_filter : DrvCanFilterC) -> None:
         '''Delete a shared object from the active filter list
