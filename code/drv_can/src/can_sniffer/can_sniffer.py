@@ -7,10 +7,9 @@ in order to configure channels and send/received messages.
 from __future__ import annotations
 
 #######################         GENERIC IMPORTS          #######################
-import threading
+from threading import Thread, Event
 from typing import Any, Iterable, Callable, Mapping
 from enum import Enum
-from signal import signal, SIGINT
 from can import ThreadSafeBus, Message, CanOperationError
 
 #######################       THIRD PARTY IMPORTS        #######################
@@ -135,7 +134,7 @@ class DrvCanParamsC:
         self.kwargs = kwargs
         self.daemon = daemon
 
-class DrvCanNodeC(threading.Thread):
+class DrvCanNodeC(Thread):
     """Returns a removable version of the DRv command .
 
     Args:
@@ -143,7 +142,7 @@ class DrvCanNodeC(threading.Thread):
     """
 
     def __init__(self, tx_buffer_size: int,
-        working_flag : threading.Event, can_params: DrvCanParamsC =
+        working_flag : Event, can_params: DrvCanParamsC =
         DrvCanParamsC()) -> None:
         '''
         Initialize the thread node used to received messages from CAN network.
@@ -194,11 +193,11 @@ class DrvCanNodeC(threading.Thread):
         for act_filter in self.__active_filter:
             if act_filter.addr == add_filter.addr and act_filter.mask == add_filter.mask:
                 already_in = True
-                if act_filter.chan_name != add_filter.chan_name:
+                if act_filter.chan_name == add_filter.chan_name:
+                    log.warning("Filter already added")
+                else:
                     log.error("Filter already added with different channel name")
                     raise ValueError("Filter already added with different channel name")
-                else:
-                    log.warning("Filter already added")
         if not already_in:
             log.info(f"Adding new filter with id {hex(add_filter.addr)} "+
             f"and mask {hex(add_filter.mask)}")
@@ -217,15 +216,15 @@ class DrvCanNodeC(threading.Thread):
         for act_filter in self.__active_filter:
             if act_filter.addr == del_filter.addr and act_filter.mask == del_filter.mask:
                 already_out = False
-                if act_filter.chan_name != del_filter.chan_name:
-                    log.error("Filter in with different channel name")
-                    raise ValueError("Filter already added with different channel name")
-                else:
+                if act_filter.chan_name == del_filter.chan_name:
                     log.info(f"Removing filter with id {hex(del_filter.addr)} "+
                         f"and mask {hex(del_filter.mask)}")
                     filter_chn: DrvCanFilterC = self.__active_filter.pop(filter_pos)
                     filter_chn.close_chan()
                     log.debug("Filter removed correctly")
+                else:
+                    log.error("Filter in with different channel name")
+                    raise ValueError("Filter already added with different channel name")
             else:
                 filter_pos += 1
         if already_out:

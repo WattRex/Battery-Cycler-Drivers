@@ -4,9 +4,8 @@ This is an example of use of the can module.
 """
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
-
+import sys
 #######################         GENERIC IMPORTS          #######################
-from signal import signal, SIGINT
 from threading import Event
 import time
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
@@ -74,7 +73,8 @@ if __name__ == '__main__':
         msg3 = DrvCanMessageC(addr = 0x030,
                               size = 8, data= 0x13E003E80015) # CC 1A limV 5.1V
         filter_cmd = DrvCanFilterC(addr=0x030, mask= 0x7F0, chan_name= 'RX_CAN_0X3')
-        #In order to apply the messages should be wrap in the DrvCanCmdDataC to know which type is it
+        # In order to apply the messages should be wrap
+        # in the DrvCanCmdDataC to know which type is it
         cmd = DrvCanCmdDataC(data_type= DrvCanCmdTypeE.ADD_FILTER, payload= filter_cmd)
         can_queue = SysShdIpcChanC(name= 'TX_CAN')
         time.sleep(1)
@@ -124,4 +124,4 @@ if __name__ == '__main__':
         rx_queue.terminate()
         can.join()
         log.info('closing everything')
-        exit(0)
+        sys.exit(0)
