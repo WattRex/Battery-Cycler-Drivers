@@ -18,11 +18,8 @@ from can_sniffer import DrvCanMessageC, DrvCanCmdDataC, DrvCanCmdTypeE, DrvCanFi
 if __name__ == '__main__':
     cycler_logger = SysLogLoggerC()
 log = sys_log_logger_get_module_logger(__name__)
-
 #######################          MODULE IMPORTS          #######################
-
 #######################          PROJECT IMPORTS         #######################
-
 #######################              ENUMS               #######################
 class DrvEpcLimitE(Enum):
     """
@@ -522,8 +519,7 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         self.read_can_buffer()
 
     def set_cc_mode(self, ref: int, limit_type: DrvEpcLimitE, limit_ref: int) -> None:
-        """Set the CC mode for a specific reference, limit type and limit reference .
-
+        """Set the CC mode for a specific reference, limit type and limit reference.
         Args:
             ref (int): [Value in mA dessire to be set as reference]
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
@@ -554,7 +550,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
 
     def set_cp_mode(self, ref: int, limit_type: DrvEpcLimitE, limit_ref: int) -> None:
         """Set the CV mode for a specific reference, limit type and limit reference .
-
         Args:
             ref (int): [Value in dW dessire to be set as reference]
             limit_type (DrvEpcLimitE): [Type of limit dessired to have]
@@ -656,7 +651,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
 
     def set_ls_curr_limit(self, max_lim: int, min_lim: int):
         """Set the Low Side current limit on the device.
-
         Args:
             max_lim (int): [description]
             min_lim (int): [description]
@@ -679,7 +673,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
 
     def set_hs_volt_limit(self, max_lim: int, min_lim: int):
         """Set the high side voltage limit of the device .
-
         Args:
             max_lim (int): [description]
             min_lim (int): [description]
@@ -691,7 +684,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
             data_msg= union_limits(max_lim, min_lim)
             msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
             self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
-
         else:
             log.error((f"Wrong hs volt limits, should between {_ConstC.MIN_HS_VOLT} and "
             f"{_ConstC.MAX_HS_VOLT} mV, but has been introduced {min_lim} and {max_lim}"))
@@ -700,7 +692,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
 
     def set_ls_pwr_limit(self, max_lim: int, min_lim: int):
         """Set the low side `power` limit of the device
-
         Args:
             max_lim (int): [description]
             min_lim (int): [description]
@@ -716,7 +707,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
             data_msg= union_limits(max_lim, min_lim)
             msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
             self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
-
         else:
             log.error(f"Wrong ls power limits, should between +-{_ConstC.MAX_LS_PWR} dW, \
                       but has been introduced {min_lim} and {max_lim}")
@@ -725,7 +715,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
 
     def set_temp_limit(self, max_lim: int, min_lim: int):
         """Set the temperature limits of the device .
-
         Args:
             max_lim (int): [description]
             min_lim (int): [description]
@@ -809,7 +798,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
 
     def get_mode(self) -> DrvEpcDataCtrlC:
         """Get the current mode.
-
         Returns:
             DrvEpcDataCtrlC: [Object with attributes: mode, limit, ref and limit_ref]
         """
@@ -819,13 +807,11 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         msg = DrvCanMessageC(addr= id_msg, size= 1, data = data_msg)
         self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
         self.read_can_buffer()
-
         return DrvEpcDataCtrlC(self.__live_data.mode, self.__live_data.ref,
                                 self.__live_data.lim_mode, self.__live_data.lim_ref)
 
     def get_status(self) -> DrvEpcStatusC:
         """Get the status of the device .
-
         Returns:
             DrvEpcDataCtrlC: [Object with the errors of the device, 
             been the attributes the following:
@@ -844,7 +830,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         """Get the current electric measures of the device.
         The units of the electric measures are the same as the epc has.
         In this case mV mA dW
-
         Returns:
             [DrvEpcDataElectC]: [Object with the voltage, current and power in low side 
                     and voltage in high side as attributes]
@@ -863,7 +848,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         """Get the current temperatures measure of the device.
         The units of the temperature measures are the same as the epc has.
         In this case dºC
-
         Returns:
             [DrvEpcDataTempC]: [Object with the 3 possible temperatures the device can measure
                     body_temperature, anode_temperature, ambient_temperature as attributes]
@@ -880,7 +864,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
 
     def get_ls_volt_limits(self) -> DrvEpcLimitsC:
         """Get the low side voltage limits .
-
         Returns:
             DrvEpcLimitsC: [Object with attributes: max, min]
         """
@@ -894,7 +877,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
 
     def get_ls_curr_limits(self) -> DrvEpcLimitsC:
         """Get the low side current limits .
-
         Returns:
             DrvEpcLimitsC: [Object with attributes: max, min]
         """
@@ -908,7 +890,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
 
     def get_hs_volt_limits(self) -> DrvEpcLimitsC:
         """Get the high side voltage limits for the device .
-
         Returns:
             DrvEpcLimitsC: [Object with attributes: max, min]
         """
@@ -922,7 +903,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
 
     def get_ls_pwr_limits(self) -> DrvEpcLimitsC:
         """Get the LWM limit limits .
-
         Returns:
             DrvEpcLimitsC: [Object with attributes: max, min]
         """
@@ -936,7 +916,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
 
     def get_temp_limits(self) -> DrvEpcLimitsC:
         """Get the current temperature limits .
-
         Returns:
             DrvEpcLimitsC: [Object with attributes: max, min]
         """
@@ -950,7 +929,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
 
     def open(self) -> None:
         """Open a device filter .
-
         Args:
             addr (int): [addr of the device]
             mask (int): [mask apply to the addr in order to save the can messages]
