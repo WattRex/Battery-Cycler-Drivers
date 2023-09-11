@@ -665,6 +665,10 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         if _ConstC.MIN_LS_CURR <= min_lim < max_lim <=_ConstC.MAX_LS_CURR:
             # The id send is the union of the device can id and type of the message to send
             id_msg = self.__properties.can_id | _EpcMsgTypeE.LS_CURR_LIM.value
+            if min_lim <0:
+                min_lim = ba2int(int2ba(min_lim,length=16, signed = True), signed = False)
+            if max_lim <0:
+                max_lim = ba2int(int2ba(max_lim,length=16, signed = True), signed = False)
             data_msg= union_limits(max_lim, min_lim)
             msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
             self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
@@ -706,6 +710,10 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         if _ConstC.MIN_LS_PWR <= min_lim < max_lim <=_ConstC.MAX_LS_PWR:
             # The id send is the union of the device can id and type of the message to send
             id_msg = self.__properties.can_id | _EpcMsgTypeE.LS_PWR_LIM.value
+            if min_lim <0:
+                min_lim = ba2int(int2ba(min_lim,length=16, signed = True), signed = False)
+            if max_lim <0:
+                max_lim = ba2int(int2ba(max_lim,length=16, signed = True), signed = False)
             data_msg= union_limits(max_lim, min_lim)
             msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
             self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
@@ -727,6 +735,10 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         if _ConstC.MIN_TEMP <= min_lim < max_lim <= _ConstC.MAX_TEMP:
             # The id send is the union of the device can id and type of the message to send
             id_msg = self.__properties.can_id | _EpcMsgTypeE.TEMP_LIM.value
+            if min_lim <0:
+                min_lim = ba2int(int2ba(min_lim,length=16, signed = True), signed = False)
+            if max_lim <0:
+                max_lim = ba2int(int2ba(max_lim,length=16, signed = True), signed = False)
             data_msg= union_limits(max_lim, min_lim)
             msg = DrvCanMessageC(addr= id_msg, size= 4, data = data_msg)
             self.__send_to_can(DrvCanCmdTypeE.MESSAGE, msg)
