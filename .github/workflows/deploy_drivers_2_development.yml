@@ -24,6 +24,23 @@ jobs:
     with:
       module-name: ${{ github.ref_name }}
 
+  example:
+    name: Debug job for pull request
+    if: ${{ github.event_name == 'pull_request_review' }} && ${{ github.event.review.state == 'approved' }}
+    runs-on: ubuntu-latest
+    environment: development
+    permissions:
+      id-token: write
+
+    steps:
+
+      - name: Print variables
+        run: |
+          echo "GH_STATE: $GH_STATE }}"
+        shell: bash
+        env:
+          GH_STATE: ${{ github.event.review.state }}
+
   build-package-on-pull-request:
     if: ${{ github.event_name == 'pull_request_review' }} && ${{ github.event.review.state == 'approved' }}
     name: Build package  ${{ github.event.pull_request.head.ref }}
