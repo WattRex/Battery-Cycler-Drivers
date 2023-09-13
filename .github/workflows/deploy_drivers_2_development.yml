@@ -25,7 +25,7 @@ jobs:
       module-name: ${{ github.ref_name }}
 
   build-package-on-pull-request:
-    if: ${{ github.event_name == 'pull_request_review' }}
+    if: ${{ github.event_name == 'pull_request_review' }} && ${{ github.event.review.state == 'approved' }}
     name: Build package  ${{ github.event.pull_request.head.ref }}
     uses: WattRex/System-Tools/.github/workflows/build_python_package.yml@develop
     with:
@@ -34,7 +34,7 @@ jobs:
   publish-package:
 
     name: Publish package ${{ github.event.pull_request.head.ref }} to PyPi
-    if: ${{ github.event_name == 'pull_request_review' }} && github.event.review.state == 'approved'
+    if: ${{ github.event_name == 'pull_request_review' }} && ${{ github.event.review.state == 'approved' }}
     needs: build-package-on-pull-request
     runs-on: ubuntu-latest
     environment: development
@@ -47,6 +47,14 @@ jobs:
           #     python-version: ["3.11"]
 
     steps:
+
+      - name: Print variables
+        run: |
+          echo "GH_STATE: $GH_STATE }}"
+        shell: bash
+        env:
+          GH_STATE: ${{ github.event.review.state }}
+
       - name: Download a single artifact
         uses: actions/download-artifact@v3
         with:
