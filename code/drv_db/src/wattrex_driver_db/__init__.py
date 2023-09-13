@@ -10,8 +10,6 @@ from .drv_db_types import DrvDbCyclingModeE, DrvDbEquipStatusE, DrvDbExpStatusE,
 from .drv_db_dao_base import DrvDbAlarmC
 from .drv_db_dao_cache import DrvDbCacheExperimentC, DrvDbCacheGenericMeasureC, \
                             DrvDbCacheExtendedMeasureC, DrvDbCacheStatusC
-from .drv_db_dao_master import DrvDbMasterExperimentC, DrvDbMasterGenericMeasureC, \
-                            DrvDbMasterExtendedMeasureC, DrvDbMasterStatusC
 
 __all__ = [
     'DrvDbCacheExperimentC', 'DrvDbCacheGenericMeasureC', 'DrvDbAlarmC',\
@@ -19,7 +17,5 @@ __all__ = [
     'DrvDbCyclingModeE', 'DrvDbEquipStatusE', 'DrvDbExpStatusE', 'DrvDbTypeE', \
     'DrvDbCyclingLimitE', 'DrvDbMembraneTypeE', 'DrvDbElectrolyteTypeE', \
     'DrvDbBatteryTechE', 'DrvDbBipolarTypeE', 'DrvDbDeviceTypeE', \
-    'DrvDbLeadAcidChemistryE', 'DrvDbLithiumChemistryE', 'DrvDbAvailableCuE', \
-    'DrvDbMasterExperimentC', 'DrvDbMasterGenericMeasureC', 'DrvDbMasterExtendedMeasureC',\
-    'DrvDbMasterStatusC'
+    'DrvDbLeadAcidChemistryE', 'DrvDbLithiumChemistryE', 'DrvDbAvailableCuE'
 ]
