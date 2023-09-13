@@ -26,7 +26,7 @@ jobs:
 
   example:
     name: Debug job for pull request
-    if: ${{ github.event_name == 'pull_request_review' }} && ${{ github.event.review.state == 'approved' }}
+    if: ${{ github.event_name == 'pull_request_review' && github.event.review.state == 'approved' }}
     runs-on: ubuntu-latest
     environment: development
     permissions:
