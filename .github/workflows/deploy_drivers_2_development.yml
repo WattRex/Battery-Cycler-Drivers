@@ -4,36 +4,36 @@ name: Deployment of battery cycler drivers to development env
 
 on:
   push:
-    branches: [ "drv_can", "drv_epc", "drv_bms", "drv_db",
-                "drv_ea", "drv_bk", "drv_rs", "drv_scpi", "drv_pwr" ]
-    
+    branches: [ "drv_can", "drv_epc", "drv_bms", "drv_db", "drv_ea",
+            "drv_bk", "drv_rs", "drv_scpi", "drv_pwr", "drv_flow" ]
+
   pull_request_review:
     # types: [edited]
     review:
       state: [approved]
       pull_request:
         base:
-          ref: [  "drv_can", "drv_epc", "drv_bms", "drv_db",
-                  "drv_ea", "drv_bk", "drv_rs", "drv_scpi", "drv_pwr" ] 
+          ref: [  "drv_can", "drv_epc", "drv_bms", "drv_db", "drv_ea",
+              "drv_bk", "drv_rs", "drv_scpi", "drv_pwr", "drv_flow" ]
 
 jobs:
-  
+
   build-package-on-push:
     if: ${{ github.event_name == 'push'}}
     name: Build package ${{ github.ref_name }}
     uses: WattRex/System-Tools/.github/workflows/build_python_package.yml@develop
     with:
       module-name: ${{ github.ref_name }}
-  
+
   build-package-on-pull-request:
     if: ${{ github.event_name == 'pull_request_review' }}
     name: Build package  ${{ github.event.pull_request.head.ref }}
     uses: WattRex/System-Tools/.github/workflows/build_python_package.yml@develop
     with:
       module-name: ${{ github.event.pull_request.head.ref }}
-    
+
   publish-package:
-    
+
     name: Publish package ${{ github.event.pull_request.head.ref }} to PyPi
     if: ${{ github.event_name == 'pull_request_review' }}
     needs: build-package-on-pull-request
