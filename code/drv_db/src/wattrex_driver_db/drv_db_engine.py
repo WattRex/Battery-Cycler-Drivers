@@ -19,12 +19,8 @@ from sqlalchemy.orm import Session
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
 from system_config_tool import sys_conf_read_config_params
-
-from system_logger_tool import sys_log_logger_get_module_logger
-if __name__ == '__main__':
-    from system_logger_tool import SysLogLoggerC
-    cycler_logger = SysLogLoggerC()
-log = sys_log_logger_get_module_logger(__name__)
+from system_logger_tool import Logger, sys_log_logger_get_module_logger
+log: Logger = sys_log_logger_get_module_logger(__name__)
 
 #######################          PROJECT IMPORTS         #######################
 
