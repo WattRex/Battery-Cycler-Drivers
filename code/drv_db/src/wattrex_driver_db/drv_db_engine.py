@@ -38,12 +38,13 @@ class DrvDbSqlEngineC:
 
     __MAX_RESETS = 2
 
-    def __init__(self, db_type : DrvDbTypeE, config_file):
+    def __init__(self, db_type : DrvDbTypeE, config_file: str):
         '''
-        Create an connector to the MySQL or SQLite database server
+        Create an connector to the MySQL database server
 
         Args:
-            config_file (str, optional): path to the configuration file. \
+            db_type (DrvDbTypeE): type of database to connect to.
+            config_file (str): path to the configuration file. \
         '''
         try:
             self.config_file = config_file
