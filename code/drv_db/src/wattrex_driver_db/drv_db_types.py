@@ -7,7 +7,7 @@ Enumerations defined to standardize names.
 #######################         GENERIC IMPORTS          #######################
 
 #######################       THIRD PARTY IMPORTS        #######################
-from sqlalchemy import Enum
+from enum import Enum
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
 from system_logger_tool import sys_log_logger_get_module_logger
@@ -23,6 +23,13 @@ log = sys_log_logger_get_module_logger(__name__)
 
 
 #######################              ENUMS               #######################
+
+### DB_TYPE ###
+class DrvDbTypeE(Enum):
+    '''Enum used to define database types.
+    '''
+    CACHE_DB = 'mysql'
+    MASTER_DB = 'mysql'
 
 ### CYCLER ###
 class DrvDbBatteryTechE(Enum):          # pylint: disable= too-many-ancestors
@@ -114,7 +121,6 @@ class DrvDbExpStatusE(Enum):            # pylint: disable= too-many-ancestors
     PAUSED = 'PAUSED'
     RUNNING = 'RUNNING'
     QUEUED = 'QUEUED'
-
 
 class DrvDbCyclingModeE(Enum):          # pylint: disable= too-many-ancestors
     '''Enum used to define cycling control modes.

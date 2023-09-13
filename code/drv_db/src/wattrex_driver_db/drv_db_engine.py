@@ -9,12 +9,12 @@ Raises:
 #######################        MANDATORY IMPORTS         #######################
 
 #######################         GENERIC IMPORTS          #######################
+from typing import Any
 
 #######################       THIRD PARTY IMPORTS        #######################
 # SQL Alchemy
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import Session
-from mysql.connector.errors import Error
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
 from system_config_tool import sys_conf_read_config_params
@@ -28,7 +28,7 @@ log = sys_log_logger_get_module_logger(__name__)
 #######################          PROJECT IMPORTS         #######################
 
 #######################          MODULE IMPORTS          #######################
-
+from .drv_db_types import DrvDbTypeE
 
 #######################              ENUMS               #######################
 
@@ -41,38 +41,45 @@ class DrvDbSqlEngineC:
 
     __MAX_RESETS = 2
 
-    def __init__(self, config_file='../config/.cred.yaml'):
+    def __init__(self, db_type : DrvDbTypeE, config_file):
         '''
-        Create an connector to the MySQL database server
+        Create an connector to the MySQL or SQLite database server
 
         Args:
             config_file (str, optional): path to the configuration file. \
-                Defaults to '../config/.cred.yaml'.
         '''
         try:
             self.config_file = config_file
             # read connection parameters
             params = sys_conf_read_config_params(filename=config_file, section='database')
+            # create engine
+            if db_type == DrvDbTypeE.CACHE_DB and params['engine'] == DrvDbTypeE.CACHE_DB.value:
+                url = 'mysql+mysqlconnector://'
+            elif db_type == DrvDbTypeE.MASTER_DB and params['engine'] == DrvDbTypeE.CACHE_DB.value:
+                url = 'mysql+mysqlconnector://'
+            else:
+                raise ConnectionError("Data base type or engine not supported")
 
-            url = 'mysql+mysqlconnector://' + params['user'] + ':' + params['password'] + '@' \
-                + params['host'] + ':' + str(params['port']) + '/' + params['database']
-            self.engine = create_engine(url, echo=False, future=True)
-            self.session : Session = Session(self.engine, future=True)
+            url += params['user'] + ':' + params['password'] + '@' \
+                    + params['host'] + ':' + str(params['port']) + '/' + params['database']
+            self.engine: Engine = create_engine(url=url, echo=False, future=True)
+            self.session : Session = Session(bind=self.engine, future=True)
             self.session.begin()
             self.n_resets = 0
 
-        except Error as err:
-            log.error(err)
+        except Exception as err:
+            log.error(msg="Error on DB Session creation. Please check DB credentials and params")
+            log.error(msg=err)
             raise err
 
 
     def commit_changes(self) -> None:
         '''
-        Perform a commit againt the used database. If any error occurs, a 
+        Perform a commit againt the used database. If any error occurs, a
         rollback is performed.
 
         Raises:
-            err: Throw an exception if any error occurs during commit transaction. 
+            err: Throw an exception if any error occurs during commit transaction.
         '''
         try:
             self.session.commit()
@@ -94,9 +101,12 @@ class DrvDbSqlEngineC:
         '''
         Create a new engine and initialize it
         '''
-        params = sys_conf_read_config_params(filename=self.config_file, section='database')
-        url = 'mysql+mysqlconnector://' + params['user'] + ':' + params['password'] + '@' \
-            + params['host'] + ':' + str(params['port']) + '/' + params['database']
+        params: dict[str, Any] = sys_conf_read_config_params(\
+            filename=self.config_file, section='database')
+
+        url = 'mysql+mysqlconnector://' + params['user'] + ':'\
+            + params['password'] + '@' + params['host'] + ':'\
+            + str(params['port']) + '/' + params['database']
         self.engine = create_engine(url, echo=False, future=True)
         self.session = Session(self.engine, future=True)
         self.session.begin()
