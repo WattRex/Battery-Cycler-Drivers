@@ -43,7 +43,7 @@ class DrvDbLithiumChemistryE(Enum):     # pylint: disable= too-many-ancestors
     LMO = 'LMO'
     LFP = 'LFP'
     LCO = 'LCO'
-    OTHER = 'Other'
+    OTHER = 'OTHER'
 
 
 class DrvDbLeadAcidChemistryE(Enum):    # pylint: disable= too-many-ancestors
