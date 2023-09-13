@@ -12,10 +12,8 @@ sqlacodegen mysql+mysqlconnector://user:password@ip:port/db_name --outfile drv_d
 #######################         GENERIC IMPORTS          #######################
 
 #######################       THIRD PARTY IMPORTS        #######################
-from sqlalchemy import Column, DateTime, ForeignKey, ForeignKeyConstraint, \
-                        Index, String
-from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.mysql import INTEGER, MEDIUMINT, SMALLINT
+from sqlalchemy import Column
+from sqlalchemy.dialects.mysql import MEDIUMINT
 from sqlalchemy.ext.declarative import declarative_base
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
@@ -29,7 +27,6 @@ log = sys_log_logger_get_module_logger(__name__)
 
 
 #######################          MODULE IMPORTS          #######################
-from .drv_db_types import DrvDbExpStatusE
 from .drv_db_dao_base import DrvDbBaseExperimentC, DrvDbBaseGenericMeasureC,\
     DrvDbBaseExtendedMeasureC, DrvDbBaseStatusC
 
@@ -40,7 +37,7 @@ from .drv_db_dao_base import DrvDbBaseExperimentC, DrvDbBaseGenericMeasureC,\
 Base = declarative_base()
 metadata = Base.metadata
 
-class DrvDbExperimentC(DrvDbBaseExperimentC):
+class DrvDbCacheExperimentC(DrvDbBaseExperimentC):
     '''
     Class method to create a simplified model of database Experiment table.
     '''
@@ -51,7 +48,7 @@ class DrvDbExperimentC(DrvDbBaseExperimentC):
     BatID = Column(MEDIUMINT(unsigned=True), nullable=False)
     ProfID = Column(MEDIUMINT(unsigned=True), nullable=False)
 
-class DrvDbGenericMeasureC(DrvDbBaseGenericMeasureC):
+class DrvDbCacheGenericMeasureC(DrvDbBaseGenericMeasureC):
     '''
     Class method to create a model of cache database GenericMeasures table.
     '''
@@ -60,7 +57,7 @@ class DrvDbGenericMeasureC(DrvDbBaseGenericMeasureC):
 
     InstrID = Column(MEDIUMINT(unsigned=True), nullable=False)
 
-class DrvDbExtendedMeasureC(DrvDbBaseExtendedMeasureC):
+class DrvDbCacheExtendedMeasureC(DrvDbBaseExtendedMeasureC):
     '''
     Class method to create a model of cache database ExtendedMeasures table.
     '''
@@ -69,7 +66,7 @@ class DrvDbExtendedMeasureC(DrvDbBaseExtendedMeasureC):
 
     MeasType = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False)
 
-class DrvDbStatusC(DrvDbBaseStatusC):
+class DrvDbCacheStatusC(DrvDbBaseStatusC):
     '''
     Class method to create a base model of database Status table.
     '''

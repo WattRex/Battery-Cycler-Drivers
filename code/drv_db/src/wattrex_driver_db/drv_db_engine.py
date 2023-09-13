@@ -13,7 +13,8 @@ from typing import Any
 
 #######################       THIRD PARTY IMPORTS        #######################
 # SQL Alchemy
-from sqlalchemy import create_engine, Engine
+from sqlalchemy import create_engine
+from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import Session
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
@@ -101,7 +102,7 @@ class DrvDbSqlEngineC:
         '''
         Create a new engine and initialize it
         '''
-        params: dict[str, Any] = sys_conf_read_config_params(\
+        params: dict[str, Any] = sys_conf_read_config_params(#pylint: disable=unsubscriptable-object
             filename=self.config_file, section='database')
 
         url = 'mysql+mysqlconnector://' + params['user'] + ':'\
