@@ -21,27 +21,33 @@ log = sys_log_logger_get_module_logger(__name__)
 
 #######################          MODULE IMPORTS          #######################
 sys.path.append(os.getcwd()+'/code/')
-from drv_db.src.wattrex_driver_db import DrvDbSqlEngineC, DrvDbTypeE, DrvDbCacheExperimentC, \
-    DrvDbCacheGenericMeasureC, DrvDbCacheStatusC, DrvDbCacheExtendedMeasureC,\
-    DrvDbAlarmC
+from drv_db.src.wattrex_driver_db import DrvDbSqlEngineC, DrvDbTypeE, DrvDbMasterExperimentC, \
+    DrvDbMasterGenericMeasureC, DrvDbMasterStatusC, DrvDbMasterExtendedMeasureC,\
+    DrvDbAlarmC, DrvDbBatteryC
 
 #######################              ENUMS               #######################
 
 #######################             CLASSES              #######################
 
 def test_read() -> None:
-    """Runs the test read command from cache database.
+    """Runs the test read command from master database.
     """
-    drv = DrvDbSqlEngineC(db_type=DrvDbTypeE.CACHE_DB,
-                          config_file='code/drv_db/tests/.cred_cache.yaml')
-    stmt = select(DrvDbCacheExperimentC)
-    result = drv.session.execute(stmt).all()
-    row: DrvDbCacheExperimentC = result[0][0]
+    drv = DrvDbSqlEngineC(db_type=DrvDbTypeE.MASTER_DB,
+                          config_file='code/drv_db/tests/.cred_master.yaml')
+
+    stmt = select(DrvDbBatteryC)
+    result = drv.session.execute(stmt).one()
+    row: DrvDbBatteryC = result[0]
     print(row.__dict__)
 
-    stmt = select(DrvDbCacheGenericMeasureC)
+    stmt = select(DrvDbMasterExperimentC)
     result = drv.session.execute(stmt).all()
-    row : DrvDbCacheGenericMeasureC = result[0][0]
+    row: DrvDbMasterExperimentC = result[0][0]
+    print(row.__dict__)
+
+    stmt = select(DrvDbMasterGenericMeasureC)
+    result = drv.session.execute(stmt).all()
+    row : DrvDbMasterGenericMeasureC = result[0][0]
     print(row.__dict__)
 
     stmt = select(DrvDbAlarmC)
@@ -49,15 +55,15 @@ def test_read() -> None:
     row : DrvDbAlarmC = result[0][0]
     print(row.__dict__)
 
-    stmt = select(DrvDbCacheStatusC)
+    stmt = select(DrvDbMasterStatusC)
     result = drv.session.execute(stmt).all()
-    row : DrvDbCacheStatusC = result[0][0]
+    row : DrvDbMasterStatusC = result[0][0]
     print(row.__dict__)
 
 
-    stmt = select(DrvDbCacheExtendedMeasureC)
+    stmt = select(DrvDbMasterExtendedMeasureC)
     result = drv.session.execute(stmt).all()
-    row : DrvDbCacheExtendedMeasureC = result[0][0]
+    row : DrvDbMasterExtendedMeasureC = result[0][0]
     print(row.__dict__)
 
 if __name__ == '__main__':

@@ -18,24 +18,32 @@ from enum import Enum
 
 
 #######################              ENUMS               #######################
+class BaseEnum(Enum):
+    """Return a base class for all enum items to extend enum class.
+    """
+    @classmethod
+    def get_all_values(cls) -> None:
+        '''
+        Return all values of enum items.
+        '''
+        return [e.value for e in cls]
 
 ### DB_TYPE ###
-class DrvDbTypeE(Enum):
+class DrvDbTypeE(BaseEnum):
     '''Enum used to define database types.
     '''
     CACHE_DB = 'mysql'
     MASTER_DB = 'mysql'
 
 ### CYCLER ###
-class DrvDbBatteryTechE(Enum):          # pylint: disable= too-many-ancestors
+class DrvDbBatteryTechE(BaseEnum):          # pylint: disable= too-many-ancestors
     '''Enum used to define battery technology types.
     '''
     LITHIUM = 'Lithium'
     LEADACID = 'LeadAcid'
     REDOXSTACK = 'RedoxStack'
 
-
-class DrvDbLithiumChemistryE(Enum):     # pylint: disable= too-many-ancestors
+class DrvDbLithiumChemistryE(BaseEnum):     # pylint: disable= too-many-ancestors
     '''Enum used to define lithium battery chemistry.
     '''
     NMC = 'NMC'
@@ -46,7 +54,7 @@ class DrvDbLithiumChemistryE(Enum):     # pylint: disable= too-many-ancestors
     OTHER = 'OTHER'
 
 
-class DrvDbLeadAcidChemistryE(Enum):    # pylint: disable= too-many-ancestors
+class DrvDbLeadAcidChemistryE(BaseEnum):    # pylint: disable= too-many-ancestors
     '''Enum used to define leadacid battery chemistry.
     '''
     LIQUID = 'Liquid'
@@ -54,7 +62,7 @@ class DrvDbLeadAcidChemistryE(Enum):    # pylint: disable= too-many-ancestors
     OTHER = 'Other'
 
 
-class DrvDbBipolarTypeE(Enum):          # pylint: disable= too-many-ancestors
+class DrvDbBipolarTypeE(BaseEnum):          # pylint: disable= too-many-ancestors
     '''Enum used to define redox bipolar type.
     '''
     PAPYEX_MERSEN = 'Papyex Mersen'
@@ -63,7 +71,7 @@ class DrvDbBipolarTypeE(Enum):          # pylint: disable= too-many-ancestors
     OTHER = 'Other'
 
 
-class DrvDbMembraneTypeE(Enum):         # pylint: disable= too-many-ancestors
+class DrvDbMembraneTypeE(BaseEnum):         # pylint: disable= too-many-ancestors
     '''Enum used to define redox membrane type.
     '''
     FUMASEP_ANIONIC = 'Fumasep-Anionic'
@@ -74,7 +82,7 @@ class DrvDbMembraneTypeE(Enum):         # pylint: disable= too-many-ancestors
     OTHER = 'Other'
 
 
-class DrvDbElectrolyteTypeE(Enum):      # pylint: disable= too-many-ancestors
+class DrvDbElectrolyteTypeE(BaseEnum):      # pylint: disable= too-many-ancestors
     '''Enum used to define redox electrolyte type.
     '''
     ALL_VANADIUM = 'All-vanadium'
@@ -84,7 +92,7 @@ class DrvDbElectrolyteTypeE(Enum):      # pylint: disable= too-many-ancestors
     OTHER = 'Other'
 
 
-class DrvDbDeviceTypeE(Enum):           # pylint: disable= too-many-ancestors
+class DrvDbDeviceTypeE(BaseEnum):           # pylint: disable= too-many-ancestors
     '''Enum used to define compatible device type.
     '''
     SOURCE = 'Source'
@@ -93,7 +101,7 @@ class DrvDbDeviceTypeE(Enum):           # pylint: disable= too-many-ancestors
     METER = 'Meter'
 
 
-class DrvDbEquipStatusE(Enum):          # pylint: disable= too-many-ancestors
+class DrvDbEquipStatusE(BaseEnum):          # pylint: disable= too-many-ancestors
     '''Enum used to define equipment working status.
     '''
     COMM_ERROR = 'COMM_ERROR'
@@ -101,14 +109,14 @@ class DrvDbEquipStatusE(Enum):          # pylint: disable= too-many-ancestors
     INTERNAL_ERROR = 'INTERNAL_ERROR'
 
 
-class DrvDbAvailableCuE(Enum):          # pylint: disable= too-many-ancestors
+class DrvDbAvailableCuE(BaseEnum):          # pylint: disable= too-many-ancestors
     '''Enum used to define computational unit available status.
     '''
     ON = 'ON'
     OFF = 'OFF'
 
 
-class DrvDbExpStatusE(Enum):            # pylint: disable= too-many-ancestors
+class DrvDbExpStatusE(BaseEnum):            # pylint: disable= too-many-ancestors
     '''Enum used to define experiment status types.
     '''
     ERROR = 'ERROR'
@@ -117,7 +125,7 @@ class DrvDbExpStatusE(Enum):            # pylint: disable= too-many-ancestors
     RUNNING = 'RUNNING'
     QUEUED = 'QUEUED'
 
-class DrvDbCyclingModeE(Enum):          # pylint: disable= too-many-ancestors
+class DrvDbCyclingModeE(BaseEnum):          # pylint: disable= too-many-ancestors
     '''Enum used to define cycling control modes.
     '''
     WAIT = 'WAIT'
@@ -126,7 +134,7 @@ class DrvDbCyclingModeE(Enum):          # pylint: disable= too-many-ancestors
     CP = 'CP'
 
 
-class DrvDbCyclingLimitE(Enum):         # pylint: disable= too-many-ancestors
+class DrvDbCyclingLimitE(BaseEnum):         # pylint: disable= too-many-ancestors
     '''Enum used to define cycling limits.
     '''
     TIME = 'TIME'

@@ -10,6 +10,10 @@ from .drv_db_types import DrvDbCyclingModeE, DrvDbEquipStatusE, DrvDbExpStatusE,
 from .drv_db_dao_base import DrvDbAlarmC
 from .drv_db_dao_cache import DrvDbCacheExperimentC, DrvDbCacheGenericMeasureC, \
                             DrvDbCacheExtendedMeasureC, DrvDbCacheStatusC
+from .drv_db_dao_master import DrvDbBatteryC, DrvDbLithiumC, DrvDbLeadAcidC, DrvDbRedoxStackC,\
+    DrvDbComputationalUnitC, DrvDbCyclerStationC, DrvDbCompatibleDeviceC, DrvDbUsedDeviceC, \
+    DrvDbMeasuresDeclarationC, DrvDbProfileC, DrvDbInstructionC, DrvDbMasterExperimentC,\
+    DrvDbMasterGenericMeasureC, DrvDbMasterExtendedMeasureC, DrvDbMasterStatusC
 
 __all__ = [
     'DrvDbCacheExperimentC', 'DrvDbCacheGenericMeasureC', 'DrvDbAlarmC',\
@@ -17,5 +21,9 @@ __all__ = [
     'DrvDbCyclingModeE', 'DrvDbEquipStatusE', 'DrvDbExpStatusE', 'DrvDbTypeE', \
     'DrvDbCyclingLimitE', 'DrvDbMembraneTypeE', 'DrvDbElectrolyteTypeE', \
     'DrvDbBatteryTechE', 'DrvDbBipolarTypeE', 'DrvDbDeviceTypeE', \
-    'DrvDbLeadAcidChemistryE', 'DrvDbLithiumChemistryE', 'DrvDbAvailableCuE'
+    'DrvDbLeadAcidChemistryE', 'DrvDbLithiumChemistryE', 'DrvDbAvailableCuE', \
+    'DrvDbBatteryC', 'DrvDbLithiumC', 'DrvDbLeadAcidC', 'DrvDbRedoxStackC',\
+    'DrvDbComputationalUnitC', 'DrvDbCyclerStationC', 'DrvDbCompatibleDeviceC', 'DrvDbUsedDeviceC',\
+    'DrvDbMeasuresDeclarationC', 'DrvDbProfileC', 'DrvDbInstructionC', 'DrvDbMasterExperimentC',\
+    'DrvDbMasterGenericMeasureC', 'DrvDbMasterExtendedMeasureC', 'DrvDbMasterStatusC'
 ]
