@@ -15,7 +15,7 @@ sqlacodegen mysql+mysqlconnector://user:password@ip:port/db_name --outfile drv_d
 from sqlalchemy import Column, DateTime, ForeignKey, ForeignKeyConstraint, \
                         String, Enum
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.mysql import MEDIUMINT, SMALLINT
+from sqlalchemy.dialects.mysql import MEDIUMINT, SMALLINT, BOOLEAN
 from sqlalchemy.ext.declarative import declarative_base
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
@@ -131,6 +131,7 @@ class DrvDbCyclerStationC(Base):
     Name = Column(String(30), nullable=False)
     Location = Column(String(30), nullable=False)
     RegisterDate = Column(DateTime, nullable=False)
+    Deprecated = Column(BOOLEAN, nullable=False)
 
     ComputationalUnit = relationship('DrvDbComputationalUnitC')
 
