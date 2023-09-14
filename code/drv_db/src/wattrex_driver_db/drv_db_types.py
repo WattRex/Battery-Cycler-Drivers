@@ -132,6 +132,7 @@ class DrvDbCyclingModeE(BaseEnum):          # pylint: disable= too-many-ancestor
     CC = 'CC'
     CV = 'CV'
     CP = 'CP'
+    DISABLE = 'DISABLE'
 
 
 class DrvDbCyclingLimitE(BaseEnum):         # pylint: disable= too-many-ancestors

@@ -25,7 +25,7 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 
 
 #######################          MODULE IMPORTS          #######################
-from .drv_db_types import DrvDbExpStatusE, DrvDbEquipStatusE
+from .drv_db_types import DrvDbExpStatusE, DrvDbEquipStatusE, DrvDbCyclingModeE
 
 #######################              ENUMS               #######################
 
@@ -59,6 +59,9 @@ class DrvDbBaseGenericMeasureC(Base):
     Timestamp = Column(DateTime, nullable=False)
     Voltage = Column(MEDIUMINT(), nullable=False)
     Current = Column(MEDIUMINT(), nullable=False)
+    Power = Column(MEDIUMINT(), nullable=False)
+    PwrMode = Column(Enum(DrvDbCyclingModeE), nullable=False)
+
     Experiment = relationship('DrvDbBaseExperimentC')
 
 class DrvDbBaseExtendedMeasureC(Base):

@@ -7,9 +7,9 @@ Enumerations defined to standardize names.
 import sys
 import os
 #######################         GENERIC IMPORTS          #######################
-
+from datetime import datetime
 #######################       THIRD PARTY IMPORTS        #######################
-from sqlalchemy import select
+from sqlalchemy import select, insert
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
 from system_logger_tool import sys_log_logger_get_module_logger
 if __name__ == '__main__':
@@ -23,7 +23,7 @@ log = sys_log_logger_get_module_logger(__name__)
 sys.path.append(os.getcwd()+'/code/')
 from drv_db.src.wattrex_driver_db import DrvDbSqlEngineC, DrvDbTypeE, DrvDbCacheExperimentC, \
     DrvDbCacheGenericMeasureC, DrvDbCacheStatusC, DrvDbCacheExtendedMeasureC,\
-    DrvDbAlarmC
+    DrvDbAlarmC, DrvDbCyclingModeE
 
 #######################              ENUMS               #######################
 
@@ -37,6 +37,17 @@ def test_read() -> None:
     stmt = select(DrvDbCacheExperimentC)
     result = drv.session.execute(stmt).all()
     row: DrvDbCacheExperimentC = result[0][0]
+    print(row.__dict__)
+
+    gen_meas = {'ExpID': 1,'Voltage': 4000, 'Current': 1000, 'Power': 4000, 'InstrID': 1,
+                'PwrMode': DrvDbCyclingModeE.CC}
+    stmt = insert(DrvDbCacheGenericMeasureC).values(Timestamp= datetime.now(), MeasID= 3,
+                                                   **gen_meas)
+    drv.session.execute(stmt)
+
+    stmt = select(DrvDbCacheGenericMeasureC).where(DrvDbCacheGenericMeasureC.MeasID == 3)
+    result = drv.session.execute(stmt).all()
+    row : DrvDbCacheGenericMeasureC = result[0][0]
     print(row.__dict__)
 
     stmt = select(DrvDbCacheGenericMeasureC)
@@ -59,6 +70,8 @@ def test_read() -> None:
     result = drv.session.execute(stmt).all()
     row : DrvDbCacheExtendedMeasureC = result[0][0]
     print(row.__dict__)
+    drv.session.commit()
+    drv.session.close()
 
 if __name__ == '__main__':
     test_read()
