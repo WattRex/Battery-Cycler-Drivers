@@ -168,6 +168,20 @@ class DrvDbUsedDeviceC(Base):
     CyclerStation = relationship('DrvDbCyclerStationC')
     CompatibleDevice = relationship('DrvDbCompatibleDeviceC')
 
+class DrvDbLinkConfigurationC(Base):
+    '''
+    Class method to create a DRVDB model of database LinkConfiguration table.
+    '''
+    __tablename__ = 'LinkConfiguration'
+    __table_args__ = (ForeignKeyConstraint(['CompDevID'], ['CompatibleDevices.CompDevID']),)
+
+    CompDevID = Column(ForeignKey('CompatibleDevices.CompDevID'), nullable=False)
+    Property = Column(String(30), nullable=False)
+    Value = Column(String(30), nullable=False)
+
+    CompatibleDevice = relationship('DrvDbCompatibleDeviceC')
+
+
 class DrvDbMeasuresDeclarationC(Base):
     '''
     Class method to create a DRVDB model of database MeasuresDeclaration table.
