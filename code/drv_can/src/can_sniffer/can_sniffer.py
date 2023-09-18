@@ -284,6 +284,7 @@ class DrvCanNodeC(Thread):
         for filters in self.__active_filter:
             filters.close_chan()
         self.working_flag.clear()
+        self.tx_buffer.terminate()
         self.__can_bus.shutdown()
 
     def run(self) -> None:
