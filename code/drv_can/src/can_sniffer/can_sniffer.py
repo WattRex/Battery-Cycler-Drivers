@@ -4,7 +4,9 @@ This module will manage CAN messages and channels
 in order to configure channels and send/received messages.
 """
 #######################        MANDATORY IMPORTS         #######################
-from __future__ import annotations
+import sys
+if sys.version_info < (3, 8):
+    from __future__ import annotations
 
 #######################         GENERIC IMPORTS          #######################
 from threading import Thread, Event
