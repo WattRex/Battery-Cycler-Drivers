@@ -14,7 +14,6 @@ sqlacodegen mysql+mysqlconnector://user:password@ip:port/db_name --outfile drv_d
 #######################       THIRD PARTY IMPORTS        #######################
 from sqlalchemy import Column, DateTime, ForeignKey, ForeignKeyConstraint, \
                         String, Enum
-from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.mysql import MEDIUMINT, SMALLINT, BOOLEAN
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -175,7 +174,8 @@ class DrvDbLinkConfigurationC(Base):
     __tablename__ = 'LinkConfiguration'
     __table_args__ = (ForeignKeyConstraint(['CompDevID'], [DrvDbCompatibleDeviceC.CompDevID]),)
 
-    CompDevID = Column(ForeignKey(DrvDbCompatibleDeviceC.CompDevID), primary_key=True, nullable=False)
+    CompDevID = Column(ForeignKey(DrvDbCompatibleDeviceC.CompDevID), primary_key=True,
+                    nullable=False)
     Property = Column(String(30), nullable=False)
     Value = Column(String(30), nullable=False)
 

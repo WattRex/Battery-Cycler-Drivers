@@ -10,7 +10,7 @@ from datetime import datetime
 #######################         GENERIC IMPORTS          #######################
 
 #######################       THIRD PARTY IMPORTS        #######################
-from sqlalchemy import select, insert
+from sqlalchemy import select
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
 from system_logger_tool import sys_log_logger_get_module_logger
 if __name__ == '__main__':
@@ -24,7 +24,7 @@ log = sys_log_logger_get_module_logger(__name__)
 sys.path.append(os.getcwd()+'/code/')
 from drv_db.src.wattrex_driver_db import DrvDbSqlEngineC, DrvDbTypeE, DrvDbMasterExperimentC, \
     DrvDbMasterGenericMeasureC, DrvDbMasterStatusC, DrvDbMasterExtendedMeasureC,\
-    DrvDbAlarmC, DrvDbBatteryC, DrvDbCyclingModeE, DrvDbInstructionC
+    DrvDbAlarmC, DrvDbBatteryC, DrvDbInstructionC
 
 #######################              ENUMS               #######################
 
