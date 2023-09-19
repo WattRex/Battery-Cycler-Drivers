@@ -71,8 +71,6 @@ class DrvDbLithiumC(Base):
     Capacity = Column(String(30), nullable=False)
     Chemistry = Column(Enum(*(DrvDbLithiumChemistryE.get_all_values())), nullable=False)
 
-    # Battery = relationship('DrvDbBatteryC')
-
 class DrvDbLeadAcidC(Base):
     '''
     Class method to create a DRVDB model of database LeadAcid table.
@@ -83,8 +81,6 @@ class DrvDbLeadAcidC(Base):
     BatID = Column(ForeignKey(DrvDbBatteryC.BatID), primary_key=True)
     Capacity = Column(String(30), nullable=False)
     Chemistry = Column(Enum(*(DrvDbLeadAcidChemistryE.get_all_values())), nullable=False)
-
-    # Battery = relationship('DrvDbBatteryC')
 
 class DrvDbRedoxStackC(Base):
     '''
@@ -99,8 +95,6 @@ class DrvDbRedoxStackC(Base):
     BipolarType = Column(Enum(*(DrvDbBipolarTypeE.get_all_values())), nullable=False)
     MembraneType = Column(Enum(*(DrvDbMembraneTypeE.get_all_values())), nullable=False)
     ElectrolyteType = Column(Enum(*(DrvDbElectrolyteTypeE.get_all_values())), nullable=False)
-
-    # Battery = relationship('DrvDbBatteryC')
 
 class DrvDbComputationalUnitC(Base):
     '''
@@ -132,8 +126,6 @@ class DrvDbCyclerStationC(Base):
     RegisterDate = Column(DateTime, nullable=False)
     Deprecated = Column(BOOLEAN, nullable=False)
 
-    # ComputationalUnit = relationship('DrvDbComputationalUnitC')
-
 class DrvDbCompatibleDeviceC(Base):
     '''
     Class method to create a DRVDB model of database CompatibleDevices table.
@@ -164,9 +156,6 @@ class DrvDbUsedDeviceC(Base):
     SN = Column(String(30), nullable=False)
     UdevName = Column(String(30), nullable=False)
 
-    # CyclerStation = relationship('DrvDbCyclerStationC')
-    # CompatibleDevice = relationship('DrvDbCompatibleDeviceC')
-
 class DrvDbLinkConfigurationC(Base):
     '''
     Class method to create a DRVDB model of database LinkConfiguration table.
@@ -178,9 +167,6 @@ class DrvDbLinkConfigurationC(Base):
                     nullable=False)
     Property = Column(String(30), nullable=False)
     Value = Column(String(30), nullable=False)
-
-    # CompatibleDevice = relationship('DrvDbCompatibleDeviceC')
-
 
 class DrvDbMeasuresDeclarationC(Base):
     '''
@@ -219,8 +205,6 @@ class DrvDbInstructionC(Base):
     LimitType = Column(Enum(*(DrvDbCyclingLimitE.get_all_values())), nullable=False)
     LimitPoint = Column(MEDIUMINT(), nullable=False)
 
-    # Profile = relationship('DrvDbProfileC')
-
 class DrvDbMasterExperimentC(DrvDbBaseExperimentC):
     '''
     Class method to create a DRVDB model of database Experiment table.
@@ -235,21 +219,15 @@ class DrvDbMasterExperimentC(DrvDbBaseExperimentC):
     BatID = Column(ForeignKey(DrvDbBatteryC.BatID), nullable=False)
     ProfID = Column(ForeignKey(DrvDbProfileC.ProfID), nullable=False)
 
-    # CyclerStation = relationship('DrvDbCyclerStationC')
-    # Battery = relationship('DrvDbBatteryC')
-    # Profile = relationship('DrvDbProfileC')
-
 class DrvDbMasterGenericMeasureC(DrvDbBaseGenericMeasureC):
     '''
     Class method to create a model of cache database GenericMeasures table.
     '''
     __tablename__ = 'GenericMeasures'
-    # __table_args__ = {'extend_existing': True}
     __table_args__ = (ForeignKeyConstraint(['InstrID'], [DrvDbInstructionC.InstrID]),
                       {'extend_existing': True},)
 
     InstrID = Column(ForeignKey(DrvDbInstructionC.InstrID), nullable=False)
-    # Instruction = relationship('DrvDbInstructionC')
 
 class DrvDbMasterExtendedMeasureC(DrvDbBaseExtendedMeasureC):
     '''
@@ -261,7 +239,6 @@ class DrvDbMasterExtendedMeasureC(DrvDbBaseExtendedMeasureC):
 
     MeasType = Column(ForeignKey(DrvDbMeasuresDeclarationC.MeasType),
                       primary_key=True, nullable=False)
-    # Measure = relationship('DrvDbMeasuresDeclarationC')
 
 class DrvDbMasterStatusC(DrvDbBaseStatusC):
     '''
@@ -272,7 +249,6 @@ class DrvDbMasterStatusC(DrvDbBaseStatusC):
                       {'extend_existing': True},)
 
     DevID = Column(ForeignKey(DrvDbUsedDeviceC.DevID), primary_key=True, nullable=False)
-    # UsedDevice = relationship('DrvDbUsedDeviceC')
 
 class DrvDbRedoxElectrolyteC(Base):
     '''
@@ -286,6 +262,3 @@ class DrvDbRedoxElectrolyteC(Base):
     ExpID = Column(ForeignKey(DrvDbMasterExperimentC.ExpID), primary_key=True, nullable=False)
     ElectrolyteVol = Column(MEDIUMINT(unsigned=True), nullable=False)
     MaxFlowRate = Column(MEDIUMINT(unsigned=True), nullable=False)
-
-    # Battery = relationship('DrvDbBatteryC')
-    # Experiment = relationship('DrvDbMasterExperimentC')

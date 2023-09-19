@@ -9,7 +9,7 @@ import os
 #######################         GENERIC IMPORTS          #######################
 from datetime import datetime
 #######################       THIRD PARTY IMPORTS        #######################
-from sqlalchemy import select, insert
+from sqlalchemy import select
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
 from system_logger_tool import sys_log_logger_get_module_logger
 if __name__ == '__main__':
@@ -39,11 +39,16 @@ def test_read() -> None:
     row: DrvDbCacheExperimentC = result[0][0]
     print(row.__dict__)
 
-    gen_meas = {'ExpID': 1,'Voltage': 4000, 'Current': 1000, 'Power': 4000, 'InstrID': 1,
-                'PwrMode': DrvDbCyclingModeE.CC}
-    stmt = insert(DrvDbCacheGenericMeasureC).values(Timestamp= datetime.now(), MeasID= 3,
-                                                   **gen_meas)
-    drv.session.execute(stmt)
+    row = DrvDbCacheGenericMeasureC()
+    row.Timestamp = datetime.now()
+    row.ExpID = 1
+    row.MeasID = 4
+    row.InstrID = 1
+    row.Voltage = 500
+    row.Current = 20
+    row.Power = 1000
+    row.PwrMode = DrvDbCyclingModeE.CC.value
+    drv.session.add(row)
 
     stmt = select(DrvDbCacheGenericMeasureC).where(DrvDbCacheGenericMeasureC.MeasID == 3)
     result = drv.session.execute(stmt).all()
