@@ -36,7 +36,7 @@ def test_read() -> None:
                           config_file='code/drv_db/tests/.cred_cache.yaml')
     drv_master = DrvDbSqlEngineC(db_type=DrvDbTypeE.MASTER_DB,
                           config_file='code/drv_db/tests/.cred_master.yaml')
-    
+
     stmt = select(DrvDbCacheExperimentC)
     result = drv_cache.session.execute(stmt).all()
     cache_row: DrvDbCacheExperimentC = result[0][0]
