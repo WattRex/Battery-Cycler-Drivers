@@ -59,8 +59,8 @@ class DrvDbBaseGenericMeasureC(Base):
     Timestamp = Column(DateTime, nullable=False)
     Voltage = Column(MEDIUMINT(), nullable=False)
     Current = Column(MEDIUMINT(), nullable=False)
-    Power = Column(MEDIUMINT(), nullable=False)
-    PwrMode = Column(Enum(DrvDbCyclingModeE), nullable=False)
+    Power = Column(MEDIUMINT())
+    PwrMode = Column(Enum(DrvDbCyclingModeE))
 
     Experiment = relationship('DrvDbBaseExperimentC')
 
