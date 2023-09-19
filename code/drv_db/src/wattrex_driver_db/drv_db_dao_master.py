@@ -31,6 +31,8 @@ from .drv_db_types import DrvDbBatteryTechE, DrvDbBipolarTypeE, DrvDbCyclingLimi
                         DrvDbAvailableCuE
 from .drv_db_dao_base import DrvDbBaseStatusC, DrvDbBaseExperimentC, DrvDbBaseExtendedMeasureC, \
                             DrvDbBaseGenericMeasureC
+from .drv_db_dao_cache import DrvDbCacheExperimentC, DrvDbCacheGenericMeasureC, \
+                            DrvDbCacheExtendedMeasureC, DrvDbCacheStatusC
 #######################              ENUMS               #######################
 
 
@@ -219,6 +221,21 @@ class DrvDbMasterExperimentC(DrvDbBaseExperimentC):
     BatID = Column(ForeignKey(DrvDbBatteryC.BatID), nullable=False)
     ProfID = Column(ForeignKey(DrvDbProfileC.ProfID), nullable=False)
 
+    def transform(self, exp: DrvDbCacheExperimentC):
+        """Transform an experiment from cache DB to master DB.
+        """
+        self.ExpID = exp.ExpID
+        self.Name = exp.Name
+        self.Description = exp.Description
+        self.BatID = exp.BatID
+        self.CSID = exp.CSID
+        self.ProfID = exp.ProfID
+        self.DateCreation = exp.DateCreation
+        self.DateBegin = exp.DateBegin
+        self.DateFinish = exp.DateFinish
+        self.Status = exp.Status
+
+
 class DrvDbMasterGenericMeasureC(DrvDbBaseGenericMeasureC):
     '''
     Class method to create a model of cache database GenericMeasures table.
@@ -228,6 +245,18 @@ class DrvDbMasterGenericMeasureC(DrvDbBaseGenericMeasureC):
                       {'extend_existing': True},)
 
     InstrID = Column(ForeignKey(DrvDbInstructionC.InstrID), nullable=False)
+
+    def transform(self, exp: DrvDbCacheGenericMeasureC):
+        """Transform a generic measurement from cache DB to master DB.
+        """
+        self.Timestamp = exp.Timestamp
+        self.InstrID = exp.InstrID
+        self.ExpID = exp.ExpID
+        self.MeasID = exp.MeasID
+        self.Current = exp.Current
+        self.Voltage = exp.Voltage
+        self.Power = exp.Power
+        self.PwrMode = exp.PwrMode
 
 class DrvDbMasterExtendedMeasureC(DrvDbBaseExtendedMeasureC):
     '''
@@ -240,6 +269,14 @@ class DrvDbMasterExtendedMeasureC(DrvDbBaseExtendedMeasureC):
     MeasType = Column(ForeignKey(DrvDbMeasuresDeclarationC.MeasType),
                       primary_key=True, nullable=False)
 
+    def transform(self, exp: DrvDbCacheExtendedMeasureC):
+        """Transform an extended measurement from cache DB to master DB.
+        """
+        self.MeasType = exp.MeasType
+        self.ExpID = exp.ExpID
+        self.Value = exp.Value
+        self.MeasID = exp.MeasID
+
 class DrvDbMasterStatusC(DrvDbBaseStatusC):
     '''
     Class method to create a DRVDB model of database Status table.
@@ -249,6 +286,15 @@ class DrvDbMasterStatusC(DrvDbBaseStatusC):
                       {'extend_existing': True},)
 
     DevID = Column(ForeignKey(DrvDbUsedDeviceC.DevID), primary_key=True, nullable=False)
+
+    def transform(self, exp: DrvDbCacheStatusC):
+        """Transform a status from cache DB to master DB.
+        """
+        self.DevID = exp.DevID
+        self.ExpID = exp.ExpID
+        self.Status = exp.Status
+        self.ErrorCode = exp.ErrorCode
+        self.Timestamp = exp.Timestamp
 
 class DrvDbRedoxElectrolyteC(Base):
     '''

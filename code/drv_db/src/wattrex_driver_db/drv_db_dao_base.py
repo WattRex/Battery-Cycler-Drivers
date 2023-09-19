@@ -43,8 +43,8 @@ class DrvDbBaseExperimentC(Base):
     Name = Column(String(30), nullable=False)
     Description = Column(String(250), nullable=False)
     DateCreation = Column(DateTime, nullable=False)
-    DateBegin = Column(DateTime, nullable=False)
-    DateFinish = Column(DateTime, nullable=False)
+    DateBegin = Column(DateTime, nullable=True)
+    DateFinish = Column(DateTime, nullable=True)
     Status = Column(Enum(*DrvDbExpStatusE.get_all_values()), nullable=False)
 
 class DrvDbBaseGenericMeasureC(Base):
