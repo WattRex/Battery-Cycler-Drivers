@@ -8,7 +8,6 @@ from __future__ import annotations
 
 #######################         GENERIC IMPORTS          #######################
 from threading import Event
-from typing import Any, Iterable, Callable, Mapping
 from enum import Enum
 from can import ThreadSafeBus, Message, CanOperationError
 
@@ -32,12 +31,16 @@ from system_shared_tool import SysShdIpcChanC, SysShdNodeC, SysShdNodeParamsC
 
 
 #######################             CLASSES              #######################
-__MAX_MESSAGE_SIZE: int = 250
-__TIMEOUT_SEND_MSG : float = 0.2
-__TIMEOUT_RX_MSG : float = 0.02
-__MAX_DLC_SIZE : int = 8
-__MIN_ID          = 0x000     # As the last 4 bits will identify the messages are reserved
-__MAX_ID          = 0x7FF     # In standard mode the can id max value is 0x7FF
+class _Constants:
+    """
+    Class to store constants used in the module.
+    """
+    MAX_MESSAGE_SIZE: int = 250
+    TIMEOUT_SEND_MSG : float = 0.2
+    TIMEOUT_RX_MSG : float = 0.02
+    MAX_DLC_SIZE : int = 8
+    MIN_ID          = 0x000     # As the last 4 bits will identify the messages are reserved
+    MAX_ID          = 0x7FF     # In standard mode the can id max value is 0x7FF
 class DrvCanCmdTypeE(Enum):
     """
     Type of command for the CAN
@@ -63,9 +66,9 @@ class DrvCanMessageC:
         '''
         self.addr = addr
         self.dlc = size
-        if self.dlc > __MAX_DLC_SIZE:
+        if self.dlc > _Constants.MAX_DLC_SIZE:
             log.error(f"Message payload size on bytes (size = {self.dlc}) \
-                      is higher than {__MAX_DLC_SIZE}")
+                      is higher than {_Constants.MAX_DLC_SIZE}")
             raise BytesWarning("To many element for a CAN message")
         if isinstance(payload,int):
             self.payload = payload.to_bytes(size, byteorder='little', signed = False)
@@ -77,13 +80,13 @@ class DrvCanFilterC:
     works as messages to make write or erase filters in can .
     """
     def __init__(self, addr : int, mask : int, chan_name: str):
-        if __MIN_ID <= addr <= __MAX_ID:
+        if _Constants.MIN_ID <= addr <= _Constants.MAX_ID:
             self.addr = addr
         else:
             log.error("Wrong value for address, value must be between 0-0x7ff")
             raise ValueError("Wrong value for address, value must be between 0-0x7ff")
 
-        if __MIN_ID <= mask <= __MAX_ID:
+        if _Constants.MIN_ID <= mask <= _Constants.MAX_ID:
             self.mask = mask
         else:
             log.error("Wrong value for mask, value must be between 0 and 0x7ff")
@@ -121,40 +124,25 @@ class DrvCanCmdDataC:
         self.data_type = data_type
         self.payload = payload
 
-class DrvCanParamsC(SysShdNodeParamsC):
-    """
-    Class that contains the can parameters in order to create the thread correctly
-    """
-    def __init__(self, target: Callable[..., object] | None = ...,
-        name: str | None = ..., args: Iterable[Any] = ...,
-        kwargs: Mapping[str, Any] | None = ..., *, daemon: bool | None = ...):
-        self.target = target
-        self.name = name
-        self.args = args
-        self.kwargs = kwargs
-        self.daemon = daemon
-
-class DrvCanNodeC(SysShdNodeC):
-    """Returns a removable version of the DRv command .
-
-    Args:
-        threading ([type]): [description]
+class DrvCanNodeC(SysShdNodeC): #pylint: disable= abstract-method
+    """Class to manage the CAN communication.
     """
 
-    def __init__(self, tx_buffer_size: int,
-        working_flag : Event, can_params: DrvCanParamsC =
-        DrvCanParamsC()) -> None:
-        '''
-        Initialize the thread node used to received messages from CAN network.
+    def __init__(self, tx_buffer_size: int, working_flag : Event, name: str= "CAN_NODE",
+                cycle_period: int= 200,
+                can_params: SysShdNodeParamsC = SysShdNodeParamsC()) -> None:
+        """ Initialize the CAN node.
 
         Args:
-            chanPlak (SysShdChanC): Chan used to store messages received from plaks.
-            chanEPC (SysShdChanC): Chan used to store messages received from EPCs.
-        '''
+            tx_buffer_size (int): [description]
+            working_flag (Event): [description]
+            name (str, optional): [description]. Defaults to "CAN_NODE".
+            cycle_period (int, optional): [Period in miliseconds]. Defaults to 100.
+            can_params (SysShdNodeParamsC, optional): [description]. Defaults to SysShdNodeParamsC()
+        """
 
-        super().__init__(group = None, target = can_params.target, name = can_params.name,
-                         args = can_params.args, kwargs = can_params.kwargs,
-                         daemon = can_params.daemon)
+        super().__init__(name=name, cycle_period=cycle_period, working_flag=working_flag,
+                        node_params=can_params)
         self.working_flag = working_flag
         # cmd_can_down = 'sudo ip link set down can0'
         self.__can_bus : ThreadSafeBus = ThreadSafeBus(interface='socketcan',
@@ -164,7 +152,7 @@ class DrvCanNodeC(SysShdNodeC):
 
         self.tx_buffer: SysShdIpcChanC = SysShdIpcChanC(name='TX_CAN',
                                             max_msg = int(tx_buffer_size),
-                                            max_message_size= __MAX_MESSAGE_SIZE)
+                                            max_message_size= _Constants.MAX_MESSAGE_SIZE)
 
         self.__active_filter: list = []
 
@@ -242,7 +230,7 @@ class DrvCanNodeC(SysShdNodeC):
         msg = Message(arbitration_id=data.addr, is_extended_id=False,
                     dlc=data.dlc, data=bytes(data.payload))
         try:
-            self.__can_bus.send(msg, timeout=__TIMEOUT_SEND_MSG)
+            self.__can_bus.send(msg, timeout=_Constants.TIMEOUT_SEND_MSG)
             log.debug("Message correctly send")
         except CanOperationError as err:
             log.error(err)
@@ -300,7 +288,7 @@ class DrvCanNodeC(SysShdNodeC):
                 command : DrvCanCmdDataC = self.tx_buffer.receive_data() # type: ignore
                 log.debug(f"Command to apply: {command.data_type.name}")
                 self.__apply_command(command)
-            msg : Message = self.__can_bus.recv(timeout=__TIMEOUT_RX_MSG)
+            msg : Message = self.__can_bus.recv(timeout=_Constants.TIMEOUT_RX_MSG)
             if isinstance(msg,Message):
                 if (0x000 <= msg.arbitration_id <= 0x7FF
                     and not msg.is_error_frame):

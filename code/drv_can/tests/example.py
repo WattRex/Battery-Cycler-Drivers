@@ -29,11 +29,11 @@ def translate(msg_epc: DrvCanMessageC):
         msg_epc (DrvCanMessageC): [description]
     """
     info_id = msg_epc.addr & 0x00F
-    binary_string = [f"{bin(int(x))[2:]}" for x in msg_epc.data]
+    binary_string = [f"{bin(int(x))[2:]}" for x in msg_epc.payload]
     if info_id == 0xA:
         log.info(f"Device ID: {int(binary_string[0][2:])}")
-        log.info(f"Device fw version: {msg_epc.data[6:11]}")
-        log.info(f"Device hw version: {msg_epc.data[11:]}")
+        log.info(f"Device fw version: {msg_epc.payload[6:11]}")
+        log.info(f"Device hw version: {msg_epc.payload[11:]}")
     elif info_id == 0xB:
         if int(binary_string[0][7]) == 1:
             log.info("HS voltage error")
@@ -67,11 +67,11 @@ if __name__ == '__main__':
         can.start()
         #Example of messages
         msg1 = DrvCanMessageC(addr = 0x030,
-                              size = 8, data= 0x00000b803e80020) # Change to wait mode
+                              size = 8, payload= 0x00000b803e80020) # Change to wait mode
         msg2 = DrvCanMessageC(addr = 0x037,
-                              size = 6, data= 0x1900190000) # Change periodic every 10ms
+                              size = 6, payload= 0x1900190000) # Change periodic every 10ms
         msg3 = DrvCanMessageC(addr = 0x030,
-                              size = 8, data= 0x13E003E80015) # CC 1A limV 5.1V
+                              size = 8, payload= 0x13E003E80015) # CC 1A limV 5.1V
         filter_cmd = DrvCanFilterC(addr=0x030, mask= 0x7F0, chan_name= 'RX_CAN_0X3')
         # In order to apply the messages should be wrap
         # in the DrvCanCmdDataC to know which type is it
