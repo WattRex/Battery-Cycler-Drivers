@@ -14,8 +14,7 @@ sqlacodegen mysql+mysqlconnector://user:password@ip:port/db_name --outfile drv_d
 #######################       THIRD PARTY IMPORTS        #######################
 from sqlalchemy import Column, DateTime, ForeignKey, ForeignKeyConstraint, \
                         String, Enum
-from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.mysql import MEDIUMINT, SMALLINT
+from sqlalchemy.dialects.mysql import MEDIUMINT, SMALLINT, BOOLEAN
 from sqlalchemy.ext.declarative import declarative_base
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
@@ -66,42 +65,36 @@ class DrvDbLithiumC(Base):
     Class method to create a DRVDB model of database Lithium table.
     '''
     __tablename__ = 'Lithium'
-    __table_args__ = (ForeignKeyConstraint(['BatID'], ['Battery.BatID']),)
+    __table_args__ = (ForeignKeyConstraint(['BatID'], [DrvDbBatteryC.BatID]),)
 
-    BatID = Column(ForeignKey('Battery.BatID'), primary_key=True)
+    BatID = Column(ForeignKey(DrvDbBatteryC.BatID), primary_key=True)
     Capacity = Column(String(30), nullable=False)
     Chemistry = Column(Enum(*(DrvDbLithiumChemistryE.get_all_values())), nullable=False)
-
-    # Battery = relationship('DrvDbBatteryC')
 
 class DrvDbLeadAcidC(Base):
     '''
     Class method to create a DRVDB model of database LeadAcid table.
     '''
     __tablename__ = 'LeadAcid'
-    __table_args__ = (ForeignKeyConstraint(['BatID'], ['Battery.BatID']),)
+    __table_args__ = (ForeignKeyConstraint(['BatID'], [DrvDbBatteryC.BatID]),)
 
-    BatID = Column(ForeignKey('Battery.BatID'), primary_key=True)
+    BatID = Column(ForeignKey(DrvDbBatteryC.BatID), primary_key=True)
     Capacity = Column(String(30), nullable=False)
     Chemistry = Column(Enum(*(DrvDbLeadAcidChemistryE.get_all_values())), nullable=False)
-
-    # Battery = relationship('DrvDbBatteryC')
 
 class DrvDbRedoxStackC(Base):
     '''
     Class method to create a DRVDB model of database RedoxStack table.
     '''
     __tablename__ = 'RedoxStack'
-    __table_args__ = (ForeignKeyConstraint(['BatID'], ['Battery.BatID']),)
+    __table_args__ = (ForeignKeyConstraint(['BatID'], [DrvDbBatteryC.BatID]),)
 
-    BatID = Column(ForeignKey('Battery.BatID'), primary_key=True)
+    BatID = Column(ForeignKey(DrvDbBatteryC.BatID), primary_key=True)
     ElectrodeSize = Column(MEDIUMINT(unsigned=True), nullable=False)
     ElectrodeComposition = Column(String(30), nullable=False)
     BipolarType = Column(Enum(*(DrvDbBipolarTypeE.get_all_values())), nullable=False)
     MembraneType = Column(Enum(*(DrvDbMembraneTypeE.get_all_values())), nullable=False)
     ElectrolyteType = Column(Enum(*(DrvDbElectrolyteTypeE.get_all_values())), nullable=False)
-
-    # Battery = relationship('DrvDbBatteryC')
 
 class DrvDbComputationalUnitC(Base):
     '''
@@ -123,16 +116,15 @@ class DrvDbCyclerStationC(Base):
     Class method to create a DRVDB model of database CyclerStation table.
     '''
     __tablename__ = 'CyclerStation'
-    __table_args__ = (ForeignKeyConstraint(['CUID'], ['ComputationalUnit.CUID']),)
+    __table_args__ = (ForeignKeyConstraint(['CUID'], [DrvDbComputationalUnitC.CUID]),)
 
     CSID = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False)
-    CUID = Column(ForeignKey('ComputationalUnit.CUID'), primary_key=True, \
+    CUID = Column(ForeignKey(DrvDbComputationalUnitC.CUID), primary_key=True, \
                   nullable=False)
     Name = Column(String(30), nullable=False)
     Location = Column(String(30), nullable=False)
     RegisterDate = Column(DateTime, nullable=False)
-
-    ComputationalUnit = relationship('DrvDbComputationalUnitC')
+    Deprecated = Column(BOOLEAN, nullable=False)
 
 class DrvDbCompatibleDeviceC(Base):
     '''
@@ -155,17 +147,26 @@ class DrvDbUsedDeviceC(Base):
     Class method to create a DRVDB model of database UsedDevices table.
     '''
     __tablename__ = 'UsedDevices'
-    __table_args__ = (ForeignKeyConstraint(['CSID'], ['CyclerStation.CSID']),
-                      ForeignKeyConstraint(['CompDevID'], ['CompatibleDevices.CompDevID']),)
+    __table_args__ = (ForeignKeyConstraint(['CSID'], [DrvDbCyclerStationC.CSID]),
+                      ForeignKeyConstraint(['CompDevID'], [DrvDbCompatibleDeviceC.CompDevID]),)
 
     DevID = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False)
-    CSID = Column(ForeignKey('CyclerStation.CSID'), primary_key=True, nullable=False)
-    CompDevID = Column(ForeignKey('CompatibleDevices.CompDevID'), nullable=False)
+    CSID = Column(ForeignKey(DrvDbCyclerStationC.CSID), primary_key=True, nullable=False)
+    CompDevID = Column(ForeignKey(DrvDbCompatibleDeviceC.CompDevID), nullable=False)
     SN = Column(String(30), nullable=False)
     UdevName = Column(String(30), nullable=False)
 
-    CyclerStation = relationship('DrvDbCyclerStationC')
-    CompatibleDevice = relationship('DrvDbCompatibleDeviceC')
+class DrvDbLinkConfigurationC(Base):
+    '''
+    Class method to create a DRVDB model of database LinkConfiguration table.
+    '''
+    __tablename__ = 'LinkConfiguration'
+    __table_args__ = (ForeignKeyConstraint(['CompDevID'], [DrvDbCompatibleDeviceC.CompDevID]),)
+
+    CompDevID = Column(ForeignKey(DrvDbCompatibleDeviceC.CompDevID), primary_key=True,
+                    nullable=False)
+    Property = Column(String(30), nullable=False)
+    Value = Column(String(30), nullable=False)
 
 class DrvDbMeasuresDeclarationC(Base):
     '''
@@ -195,79 +196,69 @@ class DrvDbInstructionC(Base):
     Class method to create a DRVDB model of database Instructions table.
     '''
     __tablename__ = 'Instructions'
-    __table_args__ = (ForeignKeyConstraint(['ProfID'], ['Profile.ProfID']),)
+    __table_args__ = (ForeignKeyConstraint(['ProfID'], [DrvDbProfileC.ProfID]),)
 
     InstrID = Column(MEDIUMINT(), primary_key=True, nullable=False)
-    ProfID = Column(ForeignKey('Profile.ProfID'), primary_key=True, nullable=False)
+    ProfID = Column(ForeignKey(DrvDbProfileC.ProfID), primary_key=True, nullable=False)
     Mode = Column(Enum(*(DrvDbCyclingModeE.get_all_values())), nullable=False)
     SetPoint = Column(MEDIUMINT(), nullable=False)
     LimitType = Column(Enum(*(DrvDbCyclingLimitE.get_all_values())), nullable=False)
     LimitPoint = Column(MEDIUMINT(), nullable=False)
-
-    Profile = relationship('DrvDbProfileC')
 
 class DrvDbMasterExperimentC(DrvDbBaseExperimentC):
     '''
     Class method to create a DRVDB model of database Experiment table.
     '''
     __tablename__ = 'Experiment'
-    __table_args__ = (ForeignKeyConstraint(['CSID'], ['CyclerStation.CSID']),
-                      ForeignKeyConstraint(['BatID'], ['Battery.BatID']),
-                      ForeignKeyConstraint(['ProfID'],['Profile.ProfID']),
+    __table_args__ = (ForeignKeyConstraint(['CSID'], [DrvDbCyclerStationC.CSID]),
+                      ForeignKeyConstraint(['BatID'], [DrvDbBatteryC.BatID]),
+                      ForeignKeyConstraint(['ProfID'],[DrvDbProfileC.ProfID]),
                     {'extend_existing': True},)
 
-    CSID = Column(ForeignKey('CyclerStation.CSID'), nullable=False)
-    BatID = Column(ForeignKey('Battery.BatID'), nullable=False)
-    ProfID = Column(ForeignKey('Profile.ProfID'), nullable=False)
-
-    # CyclerStation = relationship('DrvDbCyclerStationC')
-    # Battery = relationship('DrvDbBatteryC')
-    # Profile = relationship('DrvDbProfileC')
+    CSID = Column(ForeignKey(DrvDbCyclerStationC.CSID), nullable=False)
+    BatID = Column(ForeignKey(DrvDbBatteryC.BatID), nullable=False)
+    ProfID = Column(ForeignKey(DrvDbProfileC.ProfID), nullable=False)
 
 class DrvDbMasterGenericMeasureC(DrvDbBaseGenericMeasureC):
     '''
     Class method to create a model of cache database GenericMeasures table.
     '''
     __tablename__ = 'GenericMeasures'
-    __table_args__ = {'extend_existing': True}
+    __table_args__ = (ForeignKeyConstraint(['InstrID'], [DrvDbInstructionC.InstrID]),
+                      {'extend_existing': True},)
 
-    InstrID = Column(ForeignKey('Instructions.InstrID'), nullable=False)
-    # Instruction = relationship('DrvDbInstructionC')
+    InstrID = Column(ForeignKey(DrvDbInstructionC.InstrID), nullable=False)
 
 class DrvDbMasterExtendedMeasureC(DrvDbBaseExtendedMeasureC):
     '''
     Class method to create a DRVDB model of database ExtendedMeasures table.
     '''
     __tablename__ = 'ExtendedMeasures'
-    __table_args__ = {'extend_existing': True}
+    __table_args__ = (ForeignKeyConstraint(['MeasType'], [DrvDbMeasuresDeclarationC.MeasType]),
+                      {'extend_existing': True},)
 
-    MeasType = Column(ForeignKey('MeasuresDeclaration.MeasType'), \
+    MeasType = Column(ForeignKey(DrvDbMeasuresDeclarationC.MeasType),
                       primary_key=True, nullable=False)
-    # Measure = relationship('DrvDbMeasuresDeclarationC')
 
 class DrvDbMasterStatusC(DrvDbBaseStatusC):
     '''
     Class method to create a DRVDB model of database Status table.
     '''
     __tablename__ = 'Status'
-    __table_args__ = (ForeignKeyConstraint(['DevID'], ['UsedDevices.DevID']),
+    __table_args__ = (ForeignKeyConstraint(['DevID'], [DrvDbUsedDeviceC.DevID]),
                       {'extend_existing': True},)
 
-    DevID = Column(ForeignKey('UsedDevices.DevID'), primary_key=True, nullable=False)
-    # UsedDevice = relationship('DrvDbUsedDeviceC')
+    DevID = Column(ForeignKey(DrvDbUsedDeviceC.DevID), primary_key=True, nullable=False)
 
 class DrvDbRedoxElectrolyteC(Base):
     '''
     Class method to create a DRVDB model of database RedoxElectrolyte table.
     '''
     __tablename__ = 'RedoxElectrolyte'
-    __table_args__ = (ForeignKeyConstraint(['BatID'], ['Battery.BatID']),
-                      ForeignKeyConstraint(['ExpID'], ['Experiment.ExpID']),)
+    __table_args__ = (ForeignKeyConstraint(['BatID'], [DrvDbBatteryC.BatID]),
+                      ForeignKeyConstraint(['ExpID'], [DrvDbMasterExperimentC.ExpID]),)
 
-    BatID = Column(ForeignKey('Battery.BatID'), primary_key=True, nullable=False)
-    ExpID = Column(ForeignKey('Experiment.ExpID'), primary_key=True, nullable=False)
+    BatID = Column(ForeignKey(DrvDbBatteryC.BatID), primary_key=True, nullable=False)
+    ExpID = Column(ForeignKey(DrvDbMasterExperimentC.ExpID), primary_key=True, nullable=False)
     ElectrolyteVol = Column(MEDIUMINT(unsigned=True), nullable=False)
     MaxFlowRate = Column(MEDIUMINT(unsigned=True), nullable=False)
-
-    # Battery = relationship('DrvDbBatteryC')
-    # Experiment = relationship('DrvDbMasterExperimentC')

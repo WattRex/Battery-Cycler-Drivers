@@ -6,6 +6,7 @@ Enumerations defined to standardize names.
 #######################        MANDATORY IMPORTS         #######################
 import sys
 import os
+from datetime import datetime
 #######################         GENERIC IMPORTS          #######################
 
 #######################       THIRD PARTY IMPORTS        #######################
@@ -23,7 +24,7 @@ log = sys_log_logger_get_module_logger(__name__)
 sys.path.append(os.getcwd()+'/code/')
 from drv_db.src.wattrex_driver_db import DrvDbSqlEngineC, DrvDbTypeE, DrvDbMasterExperimentC, \
     DrvDbMasterGenericMeasureC, DrvDbMasterStatusC, DrvDbMasterExtendedMeasureC,\
-    DrvDbAlarmC, DrvDbBatteryC
+    DrvDbAlarmC, DrvDbBatteryC, DrvDbInstructionC
 
 #######################              ENUMS               #######################
 
@@ -34,6 +35,7 @@ def test_read() -> None:
     """
     drv = DrvDbSqlEngineC(db_type=DrvDbTypeE.MASTER_DB,
                           config_file='code/drv_db/tests/.cred_master.yaml')
+    log.info("Connected to master database.")
 
     stmt = select(DrvDbBatteryC)
     result = drv.session.execute(stmt).one()
@@ -44,6 +46,22 @@ def test_read() -> None:
     result = drv.session.execute(stmt).all()
     row: DrvDbMasterExperimentC = result[0][0]
     print(row.__dict__)
+
+    stmt = select(DrvDbInstructionC)
+    result = drv.session.execute(stmt).all()
+    row_instr: DrvDbInstructionC = result[0][0]
+    print(row_instr.__dict__)
+
+    row = DrvDbMasterGenericMeasureC()
+    row.Timestamp = datetime.now()
+    row.ExpID = 1
+    row.MeasID = 4
+    row.Voltage = 500
+    row.Current = 20
+    row.Power = 30
+    row.InstrID = 0
+    drv.session.add(row)
+    drv.session.commit()
 
     stmt = select(DrvDbMasterGenericMeasureC)
     result = drv.session.execute(stmt).all()

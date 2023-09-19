@@ -13,7 +13,8 @@ from .drv_db_dao_cache import DrvDbCacheExperimentC, DrvDbCacheGenericMeasureC, 
 from .drv_db_dao_master import DrvDbBatteryC, DrvDbLithiumC, DrvDbLeadAcidC, DrvDbRedoxStackC,\
     DrvDbComputationalUnitC, DrvDbCyclerStationC, DrvDbCompatibleDeviceC, DrvDbUsedDeviceC, \
     DrvDbMeasuresDeclarationC, DrvDbProfileC, DrvDbInstructionC, DrvDbMasterExperimentC,\
-    DrvDbMasterGenericMeasureC, DrvDbMasterExtendedMeasureC, DrvDbMasterStatusC
+    DrvDbMasterGenericMeasureC, DrvDbMasterExtendedMeasureC, DrvDbMasterStatusC,\
+    DrvDbLinkConfigurationC
 
 __all__ = [
     'DrvDbCacheExperimentC', 'DrvDbCacheGenericMeasureC', 'DrvDbAlarmC',\
@@ -25,5 +26,6 @@ __all__ = [
     'DrvDbBatteryC', 'DrvDbLithiumC', 'DrvDbLeadAcidC', 'DrvDbRedoxStackC',\
     'DrvDbComputationalUnitC', 'DrvDbCyclerStationC', 'DrvDbCompatibleDeviceC', 'DrvDbUsedDeviceC',\
     'DrvDbMeasuresDeclarationC', 'DrvDbProfileC', 'DrvDbInstructionC', 'DrvDbMasterExperimentC',\
-    'DrvDbMasterGenericMeasureC', 'DrvDbMasterExtendedMeasureC', 'DrvDbMasterStatusC'
+    'DrvDbMasterGenericMeasureC', 'DrvDbMasterExtendedMeasureC', 'DrvDbMasterStatusC',\
+    'DrvDbLinkConfigurationC'
 ]
