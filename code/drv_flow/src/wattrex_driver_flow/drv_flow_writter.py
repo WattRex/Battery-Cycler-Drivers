@@ -29,15 +29,16 @@ from .drv_flow import DrvFlowDeviceC
 #######################             CLASSES              #######################
 
 class DrvFlowWriter():
+    """Class for flowmeter to a read data and write on csv.
+    """
     def __init__(self, serial_port : str = '/dev/ttyACM0', data_file : str = 'data.csv') -> None:
-
         self.data = {
             "timestamp": [],
             "flow_p": [],
             "flow_n": []
         }
         self.drv = DrvFlowDeviceC (serial_port= serial_port)
-        self.file = open(data_file, 'w')
+        self.file = open(data_file, 'w', encoding= 'utf-8') #pylint: disable=consider-using-with
         self.csv_writer = csv.writer(self.file)
         self.end_condition = False
 
@@ -47,11 +48,15 @@ class DrvFlowWriter():
 
         signal(SIGINT, self.signal_handler)
 
-    def signal_handler(self, sig, frame):
+    def signal_handler(self, sig, frame): #pylint: disable=unused-argument
+        """Handle signal handler.
+        """
         print("Finishing...")
         self.end_condition = True
 
     def run(self) -> None:
+        """AI is creating summary for run
+        """
         # Start recording meas and save it periodically on csv
         time_ini = time()
         time_save = 10
@@ -60,8 +65,8 @@ class DrvFlowWriter():
             measure = self.drv.get_meas()
 
             if measure is not None:
-                dt = datetime.now()
-                self.data["timestamp"].append(dt.strftime("%m/%d/%y %H:%M:%S"))
+                timestamp = datetime.now()
+                self.data["timestamp"].append(timestamp.strftime("%m/%d/%y %H:%M:%S"))
                 self.data["flow_p"].append(measure.flow_p)
                 self.data["flow_n"].append(measure.flow_n)
 
@@ -73,6 +78,8 @@ class DrvFlowWriter():
         self.close()
 
     def write_csv(self) -> None:
+        """Write data to csv file .
+        """
         print("Saving data on csv...")
         csv_data= list(map(lambda x, y, z: [x, y, z],\
                 self.data["timestamp"], self.data["flow_p"], self.data["flow_n"]))
@@ -84,6 +91,8 @@ class DrvFlowWriter():
         self.data['flow_p'].clear()
 
     def close(self) -> None:
+        """Close the system and the file .
+        """
         print("Closing system")
         self.write_csv()
         self.file.close()
