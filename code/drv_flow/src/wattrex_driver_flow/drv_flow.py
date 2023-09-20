@@ -6,11 +6,11 @@ Driver of ea power supply.
 from __future__ import annotations
 
 #######################         GENERIC IMPORTS          #######################
+from enum import Enum
 import serial
 
 
 #######################       THIRD PARTY IMPORTS        #######################
-from enum import Enum
 
 #######################      SYSTEM ABSTRACTION IMPORTS  #######################
 #from system_logger_tool import SysLogLoggerC, sys_log_logger_get_module_logger
@@ -31,7 +31,7 @@ class _CONSTANTS:
     MAX_ATTEMPTS = 5
 
 class ScpiCmds(Enum):
-    "Modes of the device"              
+    "Modes of the device"
     REQ_INFO = 'IDN*?'
     REQ_MEAS  = ':MEASure:FLOW?'
     MEAS_DATA = ':MEASure:FLOW:DATA'
@@ -57,7 +57,7 @@ class DrvFlowDeviceC():
         """ Get the measurement of the flowmeter"""
         req_msg = (ScpiCmds.REQ_MEAS.value + '\n').encode()
         self.serial.write(req_msg)
-        
+
         n_tries = 0
         datos = None
         while n_tries < _CONSTANTS.MAX_ATTEMPTS:
@@ -75,7 +75,7 @@ class DrvFlowDeviceC():
             print(f"Data received: {flows}")
             res = DrvFlowDataC(int(flows[1]), int(flows[2]))
         return res
-      
+
     def close(self):
         """ Close the serial port"""
         self.serial.close()

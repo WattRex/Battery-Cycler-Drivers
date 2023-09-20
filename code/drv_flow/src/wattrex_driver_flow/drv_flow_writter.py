@@ -30,16 +30,17 @@ from .drv_flow import DrvFlowDeviceC
 
 class DrvFlowWriter():
     def __init__(self, serial_port : str = '/dev/ttyACM0', data_file : str = 'data.csv') -> None:
+
         self.data = {
             "timestamp": [],
             "flow_p": [],
-            "flow_n": []            
-        }   
+            "flow_n": []
+        }
         self.drv = DrvFlowDeviceC (serial_port= serial_port)
         self.file = open(data_file, 'w')
         self.csv_writer = csv.writer(self.file)
         self.end_condition = False
-        
+
         # Write headers
         self.csv_writer.writerow(list(self.data.keys()))
         #csv_writer.writerow(list(self.data.keys()))
@@ -68,12 +69,13 @@ class DrvFlowWriter():
                 self.write_csv()
                 time_ini = time()
             sleep(1)
-        
+
         self.close()
-    
+
     def write_csv(self) -> None:
         print("Saving data on csv...")
-        csv_data= list(map(lambda x, y, z: [x, y, z], self.data["timestamp"], self.data["flow_p"], self.data["flow_n"]))
+        csv_data= list(map(lambda x, y, z: [x, y, z],\
+                self.data["timestamp"], self.data["flow_p"], self.data["flow_n"]))
         print(csv_data)
         self.csv_writer.writerows(csv_data)
         self.file.flush()
