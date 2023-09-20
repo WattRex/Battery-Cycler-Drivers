@@ -9,7 +9,7 @@ from __future__ import annotations
 
 #######################         GENERIC IMPORTS          #######################
 from enum import Enum
-
+from subprocess import run, PIPE
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
 from system_logger_tool import SysLogLoggerC, sys_log_logger_get_module_logger
 if __name__ == '__main__':
@@ -316,6 +316,10 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
     def __init__(self, dev_id: int) -> None:
         self.__device_handler: SysShdIpcChanC
         self.__dev_id= dev_id #pylint: disable=unused-private-member
+        if not 'TX_CAN' in run(['ls', '/dev/mqueue/'], stdout= PIPE).stdout.decode():
+            log.error("The can transmission queue doesn`t exist, please launch first the can node")
+            raise RuntimeError(("The can transmission queue doesn`t exist, "
+                                "please launch first the can node"))
         self.__tx_can = SysShdIpcChanC('TX_CAN')
         self.__live_data : DrvEpcDataC = DrvEpcDataC()
         self.__properties: DrvEpcPropertiesC = DrvEpcPropertiesC(can_id = dev_id)

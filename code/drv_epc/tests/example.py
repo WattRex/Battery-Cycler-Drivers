@@ -16,7 +16,6 @@ from datetime import datetime
 from pytz import timezone
 
 #######################       THIRD PARTY IMPORTS        #######################
-import pandas as pd
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
 sys.path.append(os.getcwd())  #get absolute path
@@ -24,12 +23,12 @@ sys.path.append(os.getcwd())  #get absolute path
 from system_logger_tool import sys_log_logger_get_module_logger
 if __name__ == '__main__':
     from system_logger_tool import SysLogLoggerC
-    cycler_logger = SysLogLoggerC()
+    cycler_logger = SysLogLoggerC(file_log_levels= '../log_config.yaml')
 log = sys_log_logger_get_module_logger(__name__)
 
 #######################          MODULE IMPORTS          #######################
 from can_sniffer import DrvCanNodeC
-from wattrex_driver_epc import DrvEpcDeviceC, DrvEpcLimitE, DrvEpcModeE
+from src.wattrex_driver_epc import DrvEpcDeviceC, DrvEpcLimitE, DrvEpcModeE
 #######################          PROJECT IMPORTS         #######################
 
 #######################              ENUMS               #######################
@@ -38,13 +37,17 @@ from wattrex_driver_epc import DrvEpcDeviceC, DrvEpcLimitE, DrvEpcModeE
 class _ConstantsC():
     TO_MILIS = 1000
     TO_DECIS = 100
+    HEADER = ['Time','Mode', 'Ref[m/dU]', 'Limit', 'Limit_ref[m/dU]',
+            'LS_Volt[mV]','LS_Curr[mA]','LS_Power[dW]',
+            'HS_Volt[mV]', 'Temp_body[dºC]', 'Temp_anod[dºC]', 'Temp_amb[dºC]']
 
 class _ManageEpcC():
     def __init__(self, can_id: int, txt: str) -> None:
         self.epc= DrvEpcDeviceC(can_id)
-        self.df_epc = pd.DataFrame(columns=['Time','Mode', 'Ref[m/dU]', 'Limit', 'Limit_ref[m/dU]',
-                            'LS_Volt[mV]','LS_Curr[mA]','LS_Power[dW]',
-                             'HS_Volt[mV]', 'Temp_body[dºC]', 'Temp_anod[dºC]', 'Temp_amb[dºC]'])
+
+        self.df_epc = open(os.path.join(path,
+                    f'epc{hex(epc_dev.epc.get_properties().can_id)}_data.csv'), 'a', 
+                    encoding="utf-8")
         if len(txt)!=0:
             self.file = open( # pylint: disable= consider-using-with
                 os.path.join(path,txt+'.txt'), 'r', encoding="utf-8")
@@ -115,12 +118,13 @@ if __name__ == '__main__':
                     temp_meas = epc_dev.epc.get_temp_meas(periodic_flag=False)
 
                     data = epc_dev.epc.get_data(update=True)
-                    epc_dev.df_epc.loc[len(epc_dev.df_epc)] = [datetime.now().astimezone(
-                        timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]]+\
-                        [data.mode.name, data.ref, data.lim_mode.name, data.lim_ref]+\
-                        [elec_meas.ls_current, elec_meas.ls_current,
-                        elec_meas.ls_power, elec_meas.hs_voltage,
-                        temp_meas.temp_body, temp_meas.temp_anod, temp_meas.temp_amb]
+                    timestamp = datetime.now().astimezone(timezone(
+                        'Europe/Berlin')).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+                    epc_dev.df_epc.write((f"{timestamp},"
+                        f",{data.mode.name},{data.ref},{data.lim_mode.name},{data.lim_ref},"\
+                        f"{elec_meas.ls_current},{elec_meas.ls_current},{elec_meas.ls_power},"
+                        f"{elec_meas.hs_voltage},{temp_meas.temp_body},{temp_meas.temp_anod},"
+                        f"{temp_meas.temp_amb}"))
                     if data.mode is DrvEpcModeE.IDLE and epc_dev.last_mode is not DrvEpcModeE.IDLE:
                         cmd = epc_dev.file.readline()
                         if not cmd :
@@ -128,6 +132,7 @@ if __name__ == '__main__':
                                     f'epc{hex(epc_dev.epc.get_properties().can_id)}_data.csv'),
                                     index=False)
                             epc_dev.file.close()
+                            epc_dev.df_epc.close()
                             list_dev.remove(epc_dev)
                         else:
                             apply_txt_cmd(cmd, epc_dev.epc)
@@ -146,12 +151,13 @@ if __name__ == '__main__':
                 temp_meas = epc_dev.epc.get_temp_meas(periodic_flag=False)
                 data = epc_dev.epc.get_data(update=True)
                 #save measures in pandas
-                epc_dev.df_epc.loc[len(epc_dev.df_epc)] = [datetime.now().astimezone(
-                        timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]]+\
-                        [data.mode.name, data.ref, data.lim_mode.name, data.lim_ref,
-                        elec_meas.ls_current, elec_meas.ls_current,
-                        elec_meas.ls_power, elec_meas.hs_voltage,
-                        temp_meas.temp_body, temp_meas.temp_anod, temp_meas.temp_amb]
+                timestamp = datetime.now().astimezone(timezone(
+                        'Europe/Berlin')).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+                epc_dev.df_epc.write((f"{timestamp},"
+                        f",{data.mode.name},{data.ref},{data.lim_mode.name},{data.lim_ref},"\
+                        f"{elec_meas.ls_current},{elec_meas.ls_current},{elec_meas.ls_power},"
+                        f"{elec_meas.hs_voltage},{temp_meas.temp_body},{temp_meas.temp_anod},"
+                        f"{temp_meas.temp_amb}"))
 
                 if data.mode is DrvEpcModeE.IDLE and epc_dev.last_mode is not DrvEpcModeE.IDLE:
                     if j == 0:
@@ -165,8 +171,7 @@ if __name__ == '__main__':
                     epc_dev.last_mode = data.mode
 
                 if i %120 == 0:
-                    epc_dev.df_epc.to_csv(os.path.join(path,
-                            f'epc{hex(epc_dev.epc.get_properties().can_id)}_data.csv'), index=False)
+                    epc_dev.df_epc.close()
 
                 time.sleep(0.01)
                 i+=1
