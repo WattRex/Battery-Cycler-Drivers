@@ -31,6 +31,8 @@ from .drv_db_types import DrvDbBatteryTechE, DrvDbBipolarTypeE, DrvDbCyclingLimi
                         DrvDbAvailableCuE
 from .drv_db_dao_base import DrvDbBaseStatusC, DrvDbBaseExperimentC, DrvDbBaseExtendedMeasureC, \
                             DrvDbBaseGenericMeasureC
+from .drv_db_dao_cache import DrvDbCacheExperimentC, DrvDbCacheGenericMeasureC, \
+                            DrvDbCacheExtendedMeasureC, DrvDbCacheStatusC
 #######################              ENUMS               #######################
 
 
@@ -205,7 +207,7 @@ class DrvDbInstructionC(Base):
     LimitType = Column(Enum(*(DrvDbCyclingLimitE.get_all_values())), nullable=False)
     LimitPoint = Column(MEDIUMINT(), nullable=False)
 
-class DrvDbMasterExperimentC(DrvDbBaseExperimentC):
+class DrvDbMasterExperimentC(DrvDbBaseExperimentC): #pylint: disable=too-many-instance-attributes
     '''
     Class method to create a DRVDB model of database Experiment table.
     '''
@@ -219,7 +221,22 @@ class DrvDbMasterExperimentC(DrvDbBaseExperimentC):
     BatID = Column(ForeignKey(DrvDbBatteryC.BatID), nullable=False)
     ProfID = Column(ForeignKey(DrvDbProfileC.ProfID), nullable=False)
 
-class DrvDbMasterGenericMeasureC(DrvDbBaseGenericMeasureC):
+    def transform(self, exp: DrvDbCacheExperimentC):
+        """Transform an experiment from cache DB to master DB.
+        """
+        self.ExpID = exp.ExpID #pylint: disable=invalid-name
+        self.Name = exp.Name #pylint: disable=invalid-name
+        self.Description = exp.Description #pylint: disable=invalid-name
+        self.BatID = exp.BatID #pylint: disable=invalid-name
+        self.CSID = exp.CSID #pylint: disable=invalid-name
+        self.ProfID = exp.ProfID #pylint: disable=invalid-name
+        self.DateCreation = exp.DateCreation #pylint: disable=invalid-name
+        self.DateBegin = exp.DateBegin #pylint: disable=invalid-name
+        self.DateFinish = exp.DateFinish #pylint: disable=invalid-name
+        self.Status = exp.Status #pylint: disable=invalid-name
+
+
+class DrvDbMasterGenericMeasureC(DrvDbBaseGenericMeasureC): #pylint: disable=too-many-instance-attributes
     '''
     Class method to create a model of cache database GenericMeasures table.
     '''
@@ -228,6 +245,18 @@ class DrvDbMasterGenericMeasureC(DrvDbBaseGenericMeasureC):
                       {'extend_existing': True},)
 
     InstrID = Column(ForeignKey(DrvDbInstructionC.InstrID), nullable=False)
+
+    def transform(self, exp: DrvDbCacheGenericMeasureC):
+        """Transform a generic measurement from cache DB to master DB.
+        """
+        self.Timestamp = exp.Timestamp #pylint: disable=invalid-name
+        self.InstrID = exp.InstrID #pylint: disable=invalid-name
+        self.ExpID = exp.ExpID #pylint: disable=invalid-name
+        self.MeasID = exp.MeasID #pylint: disable=invalid-name
+        self.Current = exp.Current #pylint: disable=invalid-name
+        self.Voltage = exp.Voltage #pylint: disable=invalid-name
+        self.Power = exp.Power #pylint: disable=invalid-name
+        self.PwrMode = exp.PwrMode #pylint: disable=invalid-name
 
 class DrvDbMasterExtendedMeasureC(DrvDbBaseExtendedMeasureC):
     '''
@@ -240,6 +269,14 @@ class DrvDbMasterExtendedMeasureC(DrvDbBaseExtendedMeasureC):
     MeasType = Column(ForeignKey(DrvDbMeasuresDeclarationC.MeasType),
                       primary_key=True, nullable=False)
 
+    def transform(self, exp: DrvDbCacheExtendedMeasureC):
+        """Transform an extended measurement from cache DB to master DB.
+        """
+        self.MeasType = exp.MeasType #pylint: disable=invalid-name
+        self.ExpID = exp.ExpID #pylint: disable=invalid-name
+        self.Value = exp.Value #pylint: disable=invalid-name
+        self.MeasID = exp.MeasID #pylint: disable=invalid-name
+
 class DrvDbMasterStatusC(DrvDbBaseStatusC):
     '''
     Class method to create a DRVDB model of database Status table.
@@ -249,6 +286,15 @@ class DrvDbMasterStatusC(DrvDbBaseStatusC):
                       {'extend_existing': True},)
 
     DevID = Column(ForeignKey(DrvDbUsedDeviceC.DevID), primary_key=True, nullable=False)
+
+    def transform(self, exp: DrvDbCacheStatusC):
+        """Transform a status from cache DB to master DB.
+        """
+        self.DevID = exp.DevID #pylint: disable=invalid-name
+        self.ExpID = exp.ExpID #pylint: disable=invalid-name
+        self.Status = exp.Status #pylint: disable=invalid-name
+        self.ErrorCode = exp.ErrorCode #pylint: disable=invalid-name
+        self.Timestamp = exp.Timestamp #pylint: disable=invalid-name
 
 class DrvDbRedoxElectrolyteC(Base):
     '''
