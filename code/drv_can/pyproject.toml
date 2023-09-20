@@ -137,7 +137,7 @@ dependencies = {file = ["requirements.txt"]}
 "Homepage" = "https://github.com/WattRex/Battery-Cycler-Drivers"
 "Bug Reports" = "https://github.com/WattRex/Battery-Cycler-Drivers/issues"
 "Bug Tracker" = "https://github.com/WattRex/Battery-Cycler-Drivers/issues"
-"Source" = "https://github.com/WattRex/Battery-Cycler-Drivers"
+"Source" = "https://github.com/WattRex/Battery-Cycler-Drivers/tree/develop/code/drv_can"
 "Funding" = "https://donate.pypi.org"
 # "Say Thanks!" = "http://saythanks.io/to/example"
 
