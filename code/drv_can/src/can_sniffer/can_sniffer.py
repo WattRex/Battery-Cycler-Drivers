@@ -5,7 +5,7 @@ in order to configure channels and send/received messages.
 """
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
-
+from typing import List
 #######################         GENERIC IMPORTS          #######################
 from threading import Event
 from enum import Enum
@@ -93,18 +93,14 @@ class DrvCanFilterC:
             raise ValueError("Wrong value for mask, value must be between 0 and 0x7ff")
 
         self.chan_name = chan_name
-        self.chan: SysShdIpcChanC|None = None
 
-    def open_chan(self):
-        """Open the channel to use for communication with Posix .
-        """
+class _CanActiveFilterC(DrvCanFilterC):
+    """This class is used to create objects that contains active filters.
+    """
+    def __init__(self, addr : int, mask : int, chan_name: str):
+        super().__init__(addr, mask, chan_name)
         self.chan: SysShdIpcChanC = SysShdIpcChanC(name= self.chan_name, max_message_size= 150)
-
-    def close_chan(self):
-        """Closes the communication channel .
-        """
-        self.chan.terminate()
-
+    
     def match(self, id_can: int) -> bool:
         """Checks if the id_can matches with the selected filter.
 
@@ -115,6 +111,12 @@ class DrvCanFilterC:
         if (id_can & self.mask) == (self.addr & self.mask):
             aux = True
         return aux
+
+    def close_chan(self):
+        """Closes the communication channel.
+        """
+        log.debug(f"Closing channel {self.chan_name}")
+        self.chan.terminate()
 
 class DrvCanCmdDataC:
     """
@@ -154,7 +156,7 @@ class DrvCanNodeC(SysShdNodeC): #pylint: disable= abstract-method
                                             max_msg = int(tx_buffer_size),
                                             max_message_size= _Constants.MAX_MESSAGE_SIZE)
 
-        self.__active_filter: list = []
+        self.__active_filter: List[_CanActiveFilterC] = []
 
     def __parse_msg(self, message: DrvCanMessageC) -> None:
         '''
@@ -171,7 +173,7 @@ class DrvCanNodeC(SysShdNodeC): #pylint: disable= abstract-method
                 act_filter.chan.send_data(message)
                 break
 
-    def __apply_filter(self, add_filter : DrvCanFilterC) -> None:
+    def __apply_filter(self, add_filter : _CanActiveFilterC) -> None:
         '''Created a shared object and added it to the active filter list
 
         Args:
@@ -189,7 +191,6 @@ class DrvCanNodeC(SysShdNodeC): #pylint: disable= abstract-method
         if not already_in:
             log.info(f"Adding new filter with id {hex(add_filter.addr)} "+
             f"and mask {hex(add_filter.mask)}")
-            add_filter.open_chan()
             self.__active_filter.append(add_filter)
             log.debug("Filter added correctly")
 
@@ -207,7 +208,7 @@ class DrvCanNodeC(SysShdNodeC): #pylint: disable= abstract-method
                 if act_filter.chan_name == del_filter.chan_name:
                     log.info(f"Removing filter with id {hex(del_filter.addr)} "+
                         f"and mask {hex(del_filter.mask)}")
-                    filter_chn: DrvCanFilterC = self.__active_filter.pop(filter_pos)
+                    filter_chn: _CanActiveFilterC = self.__active_filter.pop(filter_pos)
                     filter_chn.close_chan()
                     log.debug("Filter removed correctly")
                 else:
@@ -255,7 +256,7 @@ class DrvCanNodeC(SysShdNodeC): #pylint: disable= abstract-method
             self.__send_message(command.payload)
         elif (command.data_type == DrvCanCmdTypeE.ADD_FILTER
             and isinstance(command.payload,DrvCanFilterC)):
-            self.__apply_filter(command.payload)
+            self.__apply_filter(_CanActiveFilterC(**command.payload.__dict__))
         elif (command.data_type == DrvCanCmdTypeE.REMOVE_FILTER
             and isinstance(command.payload,DrvCanFilterC)):
             self.__remove_filter(command.payload)
@@ -274,7 +275,6 @@ class DrvCanNodeC(SysShdNodeC): #pylint: disable= abstract-method
         self.working_flag.clear()
         self.tx_buffer.terminate()
         self.__can_bus.shutdown()
-        super().stop()
 
     def process_iteration(self) -> None:
         '''
