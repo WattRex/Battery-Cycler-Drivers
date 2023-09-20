@@ -236,7 +236,7 @@ class DrvDbMasterExperimentC(DrvDbBaseExperimentC): #pylint: disable=too-many-in
         self.Status = exp.Status #pylint: disable=invalid-name
 
 
-class DrvDbMasterGenericMeasureC(DrvDbBaseGenericMeasureC):
+class DrvDbMasterGenericMeasureC(DrvDbBaseGenericMeasureC): #pylint: disable=too-many-instance-attributes
     '''
     Class method to create a model of cache database GenericMeasures table.
     '''
