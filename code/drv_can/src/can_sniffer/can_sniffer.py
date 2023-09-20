@@ -100,7 +100,7 @@ class _CanActiveFilterC(DrvCanFilterC):
     def __init__(self, addr : int, mask : int, chan_name: str):
         super().__init__(addr, mask, chan_name)
         self.chan: SysShdIpcChanC = SysShdIpcChanC(name= self.chan_name, max_message_size= 150)
-    
+
     def match(self, id_can: int) -> bool:
         """Checks if the id_can matches with the selected filter.
 
