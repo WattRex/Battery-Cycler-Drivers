@@ -6,8 +6,8 @@ Example of use of drv flow.
 from __future__ import annotations
 
 #######################         GENERIC IMPORTS          #######################
-import os
-import sys
+# import os
+# import sys
 
 #######################       THIRD PARTY IMPORTS        #######################
 
@@ -19,8 +19,8 @@ import sys
 
 
 #######################          PROJECT IMPORTS         #######################
-sys.path.append(os.getcwd()+'/code/')
-from drv_flow.src.wattrex_driver_flow import DrvFlowWriter
+# sys.path.append(os.getcwd()+'/code/')
+from wattrex_driver_flow import DrvFlowWriter
 
 #######################          MODULE IMPORTS          #######################
 
