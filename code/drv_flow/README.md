@@ -38,7 +38,7 @@
 
 4. SCPI Commands
 
-    - Message: 'IDN*?' Response: ':Info Device_number firmware_version \n'
+    - Message: 'IDN*?' Response: ':IDN:FLOWmeter:DEVice: Device_number :VERsion: firmware_version \n'
     - Message: ':MEASure:FLOW?' Response: ':MEASure:FLOW:DATA flow_main flow_aux \n'
 
 
