@@ -17,35 +17,24 @@ if __name__ == "__main__":
 log = sys_log.sys_log_logger_get_module_logger(__name__)
 
 #######################          PROJECT IMPORTS         #######################
-from system_shared_tool import SysShdChanC
 
 #######################          MODULE IMPORTS          #######################
-from .drv_scpi_iface import DrvScpiHandlerC
+from .drv_scpi_iface import DrvScpiSerialConfC, DrvScpiHandlerC # pylint: disable=wrong-import-position
 
 #######################              ENUMS               #######################
-class DrvScipiCmdTypeE(Enum):
-    '''Types of commands to be sent to the device.'''
-    WRITE = 0
-    READ = 1
-    WRITE_READ = 2
-    ADD_DEV = 3
+class DrvScpiCmdTypeE(Enum):
+    "Types of commands to be sent to the device."
+    ADD_DEV     = 0
+    DEL_DEV     = 1
+    WRITE       = 2
+    WRITE_READ  = 3
+    RESP        = 4
 
 #######################             CLASSES              #######################
 class DrvScpiCmdDataC:
-    '''
-    Hold the data to be sent to the device.
-    '''
-    def __init__(self, data_type: DrvScipiCmdTypeE, port: str, payload: str|DrvScpiHandlerC):
-        self.data_type: DrvScipiCmdTypeE = data_type
+    "Principal class of the driver. Hold the data to be sent to the device."
+
+    def __init__(self, data_type: DrvScpiCmdTypeE, port: str, payload: str|DrvScpiSerialConfC):
+        self.data_type: DrvScpiCmdTypeE = data_type
         self.port: str = port
         self.payload: str|DrvScpiHandlerC = payload
-
-
-class DrvScpiDeviceC:
-    '''
-    Principal class of the driver.
-    '''
-    def __init__(self, port: str, payload: DrvScpiHandlerC, chan: SysShdChanC):
-        self.port : str= port
-        self.payload : DrvScpiHandlerC = payload
-        self.chan : SysShdChanC = chan
