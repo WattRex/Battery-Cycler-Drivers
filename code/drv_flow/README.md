@@ -36,6 +36,12 @@
         - Screen: GND
 
 
-4. References
+4. SCPI Commands
+
+    - Message: 'IDN*?' Response: ':Info Device_number firmware_version \n'
+    - Message: ':MEASure:FLOW?' Response: ':MEASure:FLOW:DATA flow_main flow_aux \n'
+
+
+5. References
 - Flowmeter: https://es.rs-online.com/web/p/caudalimetros/5082704
 - Arduino uno: https://store.arduino.cc/products/arduino-uno-rev3
