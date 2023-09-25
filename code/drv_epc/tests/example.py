@@ -45,7 +45,7 @@ class _ManageEpcC():
     def __init__(self, can_id: int, txt: str) -> None:
         self.epc= DrvEpcDeviceC(can_id)
 
-        self.df_epc = open(os.path.join(path,
+        self.df_epc = open(os.path.join(path, #pylint: disable= consider-using-with
                     f'epc{hex(epc_dev.epc.get_properties().can_id)}_data.csv'), 'a', 
                     encoding="utf-8")
         if len(txt)!=0:
