@@ -20,7 +20,6 @@ log = sys_log.sys_log_logger_get_module_logger(__name__)
 #######################          PROJECT IMPORTS         #######################
 
 #######################          MODULE IMPORTS          #######################
-from .drv_scpi_iface import DrvScpiHandlerC # pylint: disable=wrong-import-position
 
 #######################              ENUMS               #######################
 class _DefSerParamsC:

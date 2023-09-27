@@ -34,10 +34,8 @@ class DrvScpiNodeC:
     def __init__(self, working_flag: Event, tx_scpi_long: int):
         self.__used_dev: Dict(str, DrvScpiHandlerC) = {}
         self.working_flag: Event = working_flag
-        max_message_size = 0 #TODO: averiguar el numero al final, con el máximo mensaje que le envío
-        self.tx_scpi: SysShdIpcChanC = SysShdIpcChanC(name="marius",
-                                                      max_msg =tx_scpi_long,
-                                                      max_message_size = max_message_size)
+        max_message_size = 100 #TODO: averiguar el numero al final, con el máximo mensaje que le envío
+        self.tx_scpi: SysShdIpcChanC = SysShdIpcChanC(name = "cola_SCPI", max_msg= 50, max_message_size= tx_scpi_long)
 
 
     def __apply_command(self, cmd: DrvScpiCmdDataC) -> None:
@@ -134,8 +132,10 @@ class DrvScpiNodeC:
                 # Ignore warning as receive_data return an object,
                 # which in this case must be of type DrvScpiCmdDataC
                 command : DrvScpiCmdDataC = self.tx_scpi.receive_data() # type: ignore
-                log.debug(f"Command to apply: {command.data_type.name}")
+                log.info(f"Command to apply: {command.data_type.name}")
                 self.__apply_command(command)
+            else:
+                log.info("Queue is empty")
         except ValueError as err:
             log.error(f"Error while applying/removing filter with error {err}")
         except Exception:
