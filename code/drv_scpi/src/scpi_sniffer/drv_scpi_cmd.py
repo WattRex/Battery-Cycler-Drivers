@@ -22,17 +22,6 @@ log = sys_log.sys_log_logger_get_module_logger(__name__)
 #######################          MODULE IMPORTS          #######################
 
 #######################              ENUMS               #######################
-class _DefSerParamsC:
-    "Default serial parameters"
-    _BAUD_RATE = 115200
-    _BYTESIZE = EIGHTBITS
-    _PARITY = PARITY_NONE
-    _STOP_BITS = STOPBITS_ONE
-    _READ_TIMEOUT = 0.5
-    _WRITE_TIMEOUT = 0.5
-    _INTER_BYTE_TIMEOUT = 0.5
-    _MAX_LEN_IN_BYTES = 21
-
 class DrvScpiCmdTypeE(Enum):
     "Types of commands to be sent to the device."
     ADD_DEV     = 0
@@ -59,14 +48,11 @@ class DrvScpiCmdDataC:
 
 class DrvScpiSerialConfC:
     "Configuration of SCPI device."
-    def __init__(self, port: str, separator: str,
-                 baudrate: int              = _DefSerParamsC._BAUD_RATE,
-                 bytesize                   = _DefSerParamsC._BYTESIZE,
-                 parity                     = _DefSerParamsC._PARITY,
-                 stopbits                   = _DefSerParamsC._STOP_BITS,
-                 timeout: float             = _DefSerParamsC._READ_TIMEOUT,
-                 write_timeout: float       = _DefSerParamsC._WRITE_TIMEOUT,
-                 inter_byte_timeout: float  = _DefSerParamsC._INTER_BYTE_TIMEOUT) -> None:
+    def __init__(self, port: str,           separator: str,
+                 baudrate: int = 115200,    bytesize = EIGHTBITS,
+                 parity = PARITY_NONE,      stopbits = STOPBITS_ONE,
+                 timeout: float = 0.5,      write_timeout: float = 0.5,
+                 inter_byte_timeout: float = 21) -> None:
         self.port               = port
         self.separator          = separator
         self.baudrate           = baudrate

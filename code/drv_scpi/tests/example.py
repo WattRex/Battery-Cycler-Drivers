@@ -40,28 +40,34 @@ def main() -> None:
                                           write_timeout = 0.003,
                                           inter_byte_timeout  = 1)
 
-    data_1 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.ADD_DEV,
-                               port = '/dev/ttyACM0',
-                               payload = 'OUTPut: ON')
+
+    msg1 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.ADD_DEV,
+                           port = '/dev/ttyACM0',
+                           payload = source_conf_scpi)
 
 
-    data_2 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.ADD_DEV,
-                               port = '/dev/ttyACM0',
-                               payload = source_conf_scpi)
+    msg2 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
+                           port = '/dev/ttyACM0',
+                           payload = 'SYSTem:LOCK: ON')
+
+    msg3 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
+                           port = '/dev/ttyACM0',
+                           payload = 'OUTPut: ON')
+
+    msg4 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
+                           port = '/dev/ttyACM0',
+                           payload = 'MEASure:VOLTage?')
+
+    msg5 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.DEL_DEV,
+                           port = '/dev/ttyACM0')
 
 
-    data_3 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
-                               port = '/dev/ttyACM0',
-                               payload = 'OUTPut: ON')
+    scpi_queue = SysShdIpcChanC(name= 'cola_SCPI') #TODO: Tengo que poner este nombre de la cola? igual que en el driver?
 
 
-
-    print('COMIENZA')
-    scpi_queue = SysShdIpcChanC(name= 'cola_SCPI')
-
-    for data in [data_1, data_2, data_3]:
-        scpi_queue.send_data(data)
-        sleep(3)
+    for msg in [msg1, msg2, msg3, msg4, msg5]:
+        scpi_queue.send_data(msg)
+        sleep(0.1)
 
 
 def prueba_rapida() -> None:
@@ -90,9 +96,11 @@ def prueba_rapida() -> None:
 
 
 if __name__ == '__main__':
-    main()
-    # prueba_rapida()
-
+    PRUEBA_RAPIDA = False
+    if PRUEBA_RAPIDA:
+        prueba_rapida()
+    else:
+        main()
 
 
 # print('COMIENZA 2')
@@ -112,26 +120,7 @@ if __name__ == '__main__':
 
 
 
-# def example():
-#     '''Example of the remote SCPI.
-#     '''
-#     multimeter = DrvScpiHandlerC(port='/dev/ttyUSB0', separator='\n',
-#                                 baudrate= 38400)
-#     log.info("multimeter")
-#     # multimeter.send_msg('VOLT:DC:NPLC 1')
-#     # multimeter.send_msg('FETCH?')
-#     # multimeter.receive_msg()
-#     # multimeter.send_and_read('FETCH?')
-#     log.info(f"{multimeter.read_device_info()}")
-
-#     source = DrvScpiHandlerC(port = '/dev/ttyACM0', separator = '\n',
-#                             baudrate = 9600)
-#     log.info("source")
 #     # source.send_msg('SYSTem:LOCK: ON')
 #     # source.send_msg('SYSTem:LOCK: OFF')
 #     # source.send_and_read('MEASure:VOLTage?')
 #     log.info(f"{source.read_device_info()}")
-
-
-# if __name__ == '__main__':
-#     example()

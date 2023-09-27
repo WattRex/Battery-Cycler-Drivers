@@ -22,7 +22,7 @@ log = sys_log.sys_log_logger_get_module_logger(__name__)
 from system_shared_tool import SysShdIpcChanC # pylint: disable=wrong-import-position
 
 #######################          PROJECT IMPORTS         #######################
-from .drv_scpi_cmd import DrvScpiSerialConfC, DrvScpiStatusE
+from .drv_scpi_cmd import DrvScpiSerialConfC, DrvScpiStatusE, DrvScpiCmdTypeE, DrvScpiCmdDataC
 
 #######################          MODULE IMPORTS          #######################
 
@@ -51,9 +51,11 @@ class DrvScpiHandlerC:
                                        write_timeout      = serial_conf.write_timeout,
                                        inter_byte_timeout = serial_conf.inter_byte_timeout)
         self.__separator: str = serial_conf.separator
-        port = self.__serial.port
-        self.__rx_chan: SysShdIpcChanC = SysShdIpcChanC(name = f"RX_{port.split('/')[-1]}")
-        self.status: DrvScpiStatusE = None
+        port = self.__serial.port.split('/')[-1]
+        self.__rx_chan: SysShdIpcChanC = SysShdIpcChanC(name = f"RX_{port}")
+        self.status: DrvScpiStatusE = DrvScpiStatusE.OK
+        self.wait_4_response: bool = False
+        self.num_attempts: int = 0
 
 
     def decode_numbers(self, data: str) -> List[int]:
@@ -76,59 +78,61 @@ class DrvScpiHandlerC:
         Returns:
             msg_decode (List[str]): Message decoded and splited.
         Raises:
-            - None
+            - None.
         """
         data_dec = data.decode("utf-8")
-        msg_decode = data_dec.split(f"{self.__separator}")
+        # msg_decode = data_dec.split(f"{self.__separator}")
+        msg_decode = data_dec.split(' ')
         return msg_decode
 
 
-    def send_msg(self, msg: str) -> None:
+    def send(self, msg: str) -> None:
         ''' Send a message to the serial device.
         Args:
             - msg (str): Message to send.
         Returns:
-            - None
+            - None.
         Raises:
-            - None
+            - None.
         '''
         port = self.__serial.port.split('/')[-1]
-        log.info(f"Port: {port}. Message to send: {msg}")
+        log.info(f"Port: {port}. Message to send: {msg}") # pylint: disable=logging-fstring-interpolation
         msg = msg + self.__separator
         self.__serial.write(bytes(msg.encode("utf-8")))
 
 
-    def send_and_read(self, msg: str) -> List[str | int]:
+    def read(self) -> None:
         ''' Send a message to the serial device and read the response.
         Args:
-            - msg (str): Message to send.
+            - None.
         Returns:
-            - msg_read_decoded (List[str | int]): Received message.
+            - None.
         Raises:
-            - None
+            - None.
         '''
-        #"*IDN?" INFO DEVICE
         port = self.__serial.port.split('/')[-1]
-        self.send_msg(msg)
-        log.info(f"Reading port: {port}...")
-        msg_read = self.__serial.readline()
+        log.info(f"Reading port: {port}...") # pylint: disable=logging-fstring-interpolation
+        msg_read = self.__serial.readline() #TODO: Check if this is the best way to read
+        log.critical(f"MSG READED: {msg_read}") # pylint: disable=logging-fstring-interpolation
         if len(msg_read) > 0:
             msg_read_decoded = self.decode_and_split(msg_read)
-            self.__rx_chan.send_data(msg_read_decoded)
+            log.critical(f"MSG DECODED: {msg_read_decoded}") # pylint: disable=logging-fstring-interpolation
+            send_data = DrvScpiCmdDataC(port = self.__serial.port, data_type = DrvScpiCmdTypeE.RESP,
+                                        payload = msg_read_decoded)
+            self.__rx_chan.send_data(send_data)
+            self.wait_4_response = False
         else:
-            log.error(f"Error during send port: {port}")
-            msg_read_decoded = []
-        return msg_read_decoded
+            log.error(f"Error during send port: {port}") # pylint: disable=logging-fstring-interpolation
 
 
     def close(self) -> None:
         ''' Close the serial connection.
         Args:
-            - None
+            - None.
         Returns:
-            - None
+            - None.
         Raises:
-            - None
+            - None.
         '''
         self.__serial.close()
 

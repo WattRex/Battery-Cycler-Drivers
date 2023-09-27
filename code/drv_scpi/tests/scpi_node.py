@@ -1,7 +1,14 @@
 #!/usr/bin/python3
 '''
 This is an example of use of the SCPI module.
+
 '''
+# COMMANDS TO RUN BEFORE EXECUTING THIS SCRIPT:
+# rm /dev/mqueue/*
+# sudo sh -c 'echo 400 > /proc/sys/fs/mqueue/msg_max'
+# sudo sh -c 'echo 450 > /proc/sys/fs/mqueue/msgsize_max'
+
+
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
 from sys import path, exit
@@ -28,12 +35,12 @@ if __name__ == '__main__':
     _working_scpi = Event()
     _working_scpi.set()
     #Create the thread for SCPI
-    scpi_node = DrvScpiNodeC(working_flag = _working_scpi, tx_scpi_long = 200)
+    scpi_node = DrvScpiNodeC(working_flag = _working_scpi, tx_scpi_long = 400)
     try:
-        scpi_node.process_iteration()
         while 1:
-            sleep(300)
-            print("Elapsed time: 5 minutes  ")
+            scpi_node.process_iteration()
+            sleep(1)
+            print("Elapsed time: 1 seconds")
 
     except KeyboardInterrupt:
         _working_scpi.clear()

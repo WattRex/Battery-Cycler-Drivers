@@ -34,18 +34,18 @@ class DrvScpiNodeC:
     def __init__(self, working_flag: Event, tx_scpi_long: int):
         self.__used_dev: Dict(str, DrvScpiHandlerC) = {}
         self.working_flag: Event = working_flag
-        max_message_size = 100 #TODO: averiguar el numero al final, con el máximo mensaje que le envío
-        self.tx_scpi: SysShdIpcChanC = SysShdIpcChanC(name = "cola_SCPI", max_msg= 50, max_message_size= tx_scpi_long)
+        max_message_size = 300 #TODO: averiguar el numero al final, con el máximo mensaje que le envío
+        self.tx_scpi: SysShdIpcChanC = SysShdIpcChanC(name = "cola_SCPI", max_msg= max_message_size, max_message_size= tx_scpi_long)
 
 
     def __apply_command(self, cmd: DrvScpiCmdDataC) -> None:
         '''TODO: Poner titulo.
         Args:
-            - cmd (DrvScpiCmdDataC): [description]
+            - cmd (DrvScpiCmdDataC): Message to apply.
         Returns:
-            - None
+            - None.
         Raises:
-            - None
+            - None.
         '''
         # Add device
         if cmd.data_type == DrvScpiCmdTypeE.ADD_DEV:
@@ -68,34 +68,14 @@ class DrvScpiNodeC:
             else:
                 log.error("The device could not be deleted")
 
-        # Write
-        elif cmd.data_type == DrvScpiCmdTypeE.WRITE:
+        # Write or Write and read
+        elif cmd.data_type == DrvScpiCmdTypeE.WRITE or cmd.data_type == DrvScpiCmdTypeE.WRITE_READ:
             if cmd.port in self.__used_dev:
                 if isinstance(cmd.payload, str):
                     handler: DrvScpiHandlerC  = self.__used_dev[cmd.port]
-                    handler.send_msg(cmd.payload)
-                else:
-                    log.error("Message not valid")
-            else:
-                log.error("First add device")
-
-        # Write and read
-        elif cmd.data_type == DrvScpiCmdTypeE.WRITE_READ:
-            if cmd.port in self.__used_dev:
-                if isinstance(cmd.payload, str):
-                    handler: DrvScpiHandlerC  = self.__used_dev[cmd.port]
-                    #TODO: NO HACER DE MOMENTO
-                else:
-                    log.error("Message not valid")
-            else:
-                log.error("First add device")
-
-        # Response
-        elif cmd.data_type == DrvScpiCmdTypeE.RESP:
-            if cmd.port in self.__used_dev:
-                if isinstance(cmd.payload, str):
-                    handler: DrvScpiHandlerC  = self.__used_dev[cmd.port]
-                    #TODO: NO HACER DE MOMENTO
+                    handler.send(cmd.payload)
+                    if cmd.data_type == DrvScpiCmdTypeE.WRITE_READ:
+                        handler.wait_4_response = True
                 else:
                     log.error("Message not valid")
             else:
@@ -103,56 +83,49 @@ class DrvScpiNodeC:
 
         # Error
         else:
-            pass
+            log.error("Can`t apply command")
 
 
-    def __receive_command(self) -> None:
+    def __receive_response(self) -> None:
         '''TODO: Poner titulo.
         Args:
-            - None
+            - None.
         Returns:
-            - None
+            - None.
         Raises:
-            - None
+            - None.
         '''
-        pass
+        for __, handler in self.__used_dev.items():
+            handler: DrvScpiHandlerC
+            if handler.wait_4_response:
+                handler.read()
 
 
     def process_iteration(self) -> None:
         ''' Read the chan.
         Args:
-            - None
+            - None.
         Returns:
-            - None
+            - None.
         Raises:
-            - None
+            - None.
         '''
         try:
             if not self.tx_scpi.is_empty():
                 # Ignore warning as receive_data return an object,
                 # which in this case must be of type DrvScpiCmdDataC
                 command : DrvScpiCmdDataC = self.tx_scpi.receive_data() # type: ignore
-                log.info(f"Command to apply: {command.data_type.name}")
+                log.critical(f"COMANDO:\n{command.__dict__}\n")
+                log.info(f"Command to apply: {command.data_type.name}") # pylint: disable=logging-fstring-interpolation
                 self.__apply_command(command)
+                self.__receive_response()
             else:
                 log.info("Queue is empty")
         except ValueError as err:
-            log.error(f"Error while applying/removing filter with error {err}")
-        except Exception:
+            log.error(f"Error while applying/removing filter with error {err}") # pylint: disable=logging-fstring-interpolation
+        except Exception: # pylint: disable=broad-except
             log.error("Error in SCPI thread")
             self.working_flag.clear()
-
-
-    def stop(self) -> None:
-        ''' Stop the process.
-        Args:
-            - None
-        Returns:
-            - None
-        Raises:
-            - None
-        '''
-
 
 
 
