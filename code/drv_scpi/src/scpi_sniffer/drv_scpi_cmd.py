@@ -7,7 +7,7 @@ from __future__ import annotations
 
 #######################         GENERIC IMPORTS          #######################
 from enum import Enum
-from serial import EIGHTBITS, PARITY_NONE, STOPBITS_ONE, Serial
+from serial import EIGHTBITS, PARITY_NONE, STOPBITS_ONE
 
 #######################       THIRD PARTY IMPORTS        #######################
 

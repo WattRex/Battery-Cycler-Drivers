@@ -7,9 +7,8 @@ from __future__ import annotations
 import re
 
 #######################         GENERIC IMPORTS          #######################
-from enum import Enum
 from typing import List
-from serial import EIGHTBITS, PARITY_NONE, STOPBITS_ONE, Serial
+from serial import Serial
 
 #######################       THIRD PARTY IMPORTS        #######################
 
@@ -58,16 +57,20 @@ class DrvScpiHandlerC:
         self.num_attempts: int = 0
 
 
-    def decode_numbers(self, data: str) -> List[int]:
-        ''' Decode bytes to integers.
+    def decode_numbers(self, data: str) -> float:
+        """Decode str to integers.
         Args:
-            - data (str): Value to convert to int.
+            - data (str): Value to convert to float.
         Returns:
-            - msg_decode (List[int]): List of value decoded.
+            - msg_decode (float): Value decoded.
         Raises:
             - DrvScpiErrorC: Error decoding data.
-        '''
-        msg_decode = []
+        """
+        result: list = re.findall(r"-?\d*\.?\d+", data)
+        if len(result) < 2:
+            msg_decode = float(result[0])
+        else:
+            msg_decode = float(result[0]) * 10 ** int(result[1])
         return msg_decode
 
 
@@ -81,7 +84,6 @@ class DrvScpiHandlerC:
             - None.
         """
         data_dec = data.decode("utf-8")
-        # msg_decode = data_dec.split(f"{self.__separator}")
         msg_decode = data_dec.split(' ')
         return msg_decode
 
@@ -113,10 +115,8 @@ class DrvScpiHandlerC:
         port = self.__serial.port.split('/')[-1]
         log.info(f"Reading port: {port}...") # pylint: disable=logging-fstring-interpolation
         msg_read = self.__serial.readline() #TODO: Check if this is the best way to read
-        log.critical(f"MSG READED: {msg_read}") # pylint: disable=logging-fstring-interpolation
         if len(msg_read) > 0:
             msg_read_decoded = self.decode_and_split(msg_read)
-            log.critical(f"MSG DECODED: {msg_read_decoded}") # pylint: disable=logging-fstring-interpolation
             send_data = DrvScpiCmdDataC(port = self.__serial.port, data_type = DrvScpiCmdTypeE.RESP,
                                         payload = msg_read_decoded)
             self.__rx_chan.send_data(send_data)
@@ -135,69 +135,3 @@ class DrvScpiHandlerC:
             - None.
         '''
         self.__serial.close()
-
-
-
-
-
-
-
-
-
-# CODIGO VIEJO || DELETE
-# def decode_numbers(self, data: str) -> float:
-#     """Decode bytes to integers.
-#     Args:
-#         - data (str): Value to convert to float.
-#     Returns:
-#         - msg_decode (float): Value decoded.
-#     Raises:
-#         - DrvScpiErrorC: Error decoding data.
-#     """
-#     result: list = re.findall(r"-?\d*\.?\d+", data)
-#     if len(result) < 2:
-#         msg_decode = float(result[0])
-#     elif len(result) == 2:
-#         msg_decode = float(result[0]) * 10 ** int(result[1])
-#     else:
-#         raise DrvScpiErrorC(message="Error decoding data", error_code=1)
-#     return msg_decode
-
-# def send_msg(self, msg: str) -> None:
-#     """Send a message to the serial device.
-#     Args:
-#         - msg (str): Message to send.
-#     Returns:
-#         - None
-#     Raises:
-#         - None
-#     """
-#     msg = msg + self.__separator
-#     self.__serial.write(bytes(msg.encode("utf-8")))
-
-# def receive_msg(self) -> List[str]:
-#     """
-#     Read until an separator is found, the size is exceeded or until timeout occurs.
-#     Args:
-#         - None
-#     Returns:
-#         - msg_decoded (List[str]): Received message of the device.
-#     Raises:
-#         - None
-#     """
-#     msg = self.__serial.readline()
-#     msg_decoded = self.decode_and_split(msg)
-#     return msg_decoded
-
-# def send_and_read(self, msg: str) -> List[str]:
-#     """Send a message to the serial device and read the response.
-#     Args:
-#         - msg (str): Message to send.
-#     Returns:
-#         - msg (List[str]): Received message.
-#     Raises:
-#         - None
-#     """
-#     self.send_msg(msg)
-#     response: list = self.receive_msg()
-#     return response
