@@ -11,12 +11,12 @@ This is an example of use of the SCPI module.
 
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
-from sys import path, exit
+from sys import path
 import os
 
 #######################         GENERIC IMPORTS          #######################
-from time import sleep
 from threading import Event
+
 #######################       THIRD PARTY IMPORTS        #######################
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
@@ -27,7 +27,7 @@ if __name__ == '__main__':
 log = sys_log_logger_get_module_logger(__name__)
 
 #######################          MODULE IMPORTS          #######################
-from drv_scpi.src.scpi_sniffer import *
+from drv_scpi.src.scpi_sniffer import DrvScpiNodeC # pylint: disable=wrong-import-position
 
 #######################            FUNCTIONS             #######################
 if __name__ == '__main__':
@@ -35,14 +35,5 @@ if __name__ == '__main__':
     _working_scpi = Event()
     _working_scpi.set()
     #Create the thread for SCPI
-    scpi_node = DrvScpiNodeC(working_flag = _working_scpi, tx_scpi_long = 400)
-    try:
-        while 1:
-            scpi_node.process_iteration()
-            sleep(1)
-            print("Elapsed time: 1 seconds")
-
-    except KeyboardInterrupt:
-        _working_scpi.clear()
-        log.info('closing everything')
-        exit(0)
+    scpi_node = DrvScpiNodeC(name = 'scpi_sniffer', working_flag = _working_scpi, cycle_period = 100)
+    scpi_node.run()

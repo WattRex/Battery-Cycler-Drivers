@@ -8,6 +8,7 @@ from __future__ import annotations
 
 #######################         GENERIC IMPORTS          #######################
 from typing import Dict
+from signal import signal, SIGINT
 
 #######################       THIRD PARTY IMPORTS        #######################
 from threading import Event
@@ -17,30 +18,39 @@ import system_logger_tool as sys_log
 if __name__ == "__main__":
     cycler_logger = sys_log.SysLogLoggerC()
 log = sys_log.sys_log_logger_get_module_logger(__name__)
-from system_shared_tool import SysShdIpcChanC # pylint: disable=wrong-import-position
+from system_shared_tool import SysShdNodeC, SysShdIpcChanC # pylint: disable=wrong-import-position
 
 #######################          PROJECT IMPORTS         #######################
 
 #######################          MODULE IMPORTS          #######################
-from .drv_scpi_iface import DrvScpiHandlerC
-from .drv_scpi_cmd import DrvScpiCmdDataC, DrvScpiCmdTypeE, DrvScpiSerialConfC
+from .drv_scpi_iface import DrvScpiHandlerC # pylint: disable=wrong-import-position
+from .drv_scpi_cmd import DrvScpiCmdDataC, DrvScpiCmdTypeE # pylint: disable=wrong-import-position
 
 #######################              ENUMS               #######################
+MAX_MSG = 300
+MAX_MESSAGE_SIZE = 400
 
 #######################             CLASSES              #######################
-class DrvScpiNodeC:
+class DrvScpiNodeC(SysShdNodeC):
     "Returns a removable version of the DRV command."
-    def __init__(self, working_flag: Event, tx_scpi_long: int):
+    def __init__(self, name: str, working_flag: Event, cycle_period: int):
+        '''
+        Args:
+            - working_flag (Event): Flag to know if the SCPI is working.
+            - cycle_period (int): Period of the cycle.
+        Raises:
+            - None.
+        '''
         self.__used_dev: Dict(str, DrvScpiHandlerC) = {}
-        self.working_flag: Event = working_flag
-        max_message_size = 300 #TODO: want to know the maximum message size.
-        self.tx_scpi: SysShdIpcChanC = SysShdIpcChanC(name = "cola_SCPI",
-                                                      max_msg= max_message_size,
-                                                      max_message_size= tx_scpi_long)
+        self.tx_scpi: SysShdIpcChanC = SysShdIpcChanC(name = 'tx_scpi',
+                                                      max_msg= MAX_MSG,
+                                                      max_message_size= MAX_MESSAGE_SIZE)
+        super().__init__(name = name, cycle_period = cycle_period, working_flag = working_flag)
+        # signal(SIGINT, self.signal_handler)
 
 
     def __apply_command(self, cmd: DrvScpiCmdDataC) -> None:
-        '''TODO: Poner titulo.
+        '''Apply the command received from the SCPI channel.
         Args:
             - cmd (DrvScpiCmdDataC): Message to apply.
         Returns:
@@ -52,43 +62,32 @@ class DrvScpiNodeC:
         if cmd.data_type == DrvScpiCmdTypeE.ADD_DEV:
             log.info("Adding device...")
             if cmd.port in self.__used_dev:
-                log.error("Device already exist")
+                log.warning("Device already exist")
             else:
-                if isinstance(cmd.payload, DrvScpiSerialConfC):
-                    self.__used_dev[cmd.port] = DrvScpiHandlerC(serial_conf = cmd.payload)
-                    log.info("Device added")
-                else:
-                    log.error("The device could not be added")
+                self.__used_dev[cmd.port] = DrvScpiHandlerC(serial_conf = cmd.payload)
+                log.info("Device added")
 
         # Delete device
         elif cmd.data_type == DrvScpiCmdTypeE.DEL_DEV:
-            log.info("Deleting device...")
-            if cmd.port in self.__used_dev:
-                del self.__used_dev[cmd.port]
-                log.info("Device deleted")
-            else:
-                log.error("The device could not be deleted")
+            dev_handler: DrvScpiHandlerC = self.__used_dev[cmd.port]
+            dev_handler.close()
+            del dev_handler
+            log.info("Device deleted")
 
         # Write or Write and read
         elif cmd.data_type == DrvScpiCmdTypeE.WRITE or cmd.data_type == DrvScpiCmdTypeE.WRITE_READ:
-            if cmd.port in self.__used_dev:
-                if isinstance(cmd.payload, str):
-                    handler: DrvScpiHandlerC  = self.__used_dev[cmd.port]
-                    handler.send(cmd.payload)
-                    if cmd.data_type == DrvScpiCmdTypeE.WRITE_READ:
-                        handler.wait_4_response = True
-                else:
-                    log.error("Message not valid")
-            else:
-                log.error("First add device")
+            handler: DrvScpiHandlerC  = self.__used_dev[cmd.port]
+            handler.send(cmd.payload)
+            if cmd.data_type == DrvScpiCmdTypeE.WRITE_READ:
+                handler.wait_4_response = True
 
         # Error
         else:
-            log.error("Can`t apply command")
+            log.error("Message not valid")
 
 
     def __receive_response(self) -> None:
-        '''TODO: Poner titulo.
+        '''Read the devices that are waiting to send a message.
         Args:
             - None.
         Returns:
@@ -96,7 +95,7 @@ class DrvScpiNodeC:
         Raises:
             - None.
         '''
-        for __, handler in self.__used_dev.items():
+        for handler in self.__used_dev.values():
             handler: DrvScpiHandlerC
             if handler.wait_4_response:
                 handler.read()
@@ -111,16 +110,31 @@ class DrvScpiNodeC:
         Raises:
             - None.
         '''
-        try:
-            if not self.tx_scpi.is_empty():
-                # Ignore warning as receive_data return an object,
-                # which in this case must be of type DrvScpiCmdDataC
-                command : DrvScpiCmdDataC = self.tx_scpi.receive_data() # type: ignore
-                log.info(f"Command to apply: {command.data_type.name}") # pylint: disable=logging-fstring-interpolation
+        if not self.tx_scpi.is_empty():
+            command : DrvScpiCmdDataC = self.tx_scpi.receive_data() # type: ignore
+            print(command.__dict__)
+            if (command.data_type is DrvScpiCmdTypeE.ADD_DEV) or (command.port in self.__used_dev):
+                log.info(f"Port: {command.port.split('/')[-1]}. "+\
+                        f"Command to apply: {command.data_type.name}") # pylint: disable=logging-fstring-interpolation
                 self.__apply_command(command)
-                self.__receive_response()
-        except ValueError as err:
-            log.error(f"Error while applying/removing filter with error {err}") # pylint: disable=logging-fstring-interpolation
-        except Exception: # pylint: disable=broad-except
-            log.error("Error in SCPI thread")
-            self.working_flag.clear()
+            else:
+                log.error("First add device.")
+        self.__receive_response()
+
+
+    def signal_handler(self) -> None:
+        '''Stop the SCPI node.
+        Args:
+            - None.
+        Returns:
+            - None.
+        Raises:
+            - None.
+        '''
+        log.info("Stopping SCPI node...")
+        # for device in self.__used_dev.values():
+        #     device.close()
+        # self.tx_scpi.terminate()
+        # self.working_flag.clear()
+        # self.__used_dev.clear()
+        log.info("SCPI node stopped")

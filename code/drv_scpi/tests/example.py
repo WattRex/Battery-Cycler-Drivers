@@ -36,15 +36,13 @@ def main() -> None:
                                           bytesize = EIGHTBITS,
                                           parity = PARITY_ODD,
                                           stopbits = STOPBITS_ONE ,
-                                          timeout = 1, #0.00003,
+                                          timeout = 0.5, #0.00003,
                                           write_timeout = 0.003,
                                           inter_byte_timeout  = 1)
 
-
     msg1 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.ADD_DEV,
-                           port = '/dev/ttyACM0',
-                           payload = source_conf_scpi)
-
+                            port = '/dev/ttyACM0',
+                            payload = source_conf_scpi)
 
     msg2 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
                            port = '/dev/ttyACM0',
@@ -54,18 +52,18 @@ def main() -> None:
                            port = '/dev/ttyACM0',
                            payload = 'OUTPut: ON')
 
-    msg4 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
-                           port = '/dev/ttyACM0',
-                           payload = 'MEASure:VOLTage?')
+    # msg4 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
+    #                        port = '/dev/ttyACM0',
+    #                        payload = 'MEASure:VOLTage?')
 
     msg5 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.DEL_DEV,
                            port = '/dev/ttyACM0')
 
 
-    scpi_queue = SysShdIpcChanC(name= 'cola_SCPI') #TODO: Tengo que poner este nombre de la cola? igual que en el driver?
+    scpi_queue = SysShdIpcChanC(name= 'tx_scpi') #TODO: Tengo que poner este nombre de la cola? igual que en el driver?
 
 
-    for msg in [msg1, msg2, msg3, msg4, msg5]:
+    for msg in [msg1, msg2, msg3, msg5]:
         scpi_queue.send_data(msg)
         sleep(0.1)
 

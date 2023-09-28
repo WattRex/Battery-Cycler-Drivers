@@ -39,11 +39,32 @@ class DrvScpiStatusE(Enum):
 #######################             CLASSES              #######################
 class DrvScpiCmdDataC:
     "Principal class of the driver. Hold the data to be sent to the device."
-    def __init__(self, data_type: DrvScpiCmdTypeE, port: str,\
-                 payload: str|DrvScpiSerialConfC|None = None):
+    def __init__(self, data_type: DrvScpiCmdTypeE, port: str, **kwargs:any):
+        '''
+        Args:
+            - data_type (DrvScpiCmdTypeE): Type of command to be sent to the device.
+            - port (str): Port to be used to communicate with the device.
+            - kwargs (optional): Payload to be sent to the device.
+        Raises:
+            - TypeError: If the data_type is ADD_DEV and the payload is
+                         not a DrvScpiSerialConfC object.
+            - TypeError: If the data_type is WRITE, WRITE_READ or RESP
+                         and the payload is not a string.
+        '''
         self.data_type: DrvScpiCmdTypeE = data_type
         self.port: str = port
-        self.payload: str|DrvScpiSerialConfC = payload
+        self.__dict__.update(kwargs)
+        if self.data_type is not DrvScpiCmdTypeE.DEL_DEV:
+            if hasattr(self, 'payload'):
+                if self.data_type == DrvScpiCmdTypeE.ADD_DEV:
+                    if not isinstance(self.payload, DrvScpiSerialConfC):
+                        raise TypeError("No exist payload or must be a DrvScpiSerialConfC object")
+                elif (self.data_type == DrvScpiCmdTypeE.WRITE or \
+                    self.data_type == DrvScpiCmdTypeE.WRITE_READ or \
+                    self.data_type == DrvScpiCmdTypeE.RESP) and (not isinstance(self.payload, str)):
+                    raise TypeError("No exist payload or must be a string")
+            else:
+                log.error("No exist payload")
 
 
 class DrvScpiSerialConfC:
@@ -53,6 +74,20 @@ class DrvScpiSerialConfC:
                  parity = PARITY_NONE,      stopbits = STOPBITS_ONE,
                  timeout: float = 0.5,      write_timeout: float = 0.5,
                  inter_byte_timeout: float = 21) -> None:
+        '''
+        Args:
+            - port (str): Name of the port to be used.
+            - separator (str): Separator to be used to scpi commands.
+            - baudrate (int, optional): SCPI baudrate value. Defaults to 115200.
+            - bytesize (int, optional): SCPI bytesize value. Defaults to EIGHTBITS.
+            - parity (str, optional): SCPI parity value. Defaults to PARITY_NONE.
+            - stopbits (int, optional): SCPI stopbits value. Defaults to STOPBITS_ONE.
+            - timeout (float, optional): SCPI timeout value. Defaults to 0.5.
+            - write_timeout (float, optional): SCPI write_timeout value. Defaults to 0.5.
+            - inter_byte_timeout (float, optional): SCPI inter_byte_timeout value. Defaults to 21.
+        Raises:
+            - None.
+        '''
         self.port               = port
         self.separator          = separator
         self.baudrate           = baudrate
