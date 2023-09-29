@@ -29,8 +29,8 @@ from .drv_scpi_cmd import DrvScpiCmdDataC, DrvScpiCmdTypeE # pylint: disable=wro
 #######################              ENUMS               #######################
 MAX_MSG = 300
 MAX_MESSAGE_SIZE = 400
-name_node = 'scpi_sniffer'
-name_chan = 'tx_scpi'
+NAME_CODE = 'scpi_sniffer'
+NAME_CHAN = 'tx_scpi'
 
 #######################             CLASSES              #######################
 class DrvScpiNodeC(SysShdNodeC):
@@ -44,10 +44,10 @@ class DrvScpiNodeC(SysShdNodeC):
             - None.
         '''
         self.__used_dev: Dict(str, DrvScpiHandlerC) = {}
-        self.tx_scpi: SysShdIpcChanC = SysShdIpcChanC(name = name_chan,
+        self.tx_scpi: SysShdIpcChanC = SysShdIpcChanC(name = NAME_CHAN,
                                                       max_msg= MAX_MSG,
                                                       max_message_size= MAX_MESSAGE_SIZE)
-        super().__init__(name = name_node, cycle_period = cycle_period, working_flag = working_flag)
+        super().__init__(name = NAME_CODE, cycle_period = cycle_period, working_flag = working_flag)
         signal(SIGINT, self.signal_handler)
 
 
@@ -140,7 +140,7 @@ class DrvScpiNodeC(SysShdNodeC):
         log.info("SCPI node stopped")
 
 
-    def signal_handler(self, sig, frame) -> None:
+    def signal_handler(self, sig, frame) -> None: # pylint: disable=unused-argument
         '''Detect control-c and stop the SCPI node.
         Args:
             - sig.
