@@ -8,8 +8,8 @@ from sys import path
 import os
 
 #######################         GENERIC IMPORTS          #######################
+from time import sleep
 from serial import EIGHTBITS, PARITY_ODD, STOPBITS_ONE, Serial
-from time import sleep, time
 
 #######################       THIRD PARTY IMPORTS        #######################
 
@@ -24,12 +24,13 @@ from system_shared_tool import SysShdIpcChanC # pylint: disable=wrong-import-pos
 #######################          PROJECT IMPORTS         #######################
 
 #######################          MODULE IMPORTS          #######################
-from drv_scpi.src.scpi_sniffer import *
+from drv_scpi.src.scpi_sniffer import DrvScpiCmdDataC, DrvScpiCmdTypeE, DrvScpiSerialConfC # pylint: disable=wrong-import-position
 
 #######################              ENUMS               #######################
 
 #######################              CLASSES             #######################
 def main() -> None:
+    "Principal function to example the driver."
     source_conf_scpi = DrvScpiSerialConfC(port = '/dev/ttyACM0',
                                           separator = '\n',
                                           baudrate = 9600,
@@ -60,7 +61,7 @@ def main() -> None:
                            port = '/dev/ttyACM0')
 
 
-    scpi_queue = SysShdIpcChanC(name= 'tx_scpi') #TODO: Tengo que poner este nombre de la cola? igual que en el driver?
+    scpi_queue = SysShdIpcChanC(name= 'tx_scpi')
 
 
     for msg in [msg1, msg2, msg3, msg5]:
@@ -68,8 +69,8 @@ def main() -> None:
         sleep(0.1)
 
 
-def prueba_rapida() -> None:
-    print('COMIENZA')
+def quick_test() -> None:
+    "Quick test to check the conectivity with the device."
     serial = Serial(port = '/dev/ttyACM0',
                     baudrate = 9600,
                     bytesize = EIGHTBITS,
@@ -81,8 +82,6 @@ def prueba_rapida() -> None:
 
     msg_on = 'OUTPut: ON'
     msg_off = 'OUTPut: OFF'
-    msg3 = 'MEASure:VOLTage?'
-    msg4 = 'VOLTage 8.00'
 
     serial.write(bytes(msg_on.encode("utf-8")))
     print('Write ON')
@@ -96,29 +95,6 @@ def prueba_rapida() -> None:
 if __name__ == '__main__':
     PRUEBA_RAPIDA = False
     if PRUEBA_RAPIDA:
-        prueba_rapida()
+        quick_test()
     else:
         main()
-
-
-# print('COMIENZA 2')
-# s = 0.01
-# init = time()
-# serial.write(bytes(msg3.encode("utf-8")))
-# print(f"Escribir: {time() - init}")
-# print(f"MSG: {serial.readline()}")
-# print(f"MSG: {serial.readline()}")
-# print(f"MSG: {serial.readline()}")
-# print(f"MSG: {serial.readline()}")
-# print(f"MSG: {serial.readline()}")
-# print(f"Tiempo: {time() - init}")
-
-# def decode_numbers(self, data: str) -> float:
-#     """Decode bytes to integers.
-
-
-
-#     # source.send_msg('SYSTem:LOCK: ON')
-#     # source.send_msg('SYSTem:LOCK: OFF')
-#     # source.send_and_read('MEASure:VOLTage?')
-#     log.info(f"{source.read_device_info()}")

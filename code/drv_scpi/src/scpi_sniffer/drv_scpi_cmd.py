@@ -16,6 +16,7 @@ import system_logger_tool as sys_log
 if __name__ == "__main__":
     cycler_logger = sys_log.SysLogLoggerC()
 log = sys_log.sys_log_logger_get_module_logger(__name__)
+from system_shared_tool import SysShdNodeStateE # pylint: disable=wrong-import-position
 
 #######################          PROJECT IMPORTS         #######################
 
@@ -30,12 +31,6 @@ class DrvScpiCmdTypeE(Enum):
     WRITE_READ  = 3
     RESP        = 4
 
-class DrvScpiStatusE(Enum):
-    "Status of SCPI."
-    COMM_ERROR = -1
-    OK = 0
-    INTERNAL_ERROR = 1
-
 #######################             CLASSES              #######################
 class DrvScpiCmdDataC:
     "Principal class of the driver. Hold the data to be sent to the device."
@@ -44,7 +39,7 @@ class DrvScpiCmdDataC:
         Args:
             - data_type (DrvScpiCmdTypeE): Type of command to be sent to the device.
             - port (str): Port to be used to communicate with the device.
-            - kwargs (optional): Payload to be sent to the device.
+            - kwargs (optional): Optional parameters such as payload and status.
         Raises:
             - TypeError: If the data_type is ADD_DEV and the payload is
                          not a DrvScpiSerialConfC object.
@@ -54,17 +49,27 @@ class DrvScpiCmdDataC:
         self.data_type: DrvScpiCmdTypeE = data_type
         self.port: str = port
         self.__dict__.update(kwargs)
-        if self.data_type is not DrvScpiCmdTypeE.DEL_DEV:
-            if hasattr(self, 'payload'):
-                if self.data_type == DrvScpiCmdTypeE.ADD_DEV:
-                    if not isinstance(self.payload, DrvScpiSerialConfC):
-                        raise TypeError("No exist payload or must be a DrvScpiSerialConfC object")
-                elif (self.data_type == DrvScpiCmdTypeE.WRITE or \
-                    self.data_type == DrvScpiCmdTypeE.WRITE_READ or \
-                    self.data_type == DrvScpiCmdTypeE.RESP) and (not isinstance(self.payload, str)):
-                    raise TypeError("No exist payload or must be a string")
-            else:
-                log.error("No exist payload")
+
+        if self.data_type != DrvScpiCmdTypeE.DEL_DEV and not hasattr(self, 'payload'):
+            log.error("No exist payload")
+            raise TypeError("No exist payload")
+        else:
+            if self.data_type == DrvScpiCmdTypeE.ADD_DEV and \
+                not isinstance(self.payload, DrvScpiSerialConfC):
+                log.error("Payload must be a DrvScpiSerialConfC object")
+                raise TypeError("Payload must be a DrvScpiSerialConfC object")
+            elif (self.data_type == DrvScpiCmdTypeE.WRITE or \
+                  self.data_type == DrvScpiCmdTypeE.WRITE_READ or \
+                  self.data_type == DrvScpiCmdTypeE.RESP) and not isinstance(self.payload, str):
+                log.error("Payload must be a string")
+                raise TypeError("Payload must be a string")
+            elif self.data_type == DrvScpiCmdTypeE.RESP:
+                if not hasattr(self, 'status'):
+                    log.error("No exist status")
+                    raise TypeError("No exist status")
+                elif not isinstance(self.status, SysShdNodeStateE):
+                    log.error("status must be a SysShdNodeStateE object")
+                    raise TypeError("status must be a SysShdNodeStateE object")
 
 
 class DrvScpiSerialConfC:

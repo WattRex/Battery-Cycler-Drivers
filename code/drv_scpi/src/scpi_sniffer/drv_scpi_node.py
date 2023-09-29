@@ -29,24 +29,26 @@ from .drv_scpi_cmd import DrvScpiCmdDataC, DrvScpiCmdTypeE # pylint: disable=wro
 #######################              ENUMS               #######################
 MAX_MSG = 300
 MAX_MESSAGE_SIZE = 400
+name_node = 'scpi_sniffer'
+name_chan = 'tx_scpi'
 
 #######################             CLASSES              #######################
 class DrvScpiNodeC(SysShdNodeC):
     "Returns a removable version of the DRV command."
-    def __init__(self, name: str, working_flag: Event, cycle_period: int):
+    def __init__(self, working_flag: Event, cycle_period: int):
         '''
         Args:
             - working_flag (Event): Flag to know if the SCPI is working.
-            - cycle_period (int): Period of the cycle.
+            - cycle_period (int): Period of the cycle in miliunits.
         Raises:
             - None.
         '''
         self.__used_dev: Dict(str, DrvScpiHandlerC) = {}
-        self.tx_scpi: SysShdIpcChanC = SysShdIpcChanC(name = 'tx_scpi',
+        self.tx_scpi: SysShdIpcChanC = SysShdIpcChanC(name = name_chan,
                                                       max_msg= MAX_MSG,
                                                       max_message_size= MAX_MESSAGE_SIZE)
-        super().__init__(name = name, cycle_period = cycle_period, working_flag = working_flag)
-        # signal(SIGINT, self.signal_handler)
+        super().__init__(name = name_node, cycle_period = cycle_period, working_flag = working_flag)
+        signal(SIGINT, self.signal_handler)
 
 
     def __apply_command(self, cmd: DrvScpiCmdDataC) -> None:
@@ -71,7 +73,7 @@ class DrvScpiNodeC(SysShdNodeC):
         elif cmd.data_type == DrvScpiCmdTypeE.DEL_DEV:
             dev_handler: DrvScpiHandlerC = self.__used_dev[cmd.port]
             dev_handler.close()
-            del dev_handler
+            del self.__used_dev[cmd.port]
             log.info("Device deleted")
 
         # Write or Write and read
@@ -112,7 +114,6 @@ class DrvScpiNodeC(SysShdNodeC):
         '''
         if not self.tx_scpi.is_empty():
             command : DrvScpiCmdDataC = self.tx_scpi.receive_data() # type: ignore
-            print(command.__dict__)
             if (command.data_type is DrvScpiCmdTypeE.ADD_DEV) or (command.port in self.__used_dev):
                 log.info(f"Port: {command.port.split('/')[-1]}. "+\
                         f"Command to apply: {command.data_type.name}") # pylint: disable=logging-fstring-interpolation
@@ -122,7 +123,7 @@ class DrvScpiNodeC(SysShdNodeC):
         self.__receive_response()
 
 
-    def signal_handler(self) -> None:
+    def stop(self) -> None:
         '''Stop the SCPI node.
         Args:
             - None.
@@ -132,9 +133,22 @@ class DrvScpiNodeC(SysShdNodeC):
             - None.
         '''
         log.info("Stopping SCPI node...")
-        # for device in self.__used_dev.values():
-        #     device.close()
-        # self.tx_scpi.terminate()
-        # self.working_flag.clear()
-        # self.__used_dev.clear()
+        for device in self.__used_dev.values():
+            device.close()
+        self.working_flag.clear()
+        self.__used_dev.clear()
         log.info("SCPI node stopped")
+
+
+    def signal_handler(self, sig, frame) -> None:
+        '''Detect control-c and stop the SCPI node.
+        Args:
+            - sig.
+            - frame
+        Returns:
+            - None.
+        Raises:
+            - None.
+        '''
+        log.info("control-c detected. Stopping SCPI node...")
+        self.stop()

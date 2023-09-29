@@ -18,10 +18,10 @@ import system_logger_tool as sys_log
 if __name__ == "__main__":
     cycler_logger = sys_log.SysLogLoggerC()
 log = sys_log.sys_log_logger_get_module_logger(__name__)
-from system_shared_tool import SysShdIpcChanC # pylint: disable=wrong-import-position
+from system_shared_tool import SysShdIpcChanC, SysShdNodeStateE # pylint: disable=wrong-import-position
 
 #######################          PROJECT IMPORTS         #######################
-from .drv_scpi_cmd import DrvScpiSerialConfC, DrvScpiStatusE, DrvScpiCmdTypeE, DrvScpiCmdDataC # pylint: disable=wrong-import-position
+from .drv_scpi_cmd import DrvScpiSerialConfC, DrvScpiCmdTypeE, DrvScpiCmdDataC # pylint: disable=wrong-import-position
 
 #######################          MODULE IMPORTS          #######################
 
@@ -59,12 +59,12 @@ class DrvScpiHandlerC:
         self.__separator: str = serial_conf.separator
         self.__rx_chan_name = self.__serial.port.split('/')[-1]
         self.__rx_chan: SysShdIpcChanC = SysShdIpcChanC(name = f"rx_{self.__rx_chan_name}")
-        self.status: DrvScpiStatusE = DrvScpiStatusE.OK
+        self.status: SysShdNodeStateE = SysShdNodeStateE.OK
         self.wait_4_response: bool = False
         self.num_attempts_read: int = 0
 
 
-    def decode_numbers(self, data: str) -> float:
+    def decode_numbers(self, data: str) -> float: #TODO: Check this function with all devices
         """Decode str to integers.
         Args:
             - data (str): Value to convert to float.
@@ -124,16 +124,16 @@ class DrvScpiHandlerC:
             msg_read_decoded = self.decode_and_split(msg_read)
             msg_read_decoded = f"{msg_read_decoded}"
             send_data = DrvScpiCmdDataC(port = self.__serial.port, data_type = DrvScpiCmdTypeE.RESP,
-                                        payload = msg_read_decoded)
+                                        payload = msg_read_decoded, status = self.status)
             self.__rx_chan.send_data(send_data)
             self.wait_4_response = False
             self.num_attempts_read = 0
-            self.status = DrvScpiStatusE.OK
+            self.status = SysShdNodeStateE.OK
         else:
             self.num_attempts_read += 1
             if self.num_attempts_read >= NUM_ATTEMPTS:
                 log.critical(f"Port: {self.__rx_chan_name}. No response from device") # pylint: disable=logging-fstring-interpolation
-                self.status = DrvScpiStatusE.COMM_ERROR
+                self.status = SysShdNodeStateE.COMM_ERROR
 
 
     def close(self) -> None:
