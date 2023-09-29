@@ -77,7 +77,7 @@ class DrvScpiNodeC(SysShdNodeC):
             log.info("Device deleted")
 
         # Write or Write and read
-        elif cmd.data_type == DrvScpiCmdTypeE.WRITE or cmd.data_type == DrvScpiCmdTypeE.WRITE_READ:
+        elif cmd.data_type in (DrvScpiCmdTypeE.WRITE, DrvScpiCmdTypeE.WRITE_READ):
             handler: DrvScpiHandlerC  = self.__used_dev[cmd.port]
             handler.send(cmd.payload)
             if cmd.data_type == DrvScpiCmdTypeE.WRITE_READ:
@@ -138,6 +138,17 @@ class DrvScpiNodeC(SysShdNodeC):
         self.working_flag.clear()
         self.__used_dev.clear()
         log.info("SCPI node stopped")
+
+
+    def sync_shd_data(self) -> None:
+        '''Synchronize the shared data.
+        Args:
+            - None.
+        Returns:
+            - None.
+        Raises:
+            - None.
+        '''
 
 
     def signal_handler(self, sig, frame) -> None: # pylint: disable=unused-argument

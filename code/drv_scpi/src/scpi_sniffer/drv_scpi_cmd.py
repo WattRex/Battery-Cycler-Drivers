@@ -58,9 +58,8 @@ class DrvScpiCmdDataC:
                 not isinstance(self.payload, DrvScpiSerialConfC):
                 log.error("Payload must be a DrvScpiSerialConfC object")
                 raise TypeError("Payload must be a DrvScpiSerialConfC object")
-            elif (self.data_type == DrvScpiCmdTypeE.WRITE or \
-                  self.data_type == DrvScpiCmdTypeE.WRITE_READ or \
-                  self.data_type == DrvScpiCmdTypeE.RESP) and not isinstance(self.payload, str):
+            elif (self.data_type in (DrvScpiCmdTypeE.WRITE, DrvScpiCmdTypeE.WRITE_READ, \
+                DrvScpiCmdTypeE.RESP)) and not isinstance(self.payload, str):
                 log.error("Payload must be a string")
                 raise TypeError("Payload must be a string")
             elif self.data_type == DrvScpiCmdTypeE.RESP:
