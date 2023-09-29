@@ -18,7 +18,7 @@ import system_logger_tool as sys_log
 if __name__ == "__main__":
     cycler_logger = sys_log.SysLogLoggerC()
 log = sys_log.sys_log_logger_get_module_logger(__name__)
-from system_shared_tool import SysShdIpcChanC, SysShdNodeStateE # pylint: disable=wrong-import-position
+from system_shared_tool import SysShdIpcChanC, SysShdNodeStatusE # pylint: disable=wrong-import-position
 
 #######################          PROJECT IMPORTS         #######################
 from .drv_scpi_cmd import DrvScpiSerialConfC, DrvScpiCmdTypeE, DrvScpiCmdDataC # pylint: disable=wrong-import-position
@@ -59,7 +59,7 @@ class DrvScpiHandlerC:
         self.__separator: str = serial_conf.separator
         self.__rx_chan_name = self.__serial.port.split('/')[-1]
         self.__rx_chan: SysShdIpcChanC = SysShdIpcChanC(name = f"rx_{self.__rx_chan_name}")
-        self.status: SysShdNodeStateE = SysShdNodeStateE.OK
+        self.status: SysShdNodeStatusE = SysShdNodeStatusE.OK
         self.wait_4_response: bool = False
         self.num_attempts_read: int = 0
 
@@ -128,12 +128,12 @@ class DrvScpiHandlerC:
             self.__rx_chan.send_data(send_data)
             self.wait_4_response = False
             self.num_attempts_read = 0
-            self.status = SysShdNodeStateE.OK
+            self.status = SysShdNodeStatusE.OK
         else:
             self.num_attempts_read += 1
             if self.num_attempts_read >= NUM_ATTEMPTS:
                 log.critical(f"Port: {self.__rx_chan_name}. No response from device") # pylint: disable=logging-fstring-interpolation
-                self.status = SysShdNodeStateE.COMM_ERROR
+                self.status = SysShdNodeStatusE.COMM_ERROR
 
 
     def close(self) -> None:

@@ -16,7 +16,7 @@ import system_logger_tool as sys_log
 if __name__ == "__main__":
     cycler_logger = sys_log.SysLogLoggerC()
 log = sys_log.sys_log_logger_get_module_logger(__name__)
-from system_shared_tool import SysShdNodeStateE # pylint: disable=wrong-import-position
+from system_shared_tool import SysShdNodeStatusE # pylint: disable=wrong-import-position
 
 #######################          PROJECT IMPORTS         #######################
 
@@ -66,9 +66,9 @@ class DrvScpiCmdDataC:
                 if not hasattr(self, 'status'):
                     log.error("No exist status")
                     raise TypeError("No exist status")
-                elif not isinstance(self.status, SysShdNodeStateE):
-                    log.error("status must be a SysShdNodeStateE object")
-                    raise TypeError("status must be a SysShdNodeStateE object")
+                elif not isinstance(self.status, SysShdNodeStatusE):
+                    log.error("status must be a SysShdNodeStatusE object")
+                    raise TypeError("status must be a SysShdNodeStatusE object")
 
 
 class DrvScpiSerialConfC:
