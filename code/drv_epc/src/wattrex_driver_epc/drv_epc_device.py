@@ -193,8 +193,8 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
                         log.error("Internal error")
                     # The next bits correspond to the value error given
                     error = ba2int(msg_bits[:6])
+                    self.__live_data.status= DrvEpcStatusC(error)
                     if error>0:
-                        self.__live_data.status= DrvEpcStatusC(error)
                         log.error(f"Last rised error: {ba2int(msg_bits[6:])}")
                 #------   0xYYC EPC Electrical Measures  ------
                 elif msg_id == _EpcMsgTypeE.ELEC_MEAS.value:
