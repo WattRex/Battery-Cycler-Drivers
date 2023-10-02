@@ -21,7 +21,7 @@ if __name__ == '__main__':
     cycler_logger = SysLogLoggerC(file_log_levels='../log_config.yaml')
 log: Logger = sys_log_logger_get_module_logger(__name__)
 
-from system_shared_tool import SysShdIpcChanC, SysShdNodeC, SysShdNodeParamsC
+from system_shared_tool import SysShdIpcChanC, SysShdNodeC, SysShdNodeParamsC, SysShdNodeStatusE
 #######################          MODULE IMPORTS          #######################
 
 
@@ -275,12 +275,14 @@ class DrvCanNodeC(SysShdNodeC): #pylint: disable= abstract-method
         self.working_flag.clear()
         self.tx_buffer.terminate()
         self.__can_bus.shutdown()
+        self.status = SysShdNodeStatusE.STOP
 
     def process_iteration(self) -> None:
         '''
         Main method executed by the CAN thread. It receive data from EPCs and PLAKs
         and store it on the corresponding chan.
         '''
+        log.debug(f"CAN thread status {self.status}")
         try:
             if not self.tx_buffer.is_empty():
                 # Ignore warning as receive_data return an object,
@@ -288,6 +290,7 @@ class DrvCanNodeC(SysShdNodeC): #pylint: disable= abstract-method
                 command : DrvCanCmdDataC = self.tx_buffer.receive_data() # type: ignore
                 log.debug(f"Command to apply: {command.data_type.name}")
                 self.__apply_command(command)
+                self.status = SysShdNodeStatusE.OK
             msg : Message = self.__can_bus.recv(timeout=_Constants.TIMEOUT_RX_MSG)
             if isinstance(msg,Message):
                 if (0x000 <= msg.arbitration_id <= 0x7FF
@@ -298,9 +301,12 @@ class DrvCanNodeC(SysShdNodeC): #pylint: disable= abstract-method
                                 f" and error in frame is: {msg.is_error_frame}")
         except CanOperationError as err:
             log.error(f"Error while sending CAN message\n{err}")
+            self.status = SysShdNodeStatusE.COMM_ERROR
         except ValueError as err:
             log.error(f"Error while applying/removing filter with error {err}")
+            self.status = SysShdNodeStatusE.COMM_ERROR
         except Exception:
             log.error("Error in can thread")
+            self.status = SysShdNodeStatusE.INTERNAL_ERROR
             self.working_flag.clear()
 #######################            FUNCTIONS             #######################
