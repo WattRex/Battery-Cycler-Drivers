@@ -91,6 +91,11 @@ class DrvDbElectrolyteTypeE(BaseEnum):      # pylint: disable= too-many-ancestor
     IRON_BASED = 'Iron-based'
     OTHER = 'Other'
 
+class DrvDbRedoxPolarityE(BaseEnum):
+    '''Enum used to define redox polarity.
+    '''
+    POSITIVE = 'POS'
+    NEGATIVE = 'NEG'
 
 class DrvDbDeviceTypeE(BaseEnum):           # pylint: disable= too-many-ancestors
     '''Enum used to define compatible device type.
@@ -135,9 +140,9 @@ class DrvDbCyclingModeE(BaseEnum):          # pylint: disable= too-many-ancestor
     '''Enum used to define cycling control modes.
     '''
     WAIT = 'WAIT'
-    CC = 'CC'
-    CV = 'CV'
-    CP = 'CP'
+    CC_MODE = 'CC_MODE'
+    CV_MODE = 'CV_MODE'
+    CP_MODE = 'CP_MODE'
     DISABLE = 'DISABLE'
 
 
