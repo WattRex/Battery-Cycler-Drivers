@@ -25,14 +25,14 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 
 
 #######################          MODULE IMPORTS          #######################
-from .drv_db_types import DrvDbBatteryTechE, DrvDbBipolarTypeE, DrvDbCyclingLimitE, \
-                        DrvDbCyclingModeE, DrvDbDeviceTypeE, DrvDbElectrolyteTypeE, \
-                        DrvDbLeadAcidChemistryE, DrvDbLithiumChemistryE, DrvDbMembraneTypeE,\
-                        DrvDbAvailableCuE
-from .drv_db_dao_base import DrvDbBaseStatusC, DrvDbBaseExperimentC, DrvDbBaseExtendedMeasureC, \
-                            DrvDbBaseGenericMeasureC
-from .drv_db_dao_cache import DrvDbCacheExperimentC, DrvDbCacheGenericMeasureC, \
-                            DrvDbCacheExtendedMeasureC, DrvDbCacheStatusC
+from .drv_db_types import (DrvDbBatteryTechE, DrvDbBipolarTypeE, DrvDbCyclingLimitE,
+                        DrvDbCyclingModeE, DrvDbDeviceTypeE, DrvDbElectrolyteTypeE,
+                        DrvDbLeadAcidChemistryE, DrvDbLithiumChemistryE, DrvDbMembraneTypeE,
+                        DrvDbAvailableCuE, DrvDbConnStatusE)
+from .drv_db_dao_base import (DrvDbBaseStatusC, DrvDbBaseExperimentC, DrvDbBaseExtendedMeasureC,
+                            DrvDbBaseGenericMeasureC)
+from .drv_db_dao_cache import (DrvDbCacheExperimentC, DrvDbCacheGenericMeasureC,
+                            DrvDbCacheExtendedMeasureC, DrvDbCacheStatusC)
 #######################              ENUMS               #######################
 
 
@@ -144,19 +144,31 @@ class DrvDbCompatibleDeviceC(Base):
     CurrMin = Column(MEDIUMINT())
     CurrMax = Column(MEDIUMINT())
 
+class DrvDbDetectedDeviceC(Base):
+    '''
+    Class method to create a DRVDB model of database DetectedDevice table.
+    '''
+    __tablename__ = 'DetectedDevices'
+    __table_args__ = (ForeignKeyConstraint(['CUID'], [DrvDbComputationalUnitC.CUID]),
+                      ForeignKeyConstraint(['CompDevID'], [DrvDbCompatibleDeviceC.CompDevID]),)
+
+    DevID = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False)
+    CUID = Column(ForeignKey(DrvDbCyclerStationC.CSID), primary_key=True, nullable=False)
+    CompDevID = Column(ForeignKey(DrvDbCompatibleDeviceC.CompDevID), nullable=False)
+    SN = Column(String(30), nullable=False)
+    LinkName = Column(String(30), nullable=False)
+    ConnStatus = Column(Enum(*(DrvDbConnStatusE.get_all_values())), nullable=False)
+
 class DrvDbUsedDeviceC(Base):
     '''
     Class method to create a DRVDB model of database UsedDevices table.
     '''
     __tablename__ = 'UsedDevices'
     __table_args__ = (ForeignKeyConstraint(['CSID'], [DrvDbCyclerStationC.CSID]),
-                      ForeignKeyConstraint(['CompDevID'], [DrvDbCompatibleDeviceC.CompDevID]),)
+                      ForeignKeyConstraint(['DevID'], [DrvDbDetectedDeviceC.DevID]),)
 
-    DevID = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False)
+    DevID = Column(ForeignKey(DrvDbDetectedDeviceC.DevID), primary_key=True, nullable=False)
     CSID = Column(ForeignKey(DrvDbCyclerStationC.CSID), primary_key=True, nullable=False)
-    CompDevID = Column(ForeignKey(DrvDbCompatibleDeviceC.CompDevID), nullable=False)
-    SN = Column(String(30), nullable=False)
-    UdevName = Column(String(30), nullable=False)
 
 class DrvDbLinkConfigurationC(Base):
     '''

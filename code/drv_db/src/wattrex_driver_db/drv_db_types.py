@@ -100,6 +100,11 @@ class DrvDbDeviceTypeE(BaseEnum):           # pylint: disable= too-many-ancestor
     LOAD = 'Load'
     METER = 'Meter'
 
+class DrvDbConnStatusE(BaseEnum):           # pylint: disable= too-many-ancestors
+    '''Enum used to define connection status.
+    '''
+    CONNECTED = 'CONNECTED'
+    DISCONNECTED = 'DISCONNECTED'
 
 class DrvDbEquipStatusE(BaseEnum):          # pylint: disable= too-many-ancestors
     '''Enum used to define equipment working status.
