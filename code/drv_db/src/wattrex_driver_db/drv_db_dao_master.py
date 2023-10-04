@@ -126,6 +126,7 @@ class DrvDbCyclerStationC(Base):
     Name = Column(String(30), nullable=False)
     Location = Column(String(30), nullable=False)
     RegisterDate = Column(DateTime, nullable=False)
+    Parent = Column(MEDIUMINT(unsigned=True), nullable=False)
     Deprecated = Column(BOOLEAN, nullable=False)
 
 class DrvDbCompatibleDeviceC(Base):
@@ -182,14 +183,32 @@ class DrvDbLinkConfigurationC(Base):
     Property = Column(String(30), nullable=False)
     Value = Column(String(30), nullable=False)
 
-class DrvDbMeasuresDeclarationC(Base):
+class DrvDbAvailableMeasuresC(Base):
     '''
-    Class method to create a DRVDB model of database MeasuresDeclaration table.
+    Class method to create a DRVDB model of database AvailableMeasures table.
     '''
-    __tablename__ = 'MeasuresDeclaration'
+    __tablename__ = 'AvailableMeasures'
+    __table_args__ = (ForeignKeyConstraint(['CompDevID'], [DrvDbCompatibleDeviceC.CompDevID]),)
 
     MeasType = Column(MEDIUMINT(unsigned=True), primary_key=True)
+    CompDevID = Column(ForeignKey(DrvDbCompatibleDeviceC.CompDevID), primary_key=True,
+                    nullable=False)
     MeasName = Column(String(20), nullable=False, unique=True)
+
+class DrvDbUsedMeasuresC(Base):
+    '''
+    Class method to create a DRVDB model of database UsedMeasures table.
+    '''
+    __tablename__ = 'UsedMeasures'
+    __table_args__ = (ForeignKeyConstraint(['MeasType'], [DrvDbAvailableMeasuresC.MeasType]),
+                      ForeignKeyConstraint(['DevID'], [DrvDbDetectedDeviceC.DevID]),
+                      ForeignKeyConstraint(['CSID'], [DrvDbCyclerStationC.CSID]),)
+    
+    UsedMeasID = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False, autoincrement=True)
+    CSID = Column(ForeignKey(DrvDbCyclerStationC.CSID), nullable=False)
+    MeasType = Column(ForeignKey(DrvDbAvailableMeasuresC.MeasType), nullable=False)
+    DevID = Column(ForeignKey(DrvDbDetectedDeviceC.DevID), nullable=False)
+    CustomName = Column(String(30), nullable=False)
 
 class DrvDbProfileC(Base):
     '''
@@ -275,16 +294,16 @@ class DrvDbMasterExtendedMeasureC(DrvDbBaseExtendedMeasureC):
     Class method to create a DRVDB model of database ExtendedMeasures table.
     '''
     __tablename__ = 'ExtendedMeasures'
-    __table_args__ = (ForeignKeyConstraint(['MeasType'], [DrvDbMeasuresDeclarationC.MeasType]),
+    __table_args__ = (ForeignKeyConstraint(['UsedMeasID'], [DrvDbUsedMeasuresC.UsedMeasID]),
                       {'extend_existing': True},)
 
-    MeasType = Column(ForeignKey(DrvDbMeasuresDeclarationC.MeasType),
+    UsedMeasID = Column(ForeignKey(DrvDbUsedMeasuresC.UsedMeasID),
                       primary_key=True, nullable=False)
 
     def transform(self, exp: DrvDbCacheExtendedMeasureC):
         """Transform an extended measurement from cache DB to master DB.
         """
-        self.MeasType = exp.MeasType #pylint: disable=invalid-name
+        self.UsedMeasID = exp.UsedMeasID #pylint: disable=invalid-name
         self.ExpID = exp.ExpID #pylint: disable=invalid-name
         self.Value = exp.Value #pylint: disable=invalid-name
         self.MeasID = exp.MeasID #pylint: disable=invalid-name

@@ -99,6 +99,7 @@ class DrvDbDeviceTypeE(BaseEnum):           # pylint: disable= too-many-ancestor
     BISOURCE = 'BiSource'
     LOAD = 'Load'
     METER = 'Meter'
+    EPC = 'Epc'
 
 class DrvDbConnStatusE(BaseEnum):           # pylint: disable= too-many-ancestors
     '''Enum used to define connection status.
