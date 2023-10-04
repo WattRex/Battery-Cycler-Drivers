@@ -202,7 +202,7 @@ class DrvDbUsedMeasuresC(Base):
     __table_args__ = (ForeignKeyConstraint(['MeasType'], [DrvDbAvailableMeasuresC.MeasType]),
                       ForeignKeyConstraint(['DevID'], [DrvDbDetectedDeviceC.DevID]),
                       ForeignKeyConstraint(['CSID'], [DrvDbCyclerStationC.CSID]),)
-    
+
     UsedMeasID = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False)
     CSID = Column(ForeignKey(DrvDbCyclerStationC.CSID), nullable=False)
     MeasType = Column(ForeignKey(DrvDbAvailableMeasuresC.MeasType), nullable=False)
@@ -336,7 +336,8 @@ class DrvDbRedoxElectrolyteC(Base):
 
     BatID = Column(ForeignKey(DrvDbBatteryC.BatID), primary_key=True, nullable=False)
     ExpID = Column(ForeignKey(DrvDbMasterExperimentC.ExpID), primary_key=True, nullable=False)
-    Polarity = Column(Enum(*(DrvDbRedoxPolarityE.get_all_values())), primary_key=True, nullable=False)
+    Polarity = Column(Enum(*(DrvDbRedoxPolarityE.get_all_values())), primary_key=True,
+                      nullable=False)
     ElectrolyteVol = Column(MEDIUMINT(unsigned=True), nullable=False)
     InitialSOC = Column(MEDIUMINT(unsigned=True), nullable=False)
     MinFlowRate = Column(MEDIUMINT(unsigned=True), nullable=False)
