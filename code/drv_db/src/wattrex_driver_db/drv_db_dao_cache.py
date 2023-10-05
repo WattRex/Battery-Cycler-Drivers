@@ -61,7 +61,7 @@ class DrvDbCacheExtendedMeasureC(DrvDbBaseExtendedMeasureC):
     __tablename__ = 'ExtendedMeasures'
     __table_args__ = {'extend_existing': True}
 
-    MeasType = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False)
+    UsedMeasID = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False)
 
 class DrvDbCacheStatusC(DrvDbBaseStatusC):
     '''

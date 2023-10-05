@@ -47,7 +47,7 @@ def test_read() -> None:
     row.Voltage = 500
     row.Current = 20
     row.Power = 1000
-    row.PwrMode = DrvDbCyclingModeE.CC.value
+    row.PwrMode = DrvDbCyclingModeE.CC_MODE.value
     drv.session.add(row)
 
     stmt = select(DrvDbCacheGenericMeasureC).where(DrvDbCacheGenericMeasureC.MeasID == 3)

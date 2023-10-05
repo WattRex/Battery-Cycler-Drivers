@@ -25,14 +25,14 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 
 
 #######################          MODULE IMPORTS          #######################
-from .drv_db_types import DrvDbBatteryTechE, DrvDbBipolarTypeE, DrvDbCyclingLimitE, \
-                        DrvDbCyclingModeE, DrvDbDeviceTypeE, DrvDbElectrolyteTypeE, \
-                        DrvDbLeadAcidChemistryE, DrvDbLithiumChemistryE, DrvDbMembraneTypeE,\
-                        DrvDbAvailableCuE
-from .drv_db_dao_base import DrvDbBaseStatusC, DrvDbBaseExperimentC, DrvDbBaseExtendedMeasureC, \
-                            DrvDbBaseGenericMeasureC
-from .drv_db_dao_cache import DrvDbCacheExperimentC, DrvDbCacheGenericMeasureC, \
-                            DrvDbCacheExtendedMeasureC, DrvDbCacheStatusC
+from .drv_db_types import (DrvDbBatteryTechE, DrvDbBipolarTypeE, DrvDbCyclingLimitE,
+                        DrvDbCyclingModeE, DrvDbDeviceTypeE, DrvDbElectrolyteTypeE,
+                        DrvDbLeadAcidChemistryE, DrvDbLithiumChemistryE, DrvDbMembraneTypeE,
+                        DrvDbAvailableCuE, DrvDbConnStatusE, DrvDbRedoxPolarityE)
+from .drv_db_dao_base import (DrvDbBaseStatusC, DrvDbBaseExperimentC, DrvDbBaseExtendedMeasureC,
+                            DrvDbBaseGenericMeasureC)
+from .drv_db_dao_cache import (DrvDbCacheExperimentC, DrvDbCacheGenericMeasureC,
+                            DrvDbCacheExtendedMeasureC, DrvDbCacheStatusC)
 #######################              ENUMS               #######################
 
 
@@ -108,8 +108,7 @@ class DrvDbComputationalUnitC(Base):
     Name = Column(String(50), nullable=False)
     IP = Column(String(20), nullable=False)
     Port = Column(SMALLINT(unsigned=True), nullable=False)
-    User = Column(String(20), nullable=False)
-    Pass = Column(String(100), nullable=False)
+    User = Column(String(30), nullable=False)
     LastConnection = Column(DateTime, nullable=False)
     Available = Column(Enum(*(DrvDbAvailableCuE.get_all_values())), nullable=False)
 
@@ -126,6 +125,7 @@ class DrvDbCyclerStationC(Base):
     Name = Column(String(30), nullable=False)
     Location = Column(String(30), nullable=False)
     RegisterDate = Column(DateTime, nullable=False)
+    Parent = Column(MEDIUMINT(unsigned=True))
     Deprecated = Column(BOOLEAN, nullable=False)
 
 class DrvDbCompatibleDeviceC(Base):
@@ -137,6 +137,7 @@ class DrvDbCompatibleDeviceC(Base):
     CompDevID = Column(MEDIUMINT(unsigned=True), primary_key=True)
     Name = Column(String(30), nullable=False)
     Manufacturer = Column(String(30), nullable=False)
+    Model = Column(String(30), nullable=False)
     DeviceType = Column(Enum(*DrvDbDeviceTypeE.get_all_values()), nullable=False)
     MinSWVersion = Column(SMALLINT(unsigned=True), nullable=False)
     VoltMin = Column(MEDIUMINT(unsigned=True))
@@ -144,19 +145,31 @@ class DrvDbCompatibleDeviceC(Base):
     CurrMin = Column(MEDIUMINT())
     CurrMax = Column(MEDIUMINT())
 
+class DrvDbDetectedDeviceC(Base):
+    '''
+    Class method to create a DRVDB model of database DetectedDevice table.
+    '''
+    __tablename__ = 'DetectedDevices'
+    __table_args__ = (ForeignKeyConstraint(['CUID'], [DrvDbComputationalUnitC.CUID]),
+                      ForeignKeyConstraint(['CompDevID'], [DrvDbCompatibleDeviceC.CompDevID]),)
+
+    DevID = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False)
+    CUID = Column(ForeignKey(DrvDbCyclerStationC.CSID), nullable=False)
+    CompDevID = Column(ForeignKey(DrvDbCompatibleDeviceC.CompDevID), nullable=False)
+    SN = Column(String(30), nullable=False)
+    LinkName = Column(String(30), nullable=False)
+    ConnStatus = Column(Enum(*(DrvDbConnStatusE.get_all_values())), nullable=False)
+
 class DrvDbUsedDeviceC(Base):
     '''
     Class method to create a DRVDB model of database UsedDevices table.
     '''
     __tablename__ = 'UsedDevices'
     __table_args__ = (ForeignKeyConstraint(['CSID'], [DrvDbCyclerStationC.CSID]),
-                      ForeignKeyConstraint(['CompDevID'], [DrvDbCompatibleDeviceC.CompDevID]),)
+                      ForeignKeyConstraint(['DevID'], [DrvDbDetectedDeviceC.DevID]),)
 
-    DevID = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False)
+    DevID = Column(ForeignKey(DrvDbDetectedDeviceC.DevID), primary_key=True, nullable=False)
     CSID = Column(ForeignKey(DrvDbCyclerStationC.CSID), primary_key=True, nullable=False)
-    CompDevID = Column(ForeignKey(DrvDbCompatibleDeviceC.CompDevID), nullable=False)
-    SN = Column(String(30), nullable=False)
-    UdevName = Column(String(30), nullable=False)
 
 class DrvDbLinkConfigurationC(Base):
     '''
@@ -167,17 +180,34 @@ class DrvDbLinkConfigurationC(Base):
 
     CompDevID = Column(ForeignKey(DrvDbCompatibleDeviceC.CompDevID), primary_key=True,
                     nullable=False)
-    Property = Column(String(30), nullable=False)
+    Property = Column(String(30), primary_key = True, nullable=False)
     Value = Column(String(30), nullable=False)
 
-class DrvDbMeasuresDeclarationC(Base):
+class DrvDbAvailableMeasuresC(Base):
     '''
-    Class method to create a DRVDB model of database MeasuresDeclaration table.
+    Class method to create a DRVDB model of database AvailableMeasures table.
     '''
-    __tablename__ = 'MeasuresDeclaration'
+    __tablename__ = 'AvailableMeasures'
+    __table_args__ = (ForeignKeyConstraint(['CompDevID'], [DrvDbCompatibleDeviceC.CompDevID]),)
 
     MeasType = Column(MEDIUMINT(unsigned=True), primary_key=True)
-    MeasName = Column(String(20), nullable=False, unique=True)
+    CompDevID = Column(ForeignKey(DrvDbCompatibleDeviceC.CompDevID), nullable=False)
+    MeasName = Column(String(20), nullable=False)
+
+class DrvDbUsedMeasuresC(Base):
+    '''
+    Class method to create a DRVDB model of database UsedMeasures table.
+    '''
+    __tablename__ = 'UsedMeasures'
+    __table_args__ = (ForeignKeyConstraint(['MeasType'], [DrvDbAvailableMeasuresC.MeasType]),
+                      ForeignKeyConstraint(['DevID'], [DrvDbDetectedDeviceC.DevID]),
+                      ForeignKeyConstraint(['CSID'], [DrvDbCyclerStationC.CSID]),)
+
+    UsedMeasID = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False)
+    CSID = Column(ForeignKey(DrvDbCyclerStationC.CSID), nullable=False)
+    MeasType = Column(ForeignKey(DrvDbAvailableMeasuresC.MeasType), nullable=False)
+    DevID = Column(ForeignKey(DrvDbDetectedDeviceC.DevID), nullable=False)
+    CustomName = Column(String(30), nullable=False)
 
 class DrvDbProfileC(Base):
     '''
@@ -188,10 +218,10 @@ class DrvDbProfileC(Base):
     ProfID = Column(MEDIUMINT(unsigned=True), primary_key=True)
     Name = Column(String(40), nullable=False)
     Description = Column(String(250), nullable=False)
-    VoltMax = Column(MEDIUMINT(unsigned=True), nullable=False)
-    VoltMin = Column(MEDIUMINT(unsigned=True), nullable=False)
-    CurrMax = Column(MEDIUMINT(), nullable=False)
-    CurrMin = Column(MEDIUMINT(), nullable=False)
+    VoltMax = Column(MEDIUMINT(unsigned=True))
+    VoltMin = Column(MEDIUMINT(unsigned=True))
+    CurrMax = Column(MEDIUMINT())
+    CurrMin = Column(MEDIUMINT())
 
 class DrvDbInstructionC(Base):
     '''
@@ -263,16 +293,16 @@ class DrvDbMasterExtendedMeasureC(DrvDbBaseExtendedMeasureC):
     Class method to create a DRVDB model of database ExtendedMeasures table.
     '''
     __tablename__ = 'ExtendedMeasures'
-    __table_args__ = (ForeignKeyConstraint(['MeasType'], [DrvDbMeasuresDeclarationC.MeasType]),
+    __table_args__ = (ForeignKeyConstraint(['UsedMeasID'], [DrvDbUsedMeasuresC.UsedMeasID]),
                       {'extend_existing': True},)
 
-    MeasType = Column(ForeignKey(DrvDbMeasuresDeclarationC.MeasType),
+    UsedMeasID = Column(ForeignKey(DrvDbUsedMeasuresC.UsedMeasID),
                       primary_key=True, nullable=False)
 
     def transform(self, exp: DrvDbCacheExtendedMeasureC):
         """Transform an extended measurement from cache DB to master DB.
         """
-        self.MeasType = exp.MeasType #pylint: disable=invalid-name
+        self.UsedMeasID = exp.UsedMeasID #pylint: disable=invalid-name
         self.ExpID = exp.ExpID #pylint: disable=invalid-name
         self.Value = exp.Value #pylint: disable=invalid-name
         self.MeasID = exp.MeasID #pylint: disable=invalid-name
@@ -306,5 +336,9 @@ class DrvDbRedoxElectrolyteC(Base):
 
     BatID = Column(ForeignKey(DrvDbBatteryC.BatID), primary_key=True, nullable=False)
     ExpID = Column(ForeignKey(DrvDbMasterExperimentC.ExpID), primary_key=True, nullable=False)
+    Polarity = Column(Enum(*(DrvDbRedoxPolarityE.get_all_values())), primary_key=True,
+                      nullable=False)
     ElectrolyteVol = Column(MEDIUMINT(unsigned=True), nullable=False)
+    InitialSOC = Column(MEDIUMINT(unsigned=True), nullable=False)
+    MinFlowRate = Column(MEDIUMINT(unsigned=True), nullable=False)
     MaxFlowRate = Column(MEDIUMINT(unsigned=True), nullable=False)
