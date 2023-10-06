@@ -8,10 +8,10 @@ from __future__ import annotations
 #######################         GENERIC IMPORTS          #######################
 import os
 from sys import path
-from serial import EIGHTBITS, PARITY_NONE, STOPBITS_ONE, Serial
+from threading import Event
 from time import sleep
 from signal import signal, SIGINT
-from threading import Event
+from serial import EIGHTBITS, PARITY_NONE, STOPBITS_ONE, Serial
 #######################       THIRD PARTY IMPORTS        #######################
 
 #######################      SYSTEM ABSTRACTION IMPORTS  #######################
@@ -25,7 +25,7 @@ from system_shared_tool import SysShdIpcChanC
 #######################          PROJECT IMPORTS         #######################
 path.append(os.getcwd())
 from drv_scpi.src.scpi_sniffer import DrvScpiSerialConfC, DrvScpiCmdDataC,\
-    DrvScpiCmdTypeE, DrvScpiNodeC, TX_NAME_CHAN, SCPI_MAX_MSG, SCPI_MAX_MESSAGE_SIZE
+    DrvScpiCmdTypeE, TX_NAME_CHAN, SCPI_MAX_MSG, SCPI_MAX_MESSAGE_SIZE
 
 #######################          MODULE IMPORTS          #######################
 
@@ -54,12 +54,10 @@ def example_with_flowmeter():
 
     cmd = DrvScpiCmdDataC(DrvScpiCmdTypeE.ADD_DEV, port=__SERIAL_PORT,\
                 payload = flow_conf_scpi, rx_chan_name=__RX_CHAN_NAME)
-    global tx_chan
     tx_chan.send_data(cmd)
 
-    REQ_MEAS = ':MEASure:FLOW?'
-    cmd_req_meas = DrvScpiCmdDataC(DrvScpiCmdTypeE.WRITE_READ, port=__SERIAL_PORT, payload=REQ_MEAS)
-    global working_flag
+    req_meas = ':MEASure:FLOW?'
+    cmd_req_meas = DrvScpiCmdDataC(DrvScpiCmdTypeE.WRITE_READ, port=__SERIAL_PORT, payload=req_meas)
     while working_flag.isSet():
         tx_chan.send_data(cmd_req_meas)
         sleep(0.1)
@@ -70,8 +68,10 @@ def example_with_flowmeter():
                 log.info(f"Meas received: {resp}, {resp.payload}")
                 recv = True
 
-def quick_test() -> None:
-    "Quick test to check the conectivity with the device."
+def raw_example_flow() -> None:
+    '''
+    Quick test to check the conectivity with the device.
+    '''
     serial = Serial(port = '/dev/ttyACM0',
                     baudrate = 9600,
                     bytesize = EIGHTBITS,
@@ -81,11 +81,11 @@ def quick_test() -> None:
                     write_timeout = 1, #0.003,
                     inter_byte_timeout  = 1)
 
-    READ_INFO = 'IDN*?'
-    GET_MEAS  = ':MEASure:FLOW?'
+    read_info = 'IDN*?'
+    get_meas  = ':MEASure:FLOW?'
 
-    read_info_send = (READ_INFO + '\n').encode()
-    read_meas_send = (GET_MEAS + '\n').encode()
+    read_info_send = (read_info + '\n').encode()
+    read_meas_send = (get_meas + '\n').encode()
     empty_msg = bytes(('\n').encode())
 
     serial.write(empty_msg)
@@ -124,9 +124,7 @@ def signal_handler(sig, frame) -> None: # pylint: disable=unused-argument
         - None.
     '''
     log.info("control-c detected. Stopping SCPI node...")
-    global tx_chan
     cls_msg = DrvScpiCmdDataC(DrvScpiCmdTypeE.DEL_DEV, port=__SERIAL_PORT)
-    global working_flag
     working_flag.clear()
     tx_chan.send_data(cls_msg)
 
@@ -139,4 +137,4 @@ if __name__ == '__main__':
     working_flag.set()
     signal(SIGINT, signal_handler)
     example_with_flowmeter()
-    # quick_test()
+    # raw_example_flow()

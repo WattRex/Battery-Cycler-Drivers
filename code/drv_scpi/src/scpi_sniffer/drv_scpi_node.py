@@ -48,7 +48,8 @@ class DrvScpiNodeC(SysShdNodeC):
                                                       max_msg= SCPI_MAX_MSG,
                                                       max_message_size= SCPI_MAX_MESSAGE_SIZE)
         self.tx_scpi.delete_until_last()
-        super().__init__(name = _NODE_NAME, cycle_period = cycle_period, working_flag = working_flag)
+        super().__init__(name = _NODE_NAME, cycle_period = cycle_period,\
+                        working_flag = working_flag)
         signal(SIGINT, self.signal_handler)
 
 
@@ -67,7 +68,8 @@ class DrvScpiNodeC(SysShdNodeC):
             if cmd.port in self.__used_dev:
                 log.warning("Device already exist")
             else:
-                self.__used_dev[cmd.port] = DrvScpiHandlerC(serial_conf = cmd.payload, rx_chan_name = cmd.rx_chan_name)
+                self.__used_dev[cmd.port] = DrvScpiHandlerC(serial_conf = cmd.payload,\
+                                rx_chan_name = cmd.rx_chan_name)
                 log.info("Device added")
 
         # Delete device
