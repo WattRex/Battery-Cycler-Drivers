@@ -27,7 +27,9 @@ if __name__ == '__main__':
 log = sys_log_logger_get_module_logger(__name__)
 
 #######################          MODULE IMPORTS          #######################
+# path.append(os.getcwd()+'/code/')
 from drv_scpi.src.scpi_sniffer import DrvScpiNodeC # pylint: disable=wrong-import-position
+# from scpi_sniffer import DrvScpiNodeC # pylint: disable=wrong-import-position
 
 #######################            FUNCTIONS             #######################
 if __name__ == '__main__':
