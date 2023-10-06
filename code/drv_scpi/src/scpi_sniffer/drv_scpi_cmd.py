@@ -61,6 +61,9 @@ class DrvScpiCmdDataC:
                 elif not hasattr(self, 'rx_chan_name'):
                     log.error("No exist rx_chan_name")
                     raise TypeError("No exist rx_chan_name")
+                elif not isinstance(self.rx_chan_name, str):
+                    log.error("rx_chan_name must be a string")
+                    raise TypeError("rx_chan_name must be a string")
 
             elif (self.data_type in (DrvScpiCmdTypeE.WRITE, DrvScpiCmdTypeE.WRITE_READ,)) and \
                 not isinstance(self.payload, str):

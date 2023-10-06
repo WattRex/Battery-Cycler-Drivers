@@ -119,12 +119,8 @@ class DrvScpiHandlerC:
         Raises:
             - None.
         '''
-        msg_read = self.__serial.readline() #TODO: Check if this is the best way to read
-        # msg_read = [msg_read.decode("utf-8")]
+        msg_read = self.__serial.readline()
         log.warning(f"Port: {self.__rx_chan_name} \t Message read RX: {msg_read}")
-        # DrvScpiCmdDataC(port = self.__serial.port, data_type = DrvScpiCmdTypeE.RESP,
-        #                             payload = msg_read, status = SysShdNodeStatusE.OK)
-        # self.wait_4_response = False  #TODO: Check with MARIUS
 
         resp_msg = DrvScpiCmdDataC(port = self.__serial.port, data_type = DrvScpiCmdTypeE.RESP,
                                     payload = [], status = SysShdNodeStatusE.OK)

@@ -11,7 +11,7 @@ from sys import path
 from threading import Event
 from time import sleep
 from signal import signal, SIGINT
-from serial import EIGHTBITS, PARITY_NONE, STOPBITS_ONE, Serial
+from serial import EIGHTBITS, PARITY_NONE, PARITY_ODD, STOPBITS_ONE, Serial
 #######################       THIRD PARTY IMPORTS        #######################
 
 #######################      SYSTEM ABSTRACTION IMPORTS  #######################
@@ -33,7 +33,7 @@ from drv_scpi.src.scpi_sniffer import DrvScpiSerialConfC, DrvScpiCmdDataC,\
 
 #######################             CLASSES              #######################
 __SERIAL_PORT = '/dev/ttyACM0'
-__RX_CHAN_NAME = 'rx_scpi_flow'
+__RX_CHAN_NAME = 'rx_scpi_source' #'rx_scpi_flow'
 
 def example_with_flowmeter():
     '''
@@ -67,6 +67,52 @@ def example_with_flowmeter():
                 resp = rx_chan.receive_data(timeout = 1.0)
                 log.info(f"Meas received: {resp}, {resp.payload}")
                 recv = True
+
+
+def example_with_source_ea():
+    '''
+    Example of raw usage of drv_scpi with a source_ea device.
+    '''
+    source_conf_scpi = DrvScpiSerialConfC(port = __SERIAL_PORT,
+                                          separator = '\n',
+                                          baudrate = 9600,
+                                          bytesize = EIGHTBITS,
+                                          parity = PARITY_ODD,
+                                          stopbits = STOPBITS_ONE ,
+                                          timeout = 2,
+                                          write_timeout = None,
+                                          inter_byte_timeout  = None)
+
+    rx_chan = SysShdIpcChanC(name=__RX_CHAN_NAME, max_msg=SCPI_MAX_MSG,\
+                             max_message_size= SCPI_MAX_MESSAGE_SIZE)
+
+    msg1 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.ADD_DEV, port = __SERIAL_PORT,\
+                           payload = source_conf_scpi, rx_chan_name=__RX_CHAN_NAME)
+
+    msg2 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, port = __SERIAL_PORT, \
+                           payload = 'SYSTem:LOCK: ON')
+
+    msg3 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, port = __SERIAL_PORT, \
+                           payload = 'OUTPut: ON')
+
+    msg4 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ, port = __SERIAL_PORT, \
+                           payload = 'MEASure:VOLTage?')
+
+    for msg in [msg1, msg2, msg3, msg4]:
+        tx_chan.send_data(msg)
+        sleep(0.1)
+
+    recv = False
+    while (working_flag.isSet() and recv is False):
+        sleep(0.1)
+        while not recv:
+            if not rx_chan.is_empty():
+                resp = rx_chan.receive_data(timeout = 1.0)
+                log.info(f"Meas received: {resp}, {resp.payload}")
+                recv = True
+
+    msg5 = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.DEL_DEV, port = __SERIAL_PORT)
+    tx_chan.send_data(msg5)
 
 def raw_example_flow() -> None:
     '''
@@ -102,16 +148,6 @@ def raw_example_flow() -> None:
     read = serial.readline()
     log.info(f"Read: {read}")
 
-    # while 1:
-    #     read = serial.readline()
-    #     log.info(f"Read: {read}")
-
-    # sleep(1)
-    # serial.write(bytes(GET_MEAS.encode("utf-8")))
-    # meas = serial.readline()
-    # print(meas)
-    # data_dec = meas.decode("utf-8")
-    # log.info(f"Meas: {data_dec}")
 
 def signal_handler(sig, frame) -> None: # pylint: disable=unused-argument
     '''Detect control-c and stop the SCPI node.
@@ -129,12 +165,12 @@ def signal_handler(sig, frame) -> None: # pylint: disable=unused-argument
     tx_chan.send_data(cls_msg)
 
 
-
 if __name__ == '__main__':
     tx_chan = SysShdIpcChanC(name = TX_NAME_CHAN, max_msg= SCPI_MAX_MSG,\
                                 max_message_size= SCPI_MAX_MESSAGE_SIZE)
     working_flag = Event()
     working_flag.set()
     signal(SIGINT, signal_handler)
-    example_with_flowmeter()
+    # example_with_flowmeter()
+    example_with_source_ea()
     # raw_example_flow()
