@@ -1,11 +1,6 @@
 #!/usr/bin/python3
 '''
-Create a ORM model of the defined database.
-
-This document's base structure is generated automaticly using sqlacodegen extracting data from DB.\
-Attributes in this script does not follow PEP8 snake_case naming convention.
-
-sqlacodegen mysql+mysqlconnector://user:password@ip:port/db_name --outfile drv_db_dao.py
+Create a base class used to register devices status.
 '''
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
