@@ -24,15 +24,16 @@ log = sys_log_logger_get_module_logger(__name__)
 from system_shared_tool import SysShdIpcChanC, SysShdNodeStatusE # pylint: disable=wrong-import-position
 
 #######################          PROJECT IMPORTS         #######################
-from scpi_sniffer import *
+from scpi_sniffer import DrvScpiSerialConfC, DrvScpiCmdDataC, DrvScpiCmdTypeE
+from wattrex_driver_base import DrvBaseStatusE, DrvBaseStatusC
 
 #######################          MODULE IMPORTS          #######################
 
 #######################              ENUMS               #######################
-MAX_WAIT_TIME = 5
-TIME_BETWEEN_ATTEMPTS = 0.1
-MAX_MSG = 100
-MAX_MESSAGE_SIZE = 300
+_MAX_WAIT_TIME = 3
+_TIME_BETWEEN_ATTEMPTS = 0.1
+_MAX_MSG = 100
+_MAX_MESSAGE_SIZE = 300
 
 class ScpiCmds(Enum):
     "Modes of the device"
@@ -51,8 +52,9 @@ class DrvFlowDataC():
         Raises:
             - None.
         '''
-        self.flow_main = flow_main
-        self.flow_aux = flow_aux
+        self.flow_main: int = flow_main
+        self.flow_aux: int = flow_aux
+        self.status: DrvBaseStatusC = DrvBaseStatusC(DrvBaseStatusE.OK)
 
 
     def __str__(self) -> str:
@@ -62,7 +64,8 @@ class DrvFlowDataC():
         Raises:
             - None.
         '''
-        result = f"Flow->\tPOS [{self.flow_main}] - \tNEG:[{self.flow_aux}]"
+        result = f"Flow->\tPOS [{self.flow_main}] - \tNEG:[{self.flow_aux}]" +\
+              f"- \tStatus: [{self.status}]"
         return result
 
 
@@ -79,9 +82,10 @@ class DrvFlowDeviceC():
         self.__firmware_version: int = 0
         self.__tx_chan = SysShdIpcChanC(name = 'tx_scpi')
         self.__rx_chan = SysShdIpcChanC(name = rx_chan_name,
-                                      max_msg = MAX_MSG,
-                                      max_message_size= MAX_MESSAGE_SIZE)
+                                      max_msg = _MAX_MSG,
+                                      max_message_size= _MAX_MESSAGE_SIZE)
         self.__port = config.port
+
         add_msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.ADD_DEV,
                                   port = config.port,
                                   payload = config,
@@ -91,7 +95,18 @@ class DrvFlowDeviceC():
         self.__last_meas: DrvFlowDataC = DrvFlowDataC(flow_main = 0, flow_aux = 0)
         self.__wait_4_response = False
         self.__read_device_properties()
-        signal(SIGINT, self.__signal_handler)
+
+
+    @property
+    def device_id(self) -> int:
+        ''' Get the device id. '''
+        return self.__device_id
+
+
+    @property
+    def firmware_version(self) -> int:
+        ''' Get the firmware version. '''
+        return self.__firmware_version
 
 
     def __read_device_properties(self) -> None:
@@ -110,42 +125,24 @@ class DrvFlowDeviceC():
 
         # Wait until receive the message
         time_init = time()
-        while (time() - time_init) < MAX_WAIT_TIME:
-            sleep(TIME_BETWEEN_ATTEMPTS)
+        while (time() - time_init) < _MAX_WAIT_TIME:
+            sleep(_TIME_BETWEEN_ATTEMPTS)
             if not self.__rx_chan.is_empty():
                 command_rec : DrvScpiCmdDataC = self.__rx_chan.receive_data()
-                log.critical(f"Command received: {command_rec.payload}")
-
-                # failed = command_rec.status == SysShdNodeStatusE.COMM_ERROR
-                # if failed:
-                #     self.__tx_chan.send_data(msg)
-                #     break
                 msg = command_rec.payload[0]
                 if len(msg) > 0 and ('ERROR' not in msg) and ('IDN' in msg):
                     msg = msg.split(':')
                     self.__device_id = int(msg[msg.index('DEVice')+1])
                     self.__firmware_version = int(msg[msg.index('VERsion')+1])
                     exception = False
+                    break
                 else:
                     msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
                             port = self.__port, payload = ScpiCmds.READ_INFO.value)
                     self.__tx_chan.send_data(msg)
-
         self.__rx_chan.delete_until_last()
         if exception:
             raise ConnectionError("Device not found")
-
-
-    @property
-    def device_id(self) -> int:
-        ''' Get the device id. '''
-        return self.__device_id
-
-
-    @property
-    def firmware_version(self) -> int:
-        ''' Get the firmware version. '''
-        return self.__firmware_version
 
 
     def get_meas(self) -> DrvFlowDataC:
@@ -160,24 +157,24 @@ class DrvFlowDeviceC():
         if not self.__wait_4_response:
             msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
                                 port = self.__port,
-                                payload = ScpiCmds.GET_MEAS.value + '\n')
-            log.info(f"Message to send: {msg.payload}")
+                                payload = ScpiCmds.GET_MEAS.value)
             self.__tx_chan.send_data(msg)
             self.__wait_4_response = True
         else:
-            if not self.__rx_chan.is_empty():
-                data : DrvScpiCmdDataC = self.__rx_chan.receive_data()
-                msg_received = data.payload[0]
-                log.critical(f"Message received: {msg_received}")
-                msg_received = msg_received.split(':')
-                self.__wait_4_response = False
-                if len(msg_received) > 0 and ('ERROR' not in data.payload) and \
-                    ('IDN' not in data.payload):
-                    # f_main = int(msg_received[msg_received.index('DATA')+1])
-                    # f_aux = int(msg_received[msg_received.index('DATA')+2])
-                    f_main = 0
-                    f_aux = 0
-                    self.__last_meas = DrvFlowDataC(flow_main = f_main, flow_aux = f_aux)
+            time_init = time()
+            while (time() - time_init) < _MAX_WAIT_TIME:
+                if not self.__rx_chan.is_empty():
+                    data : DrvScpiCmdDataC = self.__rx_chan.receive_data()
+                    msg_received = data.payload[0]
+                    self.__wait_4_response = False
+                    if len(msg_received) > 0 and ('ERROR' not in msg_received) and \
+                        ('MEASure' in msg_received):
+                        msg_received = msg_received.split(':')
+                        self.__last_meas.flow_main = int(msg_received[msg_received.index('DATA')+1])
+                        self.__last_meas.flow_aux = int(msg_received[msg_received.index('DATA')+2])
+                        self.__last_meas.status = DrvBaseStatusC(DrvBaseStatusE.OK)
+                    else:
+                        self.__last_meas.status = DrvBaseStatusC(DrvBaseStatusE.COMM_ERROR)
         return self.__last_meas
 
 
@@ -194,17 +191,3 @@ class DrvFlowDeviceC():
                                   port = self.__port) # pylint: disable=no-member
         self.__tx_chan.send_data(del_msg)
         self.__rx_chan.terminate()
-
-
-    def __signal_handler(self, sig, frame) -> None: # pylint: disable=unused-argument
-        '''Detect control-c and stop the SCPI node.
-        Args:
-            - sig.
-            - frame
-        Returns:
-            - None.
-        Raises:
-            - None.
-        '''
-        log.info("control-c detected. Stopping SCPI node...")
-        self.close()

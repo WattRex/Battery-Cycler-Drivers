@@ -4,7 +4,7 @@
 #define SACLAR_US_2_FREQ 500000 // Factor to convert us to Hz -> 1.000.000/ (2 * semiperiod)
 #define FLOW_MAX 10 // 10 L/min 
 #define FREQ_MAX 235 // Freq for 10L/min
-#define DEVICE_NUMBER "001"
+#define DEVICE_NUMBER 1
 #define FIRMWARE_VERSION "2"
 #define ENDING_CHARS "\n"
 #define BAUDRATE 19200
@@ -141,9 +141,11 @@ void MEAS(char resultado[]) {
 }
 
 void INFO(char resultado[]) {
+  char dev_num[3];
+  sprintf(dev_num, "%03d", DEVICE_NUMBER);
   strcpy(resultado, SEND_INFO);
   strcat(resultado, ":DEVice:");
-  strcat(resultado, DEVICE_NUMBER);
+  strcat(resultado, dev_num);
   strcat(resultado, ":VERsion:");
   strcat(resultado, FIRMWARE_VERSION);
 }
