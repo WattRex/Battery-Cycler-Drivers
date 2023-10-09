@@ -54,16 +54,27 @@ class DrvScpiCmdDataC:
             log.error("No exist payload")
             raise TypeError("No exist payload")
         else:
-            if self.data_type == DrvScpiCmdTypeE.ADD_DEV and \
-                not isinstance(self.payload, DrvScpiSerialConfC):
-                log.error("Payload must be a DrvScpiSerialConfC object")
-                raise TypeError("Payload must be a DrvScpiSerialConfC object")
-            elif (self.data_type in (DrvScpiCmdTypeE.WRITE, DrvScpiCmdTypeE.WRITE_READ, \
-                DrvScpiCmdTypeE.RESP)) and not isinstance(self.payload, str):
+            if self.data_type == DrvScpiCmdTypeE.ADD_DEV:
+                if not isinstance(self.payload, DrvScpiSerialConfC):
+                    log.error("Payload must be a DrvScpiSerialConfC object")
+                    raise TypeError("Payload must be a DrvScpiSerialConfC object")
+                elif not hasattr(self, 'rx_chan_name'):
+                    log.error("No exist rx_chan_name")
+                    raise TypeError("No exist rx_chan_name")
+                elif not isinstance(self.rx_chan_name, str):
+                    log.error("rx_chan_name must be a string")
+                    raise TypeError("rx_chan_name must be a string")
+
+            elif (self.data_type in (DrvScpiCmdTypeE.WRITE, DrvScpiCmdTypeE.WRITE_READ,)) and \
+                not isinstance(self.payload, str):
                 log.error("Payload must be a string")
                 raise TypeError("Payload must be a string")
+
             elif self.data_type == DrvScpiCmdTypeE.RESP:
-                if not hasattr(self, 'status'):
+                if not isinstance(self.payload, list):
+                    log.error("Payload must be a list")
+                    raise TypeError("Payload must be a list")
+                elif not hasattr(self, 'status'):
                     log.error("No exist status")
                     raise TypeError("No exist status")
                 elif not isinstance(self.status, SysShdNodeStatusE):

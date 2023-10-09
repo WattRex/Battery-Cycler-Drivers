@@ -27,10 +27,10 @@ from .drv_scpi_iface import DrvScpiHandlerC # pylint: disable=wrong-import-posit
 from .drv_scpi_cmd import DrvScpiCmdDataC, DrvScpiCmdTypeE # pylint: disable=wrong-import-position
 
 #######################              ENUMS               #######################
-MAX_MSG = 300
-MAX_MESSAGE_SIZE = 400
-NAME_CODE = 'scpi_sniffer'
-NAME_CHAN = 'tx_scpi'
+SCPI_MAX_MSG = 300          # messages per queue
+SCPI_MAX_MESSAGE_SIZE = 400 # bytes per msg
+TX_NAME_CHAN = 'tx_scpi'
+_NODE_NAME = 'scpi_sniffer'
 
 #######################             CLASSES              #######################
 class DrvScpiNodeC(SysShdNodeC):
@@ -44,10 +44,12 @@ class DrvScpiNodeC(SysShdNodeC):
             - None.
         '''
         self.__used_dev: Dict(str, DrvScpiHandlerC) = {}
-        self.tx_scpi: SysShdIpcChanC = SysShdIpcChanC(name = NAME_CHAN,
-                                                      max_msg= MAX_MSG,
-                                                      max_message_size= MAX_MESSAGE_SIZE)
-        super().__init__(name = NAME_CODE, cycle_period = cycle_period, working_flag = working_flag)
+        self.tx_scpi: SysShdIpcChanC = SysShdIpcChanC(name = TX_NAME_CHAN,
+                                                      max_msg= SCPI_MAX_MSG,
+                                                      max_message_size= SCPI_MAX_MESSAGE_SIZE)
+        self.tx_scpi.delete_until_last()
+        super().__init__(name = _NODE_NAME, cycle_period = cycle_period,\
+                        working_flag = working_flag)
         signal(SIGINT, self.signal_handler)
 
 
@@ -66,7 +68,8 @@ class DrvScpiNodeC(SysShdNodeC):
             if cmd.port in self.__used_dev:
                 log.warning("Device already exist")
             else:
-                self.__used_dev[cmd.port] = DrvScpiHandlerC(serial_conf = cmd.payload)
+                self.__used_dev[cmd.port] = DrvScpiHandlerC(serial_conf = cmd.payload,\
+                                rx_chan_name = cmd.rx_chan_name)
                 log.info("Device added")
 
         # Delete device
@@ -137,6 +140,7 @@ class DrvScpiNodeC(SysShdNodeC):
             device.close()
         self.working_flag.clear()
         self.__used_dev.clear()
+        self.tx_scpi.terminate()
         log.info("SCPI node stopped")
 
 
