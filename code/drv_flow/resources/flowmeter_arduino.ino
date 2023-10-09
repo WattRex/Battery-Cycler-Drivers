@@ -5,7 +5,7 @@
 #define FLOW_MAX 10 // 10 L/min 
 #define FREQ_MAX 235 // Freq for 10L/min
 #define DEVICE_NUMBER "001"
-#define FIRMWARE_VERSION "1"
+#define FIRMWARE_VERSION "2"
 #define ENDING_CHARS "\n"
 #define BAUDRATE 19200
 #define MAX_BUFFER_SIZE 100
@@ -44,7 +44,28 @@ void setup() {
   while (!Serial) {
     Serial.println("Init flow meter");
   }
+  pinMode(pin_aux, INPUT);
+  attachInterrupt(digitalPinToInterrupt(pin_aux), edge_isr_aux, CHANGE );
+
+  noInterrupts ();  // protected code
+  // reset Timer 1
+  // Main flowmeter
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCNT1 = 0;
+  TIMSK1 = 0;
+
+  TIFR1 |= _BV(ICF1); // clear Input Capture Flag so we don't get a bogus interrupt
+  TIFR1 |= _BV(TOV1); // clear Overflow Flag so we don't get a bogus interrupt
+
+  TCCR1B = _BV(CS10) | // start Timer 1, no prescaler
+           _BV(ICES1); // Input Capture Edge Select (1=Rising, 0=Falling)
+
+  TIMSK1 |= _BV(ICIE1); // Enable Timer 1 Input Capture Interrupt
+  TIMSK1 |= _BV(TOIE1); // Enable Timer 1 Overflow Interrupt
+  interrupts ();
 }
+
 
 ISR(TIMER1_OVF_vect)
 {
