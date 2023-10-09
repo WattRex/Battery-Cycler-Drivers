@@ -10,8 +10,6 @@ import os
 #######################         GENERIC IMPORTS          #######################
 from enum import Enum
 from time import sleep, time
-from serial import EIGHTBITS, PARITY_ODD, STOPBITS_ONE, Serial
-from signal import signal, SIGINT
 
 #######################       THIRD PARTY IMPORTS        #######################
 
@@ -21,7 +19,7 @@ from system_logger_tool import SysLogLoggerC, sys_log_logger_get_module_logger #
 if __name__ == '__main__':
     cycler_logger = SysLogLoggerC(file_log_levels='./log_config.yaml')
 log = sys_log_logger_get_module_logger(__name__)
-from system_shared_tool import SysShdIpcChanC, SysShdNodeStatusE # pylint: disable=wrong-import-position
+from system_shared_tool import SysShdIpcChanC # pylint: disable=wrong-import-position
 
 #######################          PROJECT IMPORTS         #######################
 from scpi_sniffer import DrvScpiSerialConfC, DrvScpiCmdDataC, DrvScpiCmdTypeE
@@ -135,7 +133,6 @@ class DrvFlowDeviceC():
                     self.__device_id = int(msg[msg.index('DEVice')+1])
                     self.__firmware_version = int(msg[msg.index('VERsion')+1])
                     exception = False
-                    break
                 else:
                     msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
                             port = self.__port, payload = ScpiCmds.READ_INFO.value)

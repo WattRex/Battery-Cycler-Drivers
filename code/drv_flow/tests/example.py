@@ -8,10 +8,9 @@ from __future__ import annotations
 #######################         GENERIC IMPORTS          #######################
 import os
 from sys import path
-from threading import Event
 from time import sleep
-from signal import signal, SIGINT
-from serial import EIGHTBITS, PARITY_NONE, PARITY_ODD, STOPBITS_ONE, Serial
+from serial import EIGHTBITS, PARITY_NONE, STOPBITS_ONE
+
 #######################       THIRD PARTY IMPORTS        #######################
 
 #######################      SYSTEM ABSTRACTION IMPORTS  #######################
@@ -21,13 +20,11 @@ if __name__ == '__main__':
     cycler_logger = SysLogLoggerC(file_log_levels='./log_config.yaml')
 log = sys_log_logger_get_module_logger(__name__)
 
-from system_shared_tool import SysShdIpcChanC
-
 #######################          PROJECT IMPORTS         #######################
-from scpi_sniffer import *
+from scpi_sniffer import DrvScpiSerialConfC # pylint: disable=wrong-import-position
 
 #######################          MODULE IMPORTS          #######################
-from drv_flow.src.wattrex_driver_flow import DrvFlowDeviceC, DrvFlowDataC
+from drv_flow.src.wattrex_driver_flow import DrvFlowDeviceC # pylint: disable=wrong-import-position
 
 #######################              ENUMS               #######################
 
@@ -51,12 +48,12 @@ def example_flowmeter():
 
     flowmeter = DrvFlowDeviceC(config = flow_conf_scpi,
                                rx_chan_name = __RX_CHAN_NAME)
-    log.info(f"Device: {flowmeter.device_id} \t Firmware: {flowmeter.firmware_version}")
+    log.info(f"Device: {flowmeter.device_id} \t Firmware: {flowmeter.firmware_version}") # pylint: disable=logging-fstring-interpolation
 
     cont = 0
     while cont < 10:
         sleep(0.2)
-        log.info(f"Get meas: {flowmeter.get_meas()}")
+        log.info(f"Get meas: {flowmeter.get_meas()}") # pylint: disable=logging-fstring-interpolation
         cont += 1
 
     flowmeter.close()
@@ -64,5 +61,3 @@ def example_flowmeter():
 
 if __name__ == '__main__':
     example_flowmeter()
-    print('End of example')
-    exit(0)
