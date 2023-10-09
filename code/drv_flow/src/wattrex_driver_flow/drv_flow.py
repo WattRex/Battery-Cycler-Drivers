@@ -30,10 +30,11 @@ from wattrex_driver_base import DrvBaseStatusE, DrvBaseStatusC
 #######################              ENUMS               #######################
 _MAX_WAIT_TIME = 3
 _TIME_BETWEEN_ATTEMPTS = 0.1
+_TIMEOUT_REC = 0.1
 _MAX_MSG = 100
 _MAX_MESSAGE_SIZE = 300
 
-class ScpiCmds(Enum):
+class _ScpiCmds(Enum):
     "Modes of the device"
     READ_INFO = ':IDN*?\n'
     GET_MEAS  = ':MEASure:FLOW?\n'
@@ -118,7 +119,7 @@ class DrvFlowDeviceC():
         '''
         exception = True
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
-                port = self.__port, payload = ScpiCmds.READ_INFO.value)
+                port = self.__port, payload = _ScpiCmds.READ_INFO.value)
         self.__tx_chan.send_data(msg)
 
         # Wait until receive the message
@@ -135,7 +136,7 @@ class DrvFlowDeviceC():
                     exception = False
                 else:
                     msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
-                            port = self.__port, payload = ScpiCmds.READ_INFO.value)
+                            port = self.__port, payload = _ScpiCmds.READ_INFO.value)
                     self.__tx_chan.send_data(msg)
         self.__rx_chan.delete_until_last()
         if exception:
@@ -154,24 +155,22 @@ class DrvFlowDeviceC():
         if not self.__wait_4_response:
             msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
                                 port = self.__port,
-                                payload = ScpiCmds.GET_MEAS.value)
+                                payload = _ScpiCmds.GET_MEAS.value)
             self.__tx_chan.send_data(msg)
             self.__wait_4_response = True
         else:
-            time_init = time()
-            while (time() - time_init) < _MAX_WAIT_TIME:
-                if not self.__rx_chan.is_empty():
-                    data : DrvScpiCmdDataC = self.__rx_chan.receive_data()
-                    msg_received = data.payload[0]
-                    self.__wait_4_response = False
-                    if len(msg_received) > 0 and ('ERROR' not in msg_received) and \
-                        ('MEASure' in msg_received):
-                        msg_received = msg_received.split(':')
-                        self.__last_meas.flow_main = int(msg_received[msg_received.index('DATA')+1])
-                        self.__last_meas.flow_aux = int(msg_received[msg_received.index('DATA')+2])
-                        self.__last_meas.status = DrvBaseStatusC(DrvBaseStatusE.OK)
-                    else:
-                        self.__last_meas.status = DrvBaseStatusC(DrvBaseStatusE.COMM_ERROR)
+            if not self.__rx_chan.is_empty():
+                data : DrvScpiCmdDataC = self.__rx_chan.receive_data(timeout = _TIMEOUT_REC)
+                msg_received = data.payload[0]
+                self.__wait_4_response = False
+                if len(msg_received) > 0 and ('ERROR' not in msg_received) and \
+                    ('MEASure' in msg_received):
+                    msg_received = msg_received.split(':')
+                    self.__last_meas.flow_main = int(msg_received[msg_received.index('DATA')+1])
+                    self.__last_meas.flow_aux = int(msg_received[msg_received.index('DATA')+2])
+                    self.__last_meas.status = DrvBaseStatusC(DrvBaseStatusE.OK)
+                else:
+                    self.__last_meas.status = DrvBaseStatusC(DrvBaseStatusE.COMM_ERROR)
         return self.__last_meas
 
 
