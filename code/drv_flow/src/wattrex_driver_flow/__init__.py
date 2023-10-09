@@ -3,8 +3,8 @@ This file specifies what is going to be exported from this module.
 In this case is drv_flow
 '''
 from .drv_flow import DrvFlowDeviceC, DrvFlowDataC
-from .drv_flow_writter import DrvFlowWriter
 
 __all__ = [
-    'DrvFlowDeviceC', 'DrvFlowDataC', 'DrvFlowWriter'
+    'DrvFlowDeviceC',
+    'DrvFlowDataC'
 ]

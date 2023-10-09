@@ -1,51 +1,55 @@
-// Digital pin used for negative flowmeter
-#define pin_neg 2
-
+// Digital pin used for auxiliar flowmeter
+#define pin_aux 2
 #define FACTOR_MILIS 1000
 #define SACLAR_US_2_FREQ 500000 // Factor to convert us to Hz -> 1.000.000/ (2 * semiperiod)
 #define FLOW_MAX 10 // 10 L/min 
 #define FREQ_MAX 235 // Freq for 10L/min
+#define DEVICE_NUMBER 1
+#define FIRMWARE_VERSION "2"
+#define ENDING_CHARS "\n"
+#define BAUDRATE 19200
+#define MAX_BUFFER_SIZE 100
 
 // Macro to convert freq to flow (Hz -> mL/min)
 #define FREQ_2_FLOW(F) (F * FACTOR_MILIS / FREQ_MAX * FLOW_MAX)
 
-
-volatile uint32_t flow_neg = 0, flow_pos = 0;
-volatile uint16_t ov_pos  = 0, ov_neg = 0;
+volatile uint32_t flow_aux = 0, flow_main = 0;
+volatile uint16_t ov_main = 0, ov_aux = 0;
 volatile uint32_t rising_ts = 0;
-volatile uint8_t is_high_pos = 0;
+volatile uint8_t is_high_main= 0;
+char cadena[MAX_BUFFER_SIZE];
+int indice = 0;
 
+char REQ_INFO[] = ":IDN*?";
+char REQ_MEAS[] = ":MEASure:FLOW?";
+char SEND_INFO[] = ":IDN:FLOWmeter";
+char SEND_MEAS[] = ":MEASure:FLOW:DATA:";
+char SEND_ERROR[] = ":SCPI:ERROR:";
 
-String REQ_INFO = String("IDN*?");
-String REQ_MEAS = String(":MEASure:FLOW?");
-String SEND_MEAS = String(":MEASure:FLOW:DATA");
-String ERROR = String("SCPI:ERROR");
-
-void edge_isr_neg(void){
-  if (is_high_pos){
+void edge_isr_aux(void){
+  if (is_high_main){
     uint32_t ts = micros();
-    uint32_t freq_neg = (uint32_t) SACLAR_US_2_FREQ / (ts - rising_ts);
-    flow_neg = FREQ_2_FLOW(freq_neg); 
+    uint32_t freq_aux = (uint32_t) SACLAR_US_2_FREQ / (ts - rising_ts);
+    flow_aux = FREQ_2_FLOW(freq_aux); 
   } else{
     rising_ts = micros();
   }
-  is_high_pos = 1 - is_high_pos;
+  is_high_main = 1 - is_high_main;
 }
 
 void setup() {
 
-  Serial.begin(9600);
+  Serial.begin(BAUDRATE);
 
   while (!Serial) {
     Serial.println("Init flow meter");
   }
-
-  pinMode(pin_neg, INPUT);
-  attachInterrupt(digitalPinToInterrupt(pin_neg), edge_isr_neg, CHANGE );
+  pinMode(pin_aux, INPUT);
+  attachInterrupt(digitalPinToInterrupt(pin_aux), edge_isr_aux, CHANGE );
 
   noInterrupts ();  // protected code
   // reset Timer 1
-  // positive flowmeter
+  // Main flowmeter
   TCCR1A = 0;
   TCCR1B = 0;
   TCNT1 = 0;
@@ -62,17 +66,18 @@ void setup() {
   interrupts ();
 }
 
+
 ISR(TIMER1_OVF_vect)
 {
-  ov_pos++;
+  ov_main++;
 }
 
 ISR(TIMER1_CAPT_vect)
 {
   static uint32_t firstRisingEdgeTime = 0, fallingEdgeTime = 0, secondRisingEdgeTime = 0;
   static uint32_t high_time_pulse = 0, low_time_pulse = 0;
-//  ov_pos = 0;
-  uint16_t overflows = ov_pos;
+//  ov_main = 0;
+  uint16_t overflows = ov_main;
   
   // If an overflow happened but has not been handled yet
   // and the timer count was close to zero, count the
@@ -94,9 +99,9 @@ ISR(TIMER1_CAPT_vect)
         low_time_pulse = secondRisingEdgeTime - fallingEdgeTime;
 
         // Reset counters
-        uint32_t freq_pos = (uint32_t)F_CPU  / (high_time_pulse + low_time_pulse);
+        uint32_t freq_main = (uint32_t)F_CPU  / (high_time_pulse + low_time_pulse);
       
-        flow_pos = FREQ_2_FLOW(freq_pos);
+        flow_main = FREQ_2_FLOW(freq_main);
   
         firstRisingEdgeTime = 0;
         high_time_pulse = 0;
@@ -122,26 +127,60 @@ ISR(TIMER1_CAPT_vect)
   }
 }
 
+void MEAS(char resultado[]) {
+  char f_main[20];
+  sprintf(f_main, "%lu", flow_main);
+  
+  char f_aux[20];
+  sprintf(f_aux, "%lu", flow_aux);
 
-void process_scpi(void){
-    if(Serial.available()) {
-      String req = Serial.readStringUntil('\n');
-      int res = 0;
-      if ( req.equals(REQ_MEAS)){
-        String resp = String(SEND_MEAS + ' ' + String(flow_pos) + ' ' + String(flow_neg)+'\n');
-        Serial.print(resp);
+  strcpy(resultado, SEND_MEAS);
+  strcat(resultado, f_main);
+  strcat(resultado, ":");
+  strcat(resultado, f_aux);
+}
+
+void INFO(char resultado[]) {
+  char dev_num[3];
+  sprintf(dev_num, "%03d", DEVICE_NUMBER);
+  strcpy(resultado, SEND_INFO);
+  strcat(resultado, ":DEVice:");
+  strcat(resultado, dev_num);
+  strcat(resultado, ":VERsion:");
+  strcat(resultado, FIRMWARE_VERSION);
+}
+
+void ERROR(char resultado[], char msg[]) {
+  strcpy(resultado, SEND_ERROR);
+  strcat(resultado, msg);
+}
+
+void process_scpi(void) {
+  while (Serial.available() > 0) {
+    char c = Serial.read();
+    if (c == '\n') {
+      char resultado[MAX_BUFFER_SIZE];
+      if (strcmp(cadena, REQ_MEAS) == 0) {
+        MEAS(resultado);
+      } else if (strcmp(cadena, REQ_INFO) == 0) {
+        INFO(resultado);
       } else {
-        String resp = String(ERROR + '\n');
-        res = Serial.print(resp);
-        resp = String(req + '\n');
-        res = Serial.print(resp);
+        ERROR(resultado, cadena);
       }
+      strcat(resultado, ENDING_CHARS);
+      resultado[MAX_BUFFER_SIZE - 1] = '\0';
+      Serial.print(resultado);
+      indice = 0;
+      memset(cadena, '\0', sizeof(cadena));
+    } else {
+      cadena[indice] = c;
+      indice++;
+    }
   }
 }
 
 
 void loop() {
   process_scpi();
-  delay(100);
-  
+  delay(10);
 }
