@@ -275,6 +275,7 @@ class DrvDbMasterGenericMeasureC(DrvDbBaseGenericMeasureC): #pylint: disable=too
                       {'extend_existing': True},)
 
     InstrID = Column(ForeignKey(DrvDbInstructionC.InstrID), nullable=False)
+    PowerMode = Column(Enum(*DrvDbCyclingModeE.get_all_values()))
 
     def transform(self, exp: DrvDbCacheGenericMeasureC):
         """Transform a generic measurement from cache DB to master DB.
@@ -286,7 +287,7 @@ class DrvDbMasterGenericMeasureC(DrvDbBaseGenericMeasureC): #pylint: disable=too
         self.Current = exp.Current #pylint: disable=invalid-name
         self.Voltage = exp.Voltage #pylint: disable=invalid-name
         self.Power = exp.Power #pylint: disable=invalid-name
-        self.PwrMode = exp.PwrMode #pylint: disable=invalid-name
+        self.PowerMode = exp.PowerMode #pylint: disable=invalid-name
 
 class DrvDbMasterExtendedMeasureC(DrvDbBaseExtendedMeasureC):
     '''

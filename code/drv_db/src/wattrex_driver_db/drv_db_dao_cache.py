@@ -26,6 +26,8 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 #######################          MODULE IMPORTS          #######################
 from .drv_db_dao_base import DrvDbBaseExperimentC, DrvDbBaseGenericMeasureC,\
     DrvDbBaseExtendedMeasureC, DrvDbBaseStatusC
+from .drv_db_types import DrvDbCyclingModeE
+
 
 #######################              ENUMS               #######################
 
@@ -45,6 +47,7 @@ class DrvDbCacheExperimentC(DrvDbBaseExperimentC):
     BatID = Column(MEDIUMINT(unsigned=True), nullable=False)
     ProfID = Column(MEDIUMINT(unsigned=True), nullable=False)
 
+
 class DrvDbCacheGenericMeasureC(DrvDbBaseGenericMeasureC):
     '''
     Class method to create a model of cache database GenericMeasures table.
@@ -53,6 +56,7 @@ class DrvDbCacheGenericMeasureC(DrvDbBaseGenericMeasureC):
     __table_args__ = {'extend_existing': True}
 
     InstrID = Column(MEDIUMINT(unsigned=True), nullable=False)
+    PowerMode = Column(Enum(*DrvDbCyclingModeE.get_all_values()), nullable= False)
 
 class DrvDbCacheExtendedMeasureC(DrvDbBaseExtendedMeasureC):
     '''
