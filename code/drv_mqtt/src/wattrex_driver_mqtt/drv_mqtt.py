@@ -98,6 +98,7 @@ class DrvMqttDriverC:
         self.__client.disconnect()
 
 #######################            FUNCTIONS             #######################
+#### EXAMPLE CODE
 def error(data):
     log.critical(f"Error callback: {data}")
 
