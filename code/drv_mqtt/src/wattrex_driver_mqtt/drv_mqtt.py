@@ -25,12 +25,6 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 #######################          MODULE IMPORTS          #######################
 
 #######################              ENUMS               #######################
-class DrvBaseStatusE(Enum):
-    '''Status of the driver power.
-    '''
-    COMM_ERROR = -1
-    OK = 0
-    INTERNAL_ERROR = 1
 
 #######################             CLASSES              #######################
 class DrvMqttBrokerErrorC(Exception):
