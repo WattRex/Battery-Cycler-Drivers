@@ -60,7 +60,7 @@ class DrvDbBaseGenericMeasureC(Base):
     Voltage = Column(MEDIUMINT(), nullable=False)
     Current = Column(MEDIUMINT(), nullable=False)
     Power = Column(MEDIUMINT())
-    PwrMode = Column(Enum(*DrvDbCyclingModeE.get_all_values()))
+    PowerMode = Column(Enum(*DrvDbCyclingModeE.get_all_values()))
 
 class DrvDbBaseExtendedMeasureC(Base):
     '''
