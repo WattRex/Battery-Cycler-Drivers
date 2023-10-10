@@ -86,7 +86,7 @@ class DrvMqttDriverC:
         prop = Properties(PacketTypes.PUBLISH)
         self.__client.publish(topic= topic, payload=data, qos=DRV_MQTT_QOS, properties=prop)
 
-    def susbcribe(self, topic, callback):
+    def subscribe(self, topic, callback):
         log.debug(f"Subscribing to [{topic}]")
         self.__subs_topics[topic] = callback
         self.__client.subscribe(topic=topic, qos=DRV_MQTT_QOS)
