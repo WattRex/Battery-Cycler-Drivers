@@ -16,6 +16,9 @@ from .drv_db_dao_master import (DrvDbBatteryC, DrvDbLithiumC, DrvDbLeadAcidC, Dr
     DrvDbMasterGenericMeasureC, DrvDbMasterExtendedMeasureC, DrvDbMasterStatusC,
     DrvDbLinkConfigurationC, DrvDbUsedMeasuresC, DrvDbDetectedDeviceC)
 
+from .drv_db_dao_utils import (transform_experiment_db, transform_gen_meas_db, transform_status_db,
+                            transform_ext_meas_db)
+
 __all__ = [
     'DrvDbCacheExperimentC', 'DrvDbCacheGenericMeasureC', 'DrvDbAlarmC', 'DrvDbConnStatusE',
     'DrvDbCacheExtendedMeasureC', 'DrvDbCacheStatusC', 'DrvDbSqlEngineC',
@@ -27,5 +30,7 @@ __all__ = [
     'DrvDbComputationalUnitC', 'DrvDbCyclerStationC', 'DrvDbCompatibleDeviceC', 'DrvDbUsedDeviceC',
     'DrvDbProfileC', 'DrvDbInstructionC', 'DrvDbMasterExperimentC', 'DrvDbAvailableMeasuresC',
     'DrvDbMasterGenericMeasureC', 'DrvDbMasterExtendedMeasureC', 'DrvDbMasterStatusC',
-    'DrvDbLinkConfigurationC', 'DrvDbUsedMeasuresC', 'DrvDbDetectedDeviceC'
+    'DrvDbLinkConfigurationC', 'DrvDbUsedMeasuresC', 'DrvDbDetectedDeviceC',
+    'transform_experiment_db', 'transform_gen_meas_db', 'transform_status_db',
+    'transform_ext_meas_db'
 ]
