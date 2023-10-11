@@ -5,7 +5,8 @@ name: Deployment of battery cycler drivers to development env
 on:
   push:
     branches: [ "drv_can", "drv_epc", "drv_bms", "drv_db", "drv_ea",
-            "drv_bk", "drv_rs", "drv_scpi", "drv_base", "drv_flow" ]
+            "drv_bk", "drv_rs", "drv_scpi", "drv_base", "drv_flow",
+            "drv_mqtt" ]
 
   pull_request_review:
     types: [submitted]
@@ -13,7 +14,8 @@ on:
       pull_request:
         base:
           ref: [  "drv_can", "drv_epc", "drv_bms", "drv_db", "drv_ea",
-              "drv_bk", "drv_rs", "drv_scpi", "drv_base", "drv_flow" ]
+              "drv_bk", "drv_rs", "drv_scpi", "drv_base", "drv_flow",
+              "drv_mqtt" ]
 
 jobs:
 
