@@ -68,14 +68,14 @@ class DrvMqttDriverC:
 
         self.__subs_topics = {}
 
-    def on_connect(self, client, userdata, flags, rc): #pylint: disable=unused-argument
+    def on_connect(self, client, userdata, flags, error_code): #pylint: disable=unused-argument
         """
         Callback function for successful connection to the broker.
         """
-        if rc == 0:
+        if error_code == 0:
             log.debug(f'Connected correctly to the broker. Flags: {flags}')
         else:
-            log.critical(f'Connection failed. Returned code: {rc}, flags: {flags}')
+            log.critical(f'Connection failed. Returned code: {error_code}, flags: {flags}')
 
     # Message receiving callback
     def on_message(self, client, userdata, msg : MQTTMessage): #pylint: disable=unused-argument
