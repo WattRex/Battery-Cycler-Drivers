@@ -12,7 +12,7 @@ sqlacodegen mysql+mysqlconnector://user:password@ip:port/db_name --outfile drv_d
 #######################         GENERIC IMPORTS          #######################
 
 #######################       THIRD PARTY IMPORTS        #######################
-from sqlalchemy import Column
+from sqlalchemy import Column, Enum
 from sqlalchemy.dialects.mysql import MEDIUMINT
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -27,7 +27,7 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 from .drv_db_dao_base import DrvDbBaseExperimentC, DrvDbBaseGenericMeasureC,\
     DrvDbBaseExtendedMeasureC, DrvDbBaseStatusC
 from .drv_db_types import DrvDbCyclingModeE
-
+from .drv_db_dao_master import DrvDbMasterExperimentC
 
 #######################              ENUMS               #######################
 
@@ -47,6 +47,19 @@ class DrvDbCacheExperimentC(DrvDbBaseExperimentC):
     BatID = Column(MEDIUMINT(unsigned=True), nullable=False)
     ProfID = Column(MEDIUMINT(unsigned=True), nullable=False)
 
+    def transform(self, exp: DrvDbMasterExperimentC):
+        """Transform an experiment from cache DB to master DB.
+        """
+        self.ExpID = exp.ExpID #pylint: disable=invalid-name
+        self.Name = exp.Name #pylint: disable=invalid-name
+        self.Description = exp.Description #pylint: disable=invalid-name
+        self.BatID = exp.BatID #pylint: disable=invalid-name
+        self.CSID = exp.CSID #pylint: disable=invalid-name
+        self.ProfID = exp.ProfID #pylint: disable=invalid-name
+        self.DateCreation = exp.DateCreation #pylint: disable=invalid-name
+        self.DateBegin = exp.DateBegin #pylint: disable=invalid-name
+        self.DateFinish = exp.DateFinish #pylint: disable=invalid-name
+        self.Status = exp.Status #pylint: disable=invalid-name
 
 class DrvDbCacheGenericMeasureC(DrvDbBaseGenericMeasureC):
     '''
