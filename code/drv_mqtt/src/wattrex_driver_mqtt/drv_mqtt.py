@@ -1,14 +1,11 @@
 #!/usr/bin/python3
 '''
-Create a base class used to register devices status.
+Create a driver mqqtt broker to subsc.
 '''
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
-import sys
-import os
+
 #######################         GENERIC IMPORTS          #######################
-from enum import Enum
-from time import sleep
 #######################       THIRD PARTY IMPORTS        #######################
 from paho.mqtt.client import Client, MQTTv311, MQTTMessage
 from paho.mqtt.properties import Properties
@@ -28,6 +25,11 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 
 #######################             CLASSES              #######################
 class DrvMqttBrokerErrorC(Exception):
+    """Handle error communicating with DRvQTT broker .
+
+    Args:
+        Exception ([type]): [description]
+    """
     def __init__(self, msg):
         self.msg = msg
 
@@ -67,6 +69,9 @@ class DrvMqttDriverC:
         self.__subs_topics = {}
 
     def on_connect(self, client, userdata, flags, rc): #pylint: disable=unused-argument
+        """
+        Callback function for successful connection to the broker.
+        """
         if rc == 0:
             log.debug(f'Connected correctly to the broker. Flags: {flags}')
         else:
@@ -74,6 +79,13 @@ class DrvMqttDriverC:
 
     # Message receiving callback
     def on_message(self, client, userdata, msg : MQTTMessage): #pylint: disable=unused-argument
+        """Handle a message received from the client .
+
+        Args:
+            client ([type]): [description]
+            userdata ([type]): [description]
+            msg (MQTTMessage): [description]
+        """
         if msg.topic in self.__subs_topics:
             call_name = self.__subs_topics[msg.topic]
             call_name(msg.payload)
@@ -82,56 +94,33 @@ class DrvMqttDriverC:
             self.__err_callback(msg.topic, msg.payload)
 
     def publish(self, topic, data):
+        """Publish a message to a RabbitMQ topic
+
+        Args:
+            topic ([type]): [description]
+            data ([type]): [description]
+        """
         log.debug(f"Publishing to [{topic}]: {data}")
         prop = Properties(PacketTypes.PUBLISH)
         self.__client.publish(topic= topic, payload=data, qos=DRV_MQTT_QOS, properties=prop)
 
     def subscribe(self, topic, callback):
+        """Subscribe to a topic
+
+        Args:
+            topic ([type]): [description]
+            callback (function): [description]
+        """
         log.debug(f"Subscribing to [{topic}]")
         self.__subs_topics[topic] = callback
         self.__client.subscribe(topic=topic, qos=DRV_MQTT_QOS)
 
-    def processData(self):
+    def process_data(self):
+        """Processes the incoming data and waits for it to complete .
+        """
         self.__client.loop(timeout=0.5)
 
     def close(self) -> None:
+        """Disconnects the underlying client .
+        """
         self.__client.disconnect()
-
-#######################            FUNCTIONS             #######################
-#### EXAMPLE CODE
-def error(data):
-    log.critical(f"Error callback: {data}")
-
-def mode(data):
-    log.error(f"Mode callback: {data}")
-
-def refs(data):
-    log.critical(f"Refs callback: {data}")
-
-def main():
-    global driver
-    driver = DrvMqttDriverC(error)
-    pwr_ref = 'ctrl/pwr_ref'
-    mode_topic = 'ctrl/mode'
-    driver.susbcribe(mode_topic, mode)
-    driver.susbcribe(pwr_ref, refs)
-    driver.publish(mode_topic, 'NORMAL')
-
-    iter = -1
-    while iter < 100:
-        print(' [*] Waiting for messages. To exit press CTRL+C')
-        driver.publish(pwr_ref, str(iter))
-        driver.processData()
-        sleep(1)
-        iter+=1
-
-if __name__ == '__main__':
-    try:
-        main()
-    except KeyboardInterrupt:
-        print('Keyboard Interrupted')
-        driver.close()
-        try:
-            sys.exit(0)
-        except SystemExit:
-            os._exit(0)
