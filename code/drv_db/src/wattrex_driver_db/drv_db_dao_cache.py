@@ -27,7 +27,6 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 from .drv_db_dao_base import DrvDbBaseExperimentC, DrvDbBaseGenericMeasureC,\
     DrvDbBaseExtendedMeasureC, DrvDbBaseStatusC
 from .drv_db_types import DrvDbCyclingModeE
-from .drv_db_dao_master import DrvDbMasterExperimentC
 
 #######################              ENUMS               #######################
 
@@ -36,7 +35,7 @@ from .drv_db_dao_master import DrvDbMasterExperimentC
 Base = declarative_base()
 metadata = Base.metadata
 
-class DrvDbCacheExperimentC(DrvDbBaseExperimentC):
+class DrvDbCacheExperimentC(DrvDbBaseExperimentC): #pylint: disable=too-many-instance-attributes
     '''
     Class method to create a simplified model of database Experiment table.
     '''
@@ -46,20 +45,6 @@ class DrvDbCacheExperimentC(DrvDbBaseExperimentC):
     CSID = Column(MEDIUMINT(unsigned=True), nullable=False)
     BatID = Column(MEDIUMINT(unsigned=True), nullable=False)
     ProfID = Column(MEDIUMINT(unsigned=True), nullable=False)
-
-    def transform(self, exp: DrvDbMasterExperimentC):
-        """Transform an experiment from cache DB to master DB.
-        """
-        self.ExpID = exp.ExpID #pylint: disable=invalid-name
-        self.Name = exp.Name #pylint: disable=invalid-name
-        self.Description = exp.Description #pylint: disable=invalid-name
-        self.BatID = exp.BatID #pylint: disable=invalid-name
-        self.CSID = exp.CSID #pylint: disable=invalid-name
-        self.ProfID = exp.ProfID #pylint: disable=invalid-name
-        self.DateCreation = exp.DateCreation #pylint: disable=invalid-name
-        self.DateBegin = exp.DateBegin #pylint: disable=invalid-name
-        self.DateFinish = exp.DateFinish #pylint: disable=invalid-name
-        self.Status = exp.Status #pylint: disable=invalid-name
 
 class DrvDbCacheGenericMeasureC(DrvDbBaseGenericMeasureC):
     '''

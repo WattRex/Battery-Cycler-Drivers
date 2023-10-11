@@ -24,7 +24,7 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 
 
 #######################          MODULE IMPORTS          #######################
-from .drv_db_types import DrvDbExpStatusE, DrvDbEquipStatusE, DrvDbCyclingModeE
+from .drv_db_types import DrvDbExpStatusE, DrvDbEquipStatusE
 
 #######################              ENUMS               #######################
 
