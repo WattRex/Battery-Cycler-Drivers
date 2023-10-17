@@ -42,10 +42,16 @@ class _CONSTANTS:
 class _ScpiCmds(Enum):
     "Modes of the device"
     READ_INFO = '*IDN?'
-    GET_MEAS  = ':MEASure:FLOW?\n'
+    GET_MEAS  = 'MEASure:ARRay?'
     CURR_NOM  = 'SYSTem:NOMinal:CURRent?'
     VOLT_NOM  = 'SYSTem:NOMinal:VOLTage?'
     POWER = 'SYSTem:NOMinal:POWer?'
+    LOCK_ON = 'SYSTem:LOCK: ON'
+    LOCK_OFF = 'SYSTem:LOCK: OFF'
+    OUTPUT_ON = 'OUTPut: ON'
+    OUTPUT_OFF = 'OUTPut: OFF'
+    SEND_CURR = 'CURRent'
+    SEND_VOLT = 'VOLTage'
 
 class DrvEaModeE(Enum):
     "Modes of the device"
@@ -53,16 +59,12 @@ class DrvEaModeE(Enum):
     CV_MODE = 1
     CC_MODE = 2
 
+
 #######################             CLASSES              #######################
 class DrvEaPropertiesC():
     "Properties of power supply device"
     def __init__(self, model: str, serial_number: int, max_volt_limit: int, \
                  max_current_limit: int, max_power_limit: int) -> None:
-        self.model: str = model
-        self.serial_number: int = serial_number
-        self.max_volt_limit: int = max_volt_limit
-        self.max_current_limit: int = max_current_limit
-        self.max_power_limit: int = max_power_limit
         '''
         Args:
             - model (str): Model of the device.
@@ -73,6 +75,12 @@ class DrvEaPropertiesC():
         Raises:
             - None.
         '''
+        self.model: str = model
+        self.serial_number: int = serial_number
+        self.max_volt_limit: int = max_volt_limit
+        self.max_current_limit: int = max_current_limit
+        self.max_power_limit: int = max_power_limit
+
     def __str__(self) -> str:
         '''
         Returns:
@@ -87,13 +95,13 @@ class DrvEaPropertiesC():
         return result
 
 
-class DrvEaDataC():
+class DrvEaDataC(): #TODO: Hereda de DrvBasePwrDataC
     "Data class of power supply device"
     def __init__(self, mode: DrvEaModeE, status: DrvBaseStatusE,\
                  voltage: int, current: int, power: int) -> None:
         '''
         Args:
-            - mode (DrvEaModeE|None): Mode of the device.
+            - mode (DrvEaModeE): Mode of the device.
             - status (DrvBaseStatusC): Status of the device.
             - voltage (int): Voltage in mV.
             - current (int): Current in mA.
@@ -101,7 +109,7 @@ class DrvEaDataC():
         Raises:
             - None.
         '''
-        self.mode: DrvEaModeE|None = mode
+        self.mode: DrvEaModeE = mode
         self.status: DrvBaseStatusC = status
         self.voltage: int = voltage
         self.current: int = current
@@ -141,30 +149,17 @@ class DrvEaDeviceC(): #TODO: Hereda de DrvBasePwrDeviceC
                                   rx_chan_name = rx_chan_name)
         self.__tx_chan.send_data(add_msg)
         self.__rx_chan.delete_until_last()
-        self.__last_meas: DrvEaDataC = DrvEaDataC(mode = DrvEaModeE.STANDBY, \
+        self.__last_data: DrvEaDataC = DrvEaDataC(mode = DrvEaModeE.STANDBY, \
                                                   status = DrvBaseStatusC(DrvBaseStatusE.OK), \
                                                   current = 0, voltage = 0, power = 0)
 
-        self.__properties: DrvEaPropertiesC = DrvEaPropertiesC(model = '0', serial_number = 0,
+        self.properties: DrvEaPropertiesC = DrvEaPropertiesC(model = '', serial_number = 0,
                                                                 max_volt_limit = 0, \
                                                                 max_current_limit = 0, \
                                                                 max_power_limit = 0)
         self.__wait_4_response = False
         self.__read_device_properties()
-        self.__chan_two = False
-        if '2384' in self.__properties.model:
-            self.__chan_two = True
-
-        if self.__chan_two:
-            self.__last_meas_chan_two: DrvEaDataC = self.__last_meas
-
         self.__initialize_control()
-
-
-    @property
-    def properties(self) -> DrvEaPropertiesC:
-        "Get the properties of the device."
-        return self.__properties
 
 
     def __initialize_control(self) -> None:
@@ -178,13 +173,8 @@ class DrvEaDeviceC(): #TODO: Hereda de DrvBasePwrDeviceC
         '''
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
                               port = self.__port, \
-                              payload = 'SYSTem:LOCK: ON')
+                              payload = _ScpiCmds.LOCK_ON.value)
         self.__tx_chan.send_data(msg)
-        if self.__chan_two:
-            msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
-                                  port = self.__port, \
-                                  payload = 'SYSTem:LOCK: ON (@2)')
-            self.__tx_chan.send_data(msg)
         self.disable()
 
 
@@ -197,7 +187,6 @@ class DrvEaDeviceC(): #TODO: Hereda de DrvBasePwrDeviceC
         Raises:
             - ConnectionError: Device not found.
         '''
-        exception = True
         #Model and serial number
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
                 port = self.__port, payload = _ScpiCmds.READ_INFO.value)
@@ -209,38 +198,28 @@ class DrvEaDeviceC(): #TODO: Hereda de DrvBasePwrDeviceC
             if not self.__rx_chan.is_empty():
                 command_rec : DrvScpiCmdDataC = self.__rx_chan.receive_data()
                 msg = command_rec.payload[0].split(',')
-                self.__properties.model = msg[1]
-                self.__properties.serial_number = int(msg[2])
-
+                self.properties.model = msg[1]
+                self.properties.serial_number = int(msg[2])
         #Max current limit
-        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
-                port = self.__port, payload = _ScpiCmds.CURR_NOM.value)
-        self.__tx_chan.send_data(msg)
-        # Wait until receive the message
-        time_init = time()
-        while (time() - time_init) < _CONSTANTS._MAX_WAIT_TIME:
-            sleep(_CONSTANTS._TIME_BETWEEN_ATTEMPTS)
-            if not self.__rx_chan.is_empty():
-                command_rec : DrvScpiCmdDataC = self.__rx_chan.receive_data()
-                msg = command_rec.payload[0].split(' ')
-                self.__properties.max_current_limit = int(float(msg[0]) * _CONSTANTS._MILI_UNITS)
-
+        self.properties.max_current_limit = self.__get_nominal_value(_ScpiCmds.CURR_NOM.value)
         #Max voltage limit
-        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
-                port = self.__port, payload = _ScpiCmds.VOLT_NOM.value)
-        self.__tx_chan.send_data(msg)
-        # Wait until receive the message
-        time_init = time()
-        while (time() - time_init) < _CONSTANTS._MAX_WAIT_TIME:
-            sleep(_CONSTANTS._TIME_BETWEEN_ATTEMPTS)
-            if not self.__rx_chan.is_empty():
-                command_rec : DrvScpiCmdDataC = self.__rx_chan.receive_data()
-                msg = command_rec.payload[0].split(' ')
-                self.__properties.max_volt_limit = int(float(msg[0]) * _CONSTANTS._MILI_UNITS)
-
+        self.properties.max_volt_limit = self.__get_nominal_value(_ScpiCmds.VOLT_NOM.value)
         #Max power limit
+        self.properties.max_power_limit = self.__get_nominal_value(_ScpiCmds.POWER.value)
+
+
+    def __get_nominal_value(self, payload: str) -> int:
+        ''' Get nominal value.
+        Args:
+            - payload (str): Payload of the message.
+        Returns:
+            - result (int): Nominal value.
+        Raises:
+            - None.
+        '''
+        result = 0
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
-                port = self.__port, payload = _ScpiCmds.POWER.value)
+                port = self.__port, payload = payload)
         self.__tx_chan.send_data(msg)
         # Wait until receive the message
         time_init = time()
@@ -249,34 +228,27 @@ class DrvEaDeviceC(): #TODO: Hereda de DrvBasePwrDeviceC
             if not self.__rx_chan.is_empty():
                 command_rec : DrvScpiCmdDataC = self.__rx_chan.receive_data()
                 msg = command_rec.payload[0].split(' ')
-                self.__properties.max_power_limit = int(float(msg[0]) * _CONSTANTS._MILI_UNITS)
-
-        # self.__rx_chan.delete_until_last()
-        # if exception:
-        #     raise ConnectionError("Device not found")
+                result = int(float(msg[0]) * _CONSTANTS._MILI_UNITS)
+        return result
 
 
-    def get_data(self, channel: int) -> DrvEaDataC:
+    def get_data(self) -> DrvEaDataC:
         '''Read the device data.
         Args:
             - None.
         Returns:
-            - (DrvEaDataC): Returns the device data.
+            - result (DrvEaDataC): Returns the device data.
         Raises:
             - None.
         '''
-        if channel == 1:
-            mode = self.__last_meas.mode
-        else:
-            mode = self.__last_meas_chan_two.mode
-        log.info(f"Get meas of channel {channel}")
-        result: DrvEaDataC = DrvEaDataC(mode = mode, \
+        log.info(f"Get meas...")
+        result: DrvEaDataC = DrvEaDataC(mode = self.__last_data.mode, \
                                         status = DrvBaseStatusC(DrvBaseStatusE.COMM_ERROR), \
                                         voltage = 0, current = 0, power = 0)
 
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ, \
                             port = self.__port, \
-                            payload = f'MEASure:ARRay? (@{channel})')
+                            payload = _ScpiCmds.GET_MEAS.value)
         self.__tx_chan.send_data(msg)
         time_init = time()
         while (time() - time_init) < _CONSTANTS._MAX_WAIT_TIME:
@@ -290,117 +262,78 @@ class DrvEaDeviceC(): #TODO: Hereda de DrvBasePwrDeviceC
         return result
 
 
-    def get_meas_chan_one(self) -> DrvEaDataC:
-        ''' Obtain the measurement of the channel 1 device.
-        Args:
-            - None.
-        Returns:
-            - (DrvEaDataC): Returns the device data.
-        Raises:
-            - None.
-        '''
-        self.__last_meas = self.get_data(channel = 1)
-        return self.__last_meas
-
-
-    def get_meas_chan_two(self) -> DrvEaDataC:
-        ''' Obtain the measurement of the channel 2 device.
-        Args:
-            - None.
-        Returns:
-            - (DrvEaDataC): Returns the device data.
-        Raises:
-            - ValueError: The device doesn t have a channel 2.
-        '''
-        if self.__chan_two:
-            self.__last_meas_chan_two = self.get_data(channel = 2)
-            return self.__last_meas_chan_two
-        else:
-            log.error("Try to get meas of a channel that doesn´t exist")
-            raise ValueError
-
-
-    def set_cc_mode(self, curr_ref: int, voltage_limit: int, channel: int = 1) -> None:
+    def set_cc_mode(self, curr_ref: int, voltage_limit: int) -> None:
         '''
         Use source in constant current mode.
         Sink mode will be set with negative current values.
         Security voltage limit can be also set.
         Args:
-            - curr_ref (int): current consign (milli Amps)
-            - voltage_limit (int): voltage limit (millivolts)
-            - channel (int): channel to apply the mode
-                    if the device has more than one, if not will always apply to the channel 1
+            - curr_ref (int): current reference (mili Amps)
+            - voltage_limit (int): voltage limit (milivolts)
         Returns:
             - None
         Raises:
             - None
         '''
-        if channel == 1:
-            self.__last_meas.mode = DrvEaModeE.CC_MODE
-        else:
-            self.__last_meas_chan_two.mode = DrvEaModeE.CC_MODE
-
+        self.__last_data.mode = DrvEaModeE.CC_MODE
         current = round(float(curr_ref) / _CONSTANTS._MILI_UNITS, 2)
         voltage = round(float(voltage_limit / _CONSTANTS._MILI_UNITS), 2)
 
         #Check if the power limit is exceeded
-        if self.__properties.max_power_limit != 0:
-            max_power_limit = self.__properties.max_power_limit / _CONSTANTS._MILI_UNITS
+        if self.properties.max_power_limit != 0:
+            max_power_limit = self.properties.max_power_limit / _CONSTANTS._MILI_UNITS
             if current * voltage > max_power_limit:
                 voltage = max_power_limit / curr_ref
         else:
             current = 0
             voltage = 0
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
-                port = self.__port, payload = f"CURRent {current} (@{channel})")
+                port = self.__port, payload = _ScpiCmds.SEND_CURR.value + str(current))
         self.__tx_chan.send_data(msg)
 
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
-                port = self.__port, payload = f"VOLTage {voltage} (@{channel})")
+                port = self.__port, payload = _ScpiCmds.SEND_VOLT.value + str(voltage))
         self.__tx_chan.send_data(msg)
 
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
-                port = self.__port, payload = f'OUTPut ON (@{channel})')
+                port = self.__port, payload = _ScpiCmds.OUTPUT_ON.value)
         self.__tx_chan.send_data(msg)
 
 
-    def set_cv_mode(self, volt_ref: int, current_limit: int, channel: int = 1) -> None:
+    def set_cv_mode(self, volt_ref: int, current_limit: int) -> None:
         '''
         Use source in constant voltage mode .
         Security current limit can be also set for both sink and source modes. 
         It is recommended to set both!
         Args:
-            - volt_ref (int): voltage consign (millivolts)
-            - current_limit (int): current limit (milli Amps)
+            - volt_ref (int): voltage reference (milivolts)
+            - current_limit (int): current limit (mili Amps)
         Returns:
             - None
         Raises:
             - None
         '''
-        if channel == 1:
-            self.__last_meas.mode = DrvEaModeE.CV_MODE
-        else:
-            self.__last_meas_chan_two.mode = DrvEaModeE.CV_MODE
+        self.__last_data.mode = DrvEaModeE.CV_MODE
         voltage = round(float(volt_ref)/_CONSTANTS._MILI_UNITS, 2)
         current = round(float(current_limit/_CONSTANTS._MILI_UNITS), 2)
         #Check if the power limit is exceeded
-        if self.__properties.max_power_limit != 0:
-            max_power_limit = self.__properties.max_power_limit/_CONSTANTS._MILI_UNITS
+        if self.properties.max_power_limit != 0:
+            max_power_limit = self.properties.max_power_limit/_CONSTANTS._MILI_UNITS
             if voltage * current > max_power_limit:
                 current = max_power_limit / volt_ref
         else:
             current = 0
             voltage = 0
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
-                port = self.__port, payload = f"CURRent {current} (@{channel})")
+                port = self.__port, payload = _ScpiCmds.SEND_CURR.value + str(current))
         self.__tx_chan.send_data(msg)
 
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
-                port = self.__port, payload = f"VOLTage {voltage} (@{channel})")
+                port = self.__port, payload = _ScpiCmds.SEND_VOLT.value + str(voltage))
         self.__tx_chan.send_data(msg)
 
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
-                port = self.__port, payload = f'OUTPut ON (@{channel})')
+                port = self.__port, payload = _ScpiCmds.OUTPUT_ON.value)
         self.__tx_chan.send_data(msg)
 
 
@@ -415,15 +348,9 @@ class DrvEaDeviceC(): #TODO: Hereda de DrvBasePwrDeviceC
         '''
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
                                 port = self.__port, \
-                                payload = 'OUTPut: OFF')
+                                payload = _ScpiCmds.OUTPUT_OFF.value)
         self.__tx_chan.send_data(msg)
-        self.__last_meas.mode = DrvEaModeE.STANDBY
-        if self.__chan_two:
-            msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
-                                    port = self.__port, \
-                                    payload = 'OUTPut: OFF (@2)')
-            self.__tx_chan.send_data(msg)
-            self.__last_meas_chan_two.mode = DrvEaModeE.STANDBY
+        self.__last_data.mode = DrvEaModeE.STANDBY
 
 
     def close(self) -> None:

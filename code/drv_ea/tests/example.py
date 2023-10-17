@@ -50,16 +50,16 @@ def main():
 
     source = DrvEaDeviceC(config = source_conf_scpi, rx_chan_name = __RX_CHAN_NAME)
     log.info(f"properties: {source.properties}")
-    source.set_cc_mode(curr_ref = 2, voltage_limit = 20, channel = 1)
+    source.set_cc_mode(curr_ref = 2, voltage_limit = 20000)
     init = time.time()
 
     while (time.time() - init) < 5:
-        log.info(f"Meas: {source.get_meas_chan_one()}")
+        log.info(f"Meas: {source.get_data()}")
 
-    source.set_cv_mode(volt_ref = 1000, current_limit = 500, channel = 1)
+    source.set_cv_mode(volt_ref = 10000, current_limit = 500)
     init = time.time()
     while (time.time() - init) < 5:
-        log.info(f"Meas: {source.get_meas_chan_one()}")
+        log.info(f"Meas: {source.get_data()}")
     source.close()
 
 
