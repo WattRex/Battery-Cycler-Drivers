@@ -65,11 +65,11 @@ class DrvEaPropertiesC():
         self.max_power_limit: int = max_power_limit
         '''
         Args:
-            - model: str = Model of the device.
-            - serial_number: int = Serial number of the device.
-            - max_volt_limit: int = Maximum voltage limit of the device.
-            - max_current_limit: int = Maximum current limit of the device.
-            - max_power_limit: int = Maximum power limit of the device.
+            - model (str): Model of the device.
+            - serial_number (int): Serial number of the device.
+            - max_volt_limit (int): Maximum voltage limit of the device.
+            - max_current_limit (int): Maximum current limit of the device.
+            - max_power_limit (int): Maximum power limit of the device.
         Raises:
             - None.
         '''
@@ -102,7 +102,7 @@ class DrvEaDataC():
             - None.
         '''
         self.mode: DrvEaModeE|None = mode
-        self.status: DrvBaseStatusC = DrvBaseStatusC(DrvBaseStatusE.OK)
+        self.status: DrvBaseStatusC = status
         self.voltage: int = voltage
         self.current: int = current
         self.power: int = power
@@ -120,7 +120,7 @@ class DrvEaDataC():
         return result
 
 
-class DrvEaDeviceC():
+class DrvEaDeviceC(): #TODO: Hereda de DrvBasePwrDeviceC
     "Principal class of ea power supply device"
     def __init__(self, config: DrvScpiSerialConfC, rx_chan_name: str) -> None:
         '''
@@ -168,6 +168,14 @@ class DrvEaDeviceC():
 
 
     def __initialize_control(self) -> None:
+        ''' Initialize the device.
+        Args:
+            - None.
+        Returns:
+            - None.
+        Raises:
+            - None.
+        '''
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
                               port = self.__port, \
                               payload = 'SYSTem:LOCK: ON')
@@ -177,7 +185,7 @@ class DrvEaDeviceC():
                                   port = self.__port, \
                                   payload = 'SYSTem:LOCK: ON (@2)')
             self.__tx_chan.send_data(msg)
-        self.__disable()
+        self.disable()
 
 
     def __read_device_properties(self) -> None:
@@ -248,45 +256,7 @@ class DrvEaDeviceC():
         #     raise ConnectionError("Device not found")
 
 
-    def __disable(self) -> None:
-        ''' Set the device in standby mode.
-        Args:
-            - None
-        Returns:
-            - None
-        Raises:
-            - None 
-        '''
-        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
-                                port = self.__port, \
-                                payload = 'OUTPut: OFF')
-        self.__tx_chan.send_data(msg)
-        self.__last_meas.mode = DrvEaModeE.STANDBY
-        if self.__chan_two:
-            msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
-                                    port = self.__port, \
-                                    payload = 'OUTPut: OFF (@2)')
-            self.__tx_chan.send_data(msg)
-            self.__last_meas_chan_two.mode = DrvEaModeE.STANDBY
-
-
-    def close(self) -> None:
-        ''' Close the serial port.
-        Args:
-            - None.
-        Returns:
-            - None.
-        Raises:
-            - None.
-        '''
-        self.__disable()
-        del_msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.DEL_DEV,
-                                  port = self.__port) # pylint: disable=no-member
-        self.__tx_chan.send_data(del_msg)
-        self.__rx_chan.terminate()
-
-
-    def __get_meas(self, channel: int) -> DrvEaDataC:
+    def get_data(self, channel: int) -> DrvEaDataC:
         '''Read the device data.
         Args:
             - None.
@@ -329,7 +299,7 @@ class DrvEaDeviceC():
         Raises:
             - None.
         '''
-        self.__last_meas = self.__get_meas(channel = 1)
+        self.__last_meas = self.get_data(channel = 1)
         return self.__last_meas
 
 
@@ -343,11 +313,12 @@ class DrvEaDeviceC():
             - ValueError: The device doesn t have a channel 2.
         '''
         if self.__chan_two:
-            self.__last_meas_chan_two = self.__get_meas(channel = 2)
+            self.__last_meas_chan_two = self.get_data(channel = 2)
             return self.__last_meas_chan_two
         else:
             log.error("Try to get meas of a channel that doesn´t exist")
             raise ValueError
+
 
     def set_cc_mode(self, curr_ref: int, voltage_limit: int, channel: int = 1) -> None:
         '''
@@ -431,3 +402,41 @@ class DrvEaDeviceC():
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
                 port = self.__port, payload = f'OUTPut ON (@{channel})')
         self.__tx_chan.send_data(msg)
+
+
+    def disable(self) -> None:
+        ''' Set the device in standby mode.
+        Args:
+            - None
+        Returns:
+            - None
+        Raises:
+            - None 
+        '''
+        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
+                                port = self.__port, \
+                                payload = 'OUTPut: OFF')
+        self.__tx_chan.send_data(msg)
+        self.__last_meas.mode = DrvEaModeE.STANDBY
+        if self.__chan_two:
+            msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
+                                    port = self.__port, \
+                                    payload = 'OUTPut: OFF (@2)')
+            self.__tx_chan.send_data(msg)
+            self.__last_meas_chan_two.mode = DrvEaModeE.STANDBY
+
+
+    def close(self) -> None:
+        ''' Close the serial port.
+        Args:
+            - None.
+        Returns:
+            - None.
+        Raises:
+            - None.
+        '''
+        self.disable()
+        del_msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.DEL_DEV,
+                                  port = self.__port) # pylint: disable=no-member
+        self.__tx_chan.send_data(del_msg)
+        self.__rx_chan.terminate()
