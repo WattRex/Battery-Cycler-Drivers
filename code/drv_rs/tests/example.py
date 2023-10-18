@@ -1,62 +1,65 @@
 #!/usr/bin/python3
 '''
-Example to RS.
+Example to ea power supply.
 '''
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
-import time
-#######################         GENERIC IMPORTS          #######################
+from sys import path
+import os
 
+#######################         GENERIC IMPORTS          #######################
+import time
 
 #######################       THIRD PARTY IMPORTS        #######################
 
-
 #######################      SYSTEM ABSTRACTION IMPORTS  #######################
-from system_logger_tool import SysLogLoggerC, sys_log_logger_get_module_logger
+path.append(os.getcwd())
+from system_logger_tool import SysLogLoggerC, sys_log_logger_get_module_logger # pylint: disable=wrong-import-position
 if __name__ == '__main__':
-    cycler_logger = SysLogLoggerC()
+    cycler_logger = SysLogLoggerC(file_log_levels='./log_config.yaml')
 log = sys_log_logger_get_module_logger(__name__)
 
-
 #######################          PROJECT IMPORTS         #######################
-from scpi_sniffer import DrvScpiHandlerC
-from serial import PARITY_ODD
+from scpi_sniffer import *
+from serial import PARITY_ODD, EIGHTBITS, STOPBITS_ONE
 
 #######################          MODULE IMPORTS          #######################
-from src.wattrex_driver_rs.drv_rs import DrvRsDeviceC
+from drv_rs.src.wattrex_driver_rs import *
+# from wattrex_driver_rs import DrvRsDeviceC
 
 #######################              ENUMS               #######################
+__SERIAL_PORT = '/dev/ttyACM0'
+__RX_CHAN_NAME = 'rx_scpi_load'
+__SCPI_MAX_MSG = 300          # messages per queue
+__SCPI_MAX_MESSAGE_SIZE = 400 # bytes per msg
+
 
 #######################             CLASSES              #######################
 def main():
-    "Main function"
-    init = time.time()
-    #Create driver
-    scpi = DrvScpiHandlerC(port = 'COM6', separator = '\n', timeout = 0.5,
-                           write_timeout = 0.5, parity = PARITY_ODD, baudrate = 115200)
-    drv = DrvRsDeviceC(handler = scpi)
+    '''
+    Example usage of drv_rs with a load rs device.
+    '''
+    source_conf_scpi = DrvScpiSerialConfC(port = __SERIAL_PORT,
+                                          separator = '\n',
+                                          baudrate = 115200,
+                                          bytesize = EIGHTBITS,
+                                          parity = PARITY_ODD,
+                                          stopbits = STOPBITS_ONE,
+                                          timeout = 0.5,
+                                          write_timeout = None,
+                                          inter_byte_timeout  = None)
 
-    #Obtain properties
-    properties = drv.get_properties()
-    log.info(f"Max curr: {properties.max_current_limit}\tMax volt: {properties.max_volt_limit}\t\
-             Max pwr: {properties.max_power_limit}\n\
-            Model: {properties.model}\tSerial number: {properties.serial_number}")
 
-    #Set properties
-    drv.set_cv_mode(volt_ref = 8100)
-    # drv.set_cc_mode(curr_ref = 1000)
+    load_rs = DrvRsDeviceC(config = source_conf_scpi, rx_chan_name = __RX_CHAN_NAME)
+    log.info(f"Properties: {load_rs.properties.model}")
+    load_rs.set_cv_mode(volt_ref = 20000)
+    data = load_rs.get_data()
+    log.warning(f"Mode: {data.mode} - Voltage: {data.voltage} - Current: {data.current}")
     time.sleep(3)
-
-    #Obtain data
-    data = drv.get_data()
-    log.info(f"Mode: {data.mode}\tStatus: {data.status}\n\
-             Voltage: {data.voltage}\tCurrent: {data.current}\tPower: {data.power}")
-
-    #Close driver
-    drv.close()
-
-    log.info(f"Time elapsed: {time.time() - init - 3}")
-
+    load_rs.set_cc_mode(curr_ref = 1000)
+    data = load_rs.get_data()
+    log.warning(f"Mode: {data.mode} - Voltage: {data.voltage} - Current: {data.current}")
+    load_rs.close()
 
 if __name__ == '__main__':
     main()

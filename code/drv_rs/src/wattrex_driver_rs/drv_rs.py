@@ -4,73 +4,117 @@ Driver of RS.
 '''
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
+from sys import path
+import os
 
 #######################         GENERIC IMPORTS          #######################
-
+from enum import Enum
+from time import sleep, time
 
 #######################       THIRD PARTY IMPORTS        #######################
-from enum import Enum
 
 #######################      SYSTEM ABSTRACTION IMPORTS  #######################
-from system_logger_tool import SysLogLoggerC, sys_log_logger_get_module_logger
+path.append(os.getcwd())
+from system_logger_tool import SysLogLoggerC, sys_log_logger_get_module_logger # pylint: disable=wrong-import-position
 if __name__ == '__main__':
-    cycler_logger = SysLogLoggerC()
+    cycler_logger = SysLogLoggerC(file_log_levels='./log_config.yaml')
 log = sys_log_logger_get_module_logger(__name__)
-
+from system_shared_tool import SysShdIpcChanC # pylint: disable=wrong-import-position
 
 #######################          PROJECT IMPORTS         #######################
-from scpi_sniffer import DrvScpiHandlerC
-from wattrex_driver_pwr import DrvPwrPropertiesC, DrvPwrStatusC, DrvPwrStatusE,\
-        DrvPwrDataC, DrvPwrDeviceC
+from scpi_sniffer import DrvScpiSerialConfC, DrvScpiCmdDataC, DrvScpiCmdTypeE
+from wattrex_driver_base import DrvBaseStatusE, DrvBaseStatusC, DrvBasePwrModeE , DrvBasePwrDeviceC, \
+                                DrvBasePwrPropertiesC, DrvBasePwrDataC
 
 #######################          MODULE IMPORTS          #######################
 
-
 #######################              ENUMS               #######################
-class _CONSTANTS:
-    MILI_UNITS = 1000
+_MILI_UNITS = 1000
+_MAX_WAIT_TIME = 1
+_TIME_BETWEEN_ATTEMPTS = 0.1
+_TIMEOUT_REC = 0.1
+_MAX_MSG = 100
+_MAX_MESSAGE_SIZE = 400
+_TX_CHAN_NAME = 'tx_scpi'
 
-class DrvRsModeE(Enum):
-    "Driver modes"
-    WAIT = 0
-    CV_MODE = 1
-    CC_MODE = 2
-    CR_MODE = 3
-    CP_MODE = 4
+class _ScpiCmds(Enum):
+    "Modes of the device"
+    READ_INFO = '*IDN?'
+    LOCK_ON = ':SYST:LOCK 1'
+    LOCK_OFF = 'SYST:LOCK 0'
+    DEVICE_ON = ':INP 1'
+    DEVICE_OFF = ':INP 0'
+    MAX_CURRENT =  ':CURRent:UPPer?'
+    MAX_VOLTAGE = ':VOLTage:UPPer?'
+    MAX_POWER = ':POWer:UPPer?'
+    OUTPUT_ON = 'OUTPut ON'
 
 #######################             CLASSES              #######################
-class DrvRsPropertiesC(DrvPwrPropertiesC):
-    "Properties of RS device"
-    def __init__(self, model: str|None = None, serial_number: str|None = None,
-                 MAX_VOLT: int = 0, MAX_CURR: int = 0,
-                 MAX_PWR: int = 0) -> None:
-        super().__init__(model, serial_number, MAX_VOLT, MAX_CURR, MAX_PWR)
+class DrvRsPropertiesC(DrvBasePwrPropertiesC):
+    "Properties of load device"
+    def __init__(self, model: str, serial_number: int, max_volt_limit: int, \
+                 max_current_limit: int, max_power_limit: int) -> None:
+        '''
+        Args:
+            - model (str): Model of the device.
+            - serial_number (int): Serial number of the device.
+            - max_volt_limit (int): Maximum voltage of the device in milivolts.
+            - max_current_limit (int): Maximum current of the device in miliamps.
+            - max_power_limit (int): Maximum power of the device in miliwatts.
+        '''
+        super().__init__(model = model, serial_number = serial_number, \
+                         max_volt_limit = max_volt_limit, \
+                         max_current_limit = max_current_limit, \
+                         max_power_limit = max_power_limit)
 
 
-class DrvRsDataC(DrvPwrDataC):
+class DrvRsDataC(DrvBasePwrDataC):
     "Data class of RS device"
-    def __init__(self, mode: DrvRsModeE, status: DrvPwrStatusC, \
+    def __init__(self, mode: DrvBasePwrModeE, status: DrvBaseStatusE,\
                  voltage: int, current: int, power: int) -> None:
+        '''
+        Args:
+            - mode (DrvEaModeE): Mode of the device.
+            - status (DrvBaseStatusC): Status of the device.
+            - voltage (int): Voltage in mV?????????. #TODO: Check units.
+            - current (int): Current in mA?????????. #TODO: Check units.
+            - power (int): Power in mW?????????. #TODO: Check units.
+        Raises:
+            - None.
+        '''
         super().__init__(status = status, mode = mode, voltage = voltage, \
                          current = current, power = power)
-        self.mode: DrvRsModeE = mode
 
 
-class DrvRsDeviceC(DrvPwrDeviceC):
+class DrvRsDeviceC(DrvBasePwrDeviceC):
     "Principal class of RS device"
-    def __init__(self, handler: DrvScpiHandlerC) -> None:
-
-        self.device_handler: DrvScpiHandlerC
-        super().__init__(handler = handler)
-        self.__actual_data: DrvRsDataC = DrvRsDataC(mode = DrvRsModeE.WAIT, \
-                                                     status = DrvPwrStatusC(DrvPwrStatusE.OK), \
-                                                     voltage = 0, current = 0, power = 0)
-
-        self.__properties: DrvRsPropertiesC = DrvRsPropertiesC(model            = None, \
-                                                               serial_number    = None, \
-                                                               MAX_VOLT   = 0, \
-                                                               MAX_CURR= 0, \
-                                                               MAX_PWR  = 0)
+    def __init__(self, config: DrvScpiSerialConfC, rx_chan_name: str) -> None:
+        '''
+        Args:
+            - config (DrvScpiSerialConfC): Configuration of the serial port.
+            - rx_chan_name (str): Name of the channel to receive the messages.
+        Raises:
+            - None.
+        '''
+        self.__tx_chan = SysShdIpcChanC(name = _TX_CHAN_NAME)
+        self.__rx_chan = SysShdIpcChanC(name = rx_chan_name,
+                                      max_msg = _MAX_MSG,
+                                      max_message_size = _MAX_MESSAGE_SIZE)
+        self.__port = config.port
+        self.__wait_4_response = False #TODO: It not used. Check if it is necessary.
+        add_msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.ADD_DEV, \
+                                  port = config.port, \
+                                  payload = config, \
+                                  rx_chan_name = rx_chan_name)
+        self.__tx_chan.send_data(add_msg)
+        self.__rx_chan.delete_until_last()
+        self.properties: DrvRsPropertiesC = DrvRsPropertiesC(model = '', serial_number = 0,
+                                                             max_volt_limit = 0, \
+                                                             max_current_limit = 0, \
+                                                             max_power_limit = 0)
+        self.last_data: DrvRsDataC = DrvRsDataC(mode = DrvBasePwrModeE.WAIT, \
+                                                status = DrvBaseStatusC(DrvBaseStatusE.OK), \
+                                                voltage = 0, current = 0, power = 0)
         self.__initialize_control()
         self.__read_device_properties()
 
@@ -78,17 +122,23 @@ class DrvRsDeviceC(DrvPwrDeviceC):
     def __initialize_control(self) -> None:
         ''' Initialize the control of the device.
         Args:
-            - None
+            - None.
         Returns:
-            - None
+            - None.
         Raises:
-            - None
+            - None.
         '''
         #disable manual inputs
-        self.device_handler.send_msg(':SYST:LOCK 1')
+        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
+                              port = self.__port, \
+                              payload = _ScpiCmds.LOCK_ON.value)
+        self.__tx_chan.send_data(msg)
         #disable power input
-        self.device_handler.send_msg(':INP 0')
-
+        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
+                              port = self.__port, \
+                              payload = _ScpiCmds.DEVICE_OFF.value)
+        self.__tx_chan.send_data(msg)
+        self.disable()
 
     def __read_device_properties(self) -> None:
         ''' Read the properties of the device.
@@ -99,62 +149,105 @@ class DrvRsDeviceC(DrvPwrDeviceC):
         Raises:
             - None
         '''
-        model: str|None = None
-        serial_number: str|None = None
-        max_current_limit: float = 0
-        max_voltage_limit: float = 0
-        max_power_limit: float = 0
+        log.info("Getting device properties...")
         #Model and serial number
-        info = self.device_handler.read_device_info()[0]
-        if info is not None:
-            info = info.split(' ')
-            model = info[0]
-            serial_number = info[2].replace('SN:', '')
-        #Max current limit
-        read_curr = self.device_handler.send_and_read(':CURRent:UPPer?')[0]
-        if read_curr is not None:
-            max_current_limit = self.device_handler.decode_numbers(read_curr)
-            max_current_limit = int(max_current_limit * _CONSTANTS.MILI_UNITS)
-        #Max voltage limit
-        read_volt = self.device_handler.send_and_read(':VOLTage:UPPer?')[0]
-        if read_volt is not None:
-            max_voltage_limit = self.device_handler.decode_numbers(read_volt)
-            max_voltage_limit = int(max_voltage_limit * _CONSTANTS.MILI_UNITS)
-        #Max power limit
-        read_power = self.device_handler.send_and_read(':POWer:UPPer?')[0]
-        if read_power is not None:
-            max_power_limit = self.device_handler.decode_numbers(read_power)
-            max_power_limit = int(max_power_limit * _CONSTANTS.MILI_UNITS)
+        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ, \
+                              port = self.__port, \
+                              payload = _ScpiCmds.READ_INFO.value)
+        self.__tx_chan.send_data(msg)
+        # Wait until receive the message
+        time_init = time()
+        while (time() - time_init) < _MAX_WAIT_TIME:
+            sleep(_TIME_BETWEEN_ATTEMPTS)
+            if not self.__rx_chan.is_empty():
+                command_rec : DrvScpiCmdDataC = self.__rx_chan.receive_data()
+                msg = command_rec.payload[0]
+                msg = msg.split(' ')
+                self.properties.model = msg[0]
+                self.properties.serial_number = msg[2].replace('SN:', '')
+        #Max current, voltage and power limit
+        self.properties.max_current = self.__read_meas(_ScpiCmds.MAX_CURRENT.value)
+        self.properties.max_volt = self.__read_meas(_ScpiCmds.MAX_VOLTAGE.value)
+        self.properties.max_power = self.__read_meas(_ScpiCmds.MAX_POWER.value)
 
-        self.__properties = DrvRsPropertiesC(model = model, serial_number = serial_number, \
-                                                MAX_VOLT = max_voltage_limit, \
-                                                MAX_CURR = max_current_limit, \
-                                                MAX_PWR = max_power_limit)
+
+    def __read_meas(self, payload: str) -> int:
+        ''' Get the measurements of the device.
+        Args:
+            - payload (str): Payload of the message.
+        Returns:
+            - result (int): Measurement.
+        Raises:
+            - None.
+        '''
+        result = 0
+        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ, \
+                              port = self.__port, \
+                              payload = payload)
+        self.__tx_chan.send_data(msg)
+        # Wait until receive the message
+        time_init = time()
+        while (time() - time_init) < _MAX_WAIT_TIME:
+            sleep(_TIME_BETWEEN_ATTEMPTS)
+            if not self.__rx_chan.is_empty():
+                command_rec : DrvScpiCmdDataC = self.__rx_chan.receive_data()
+                meas = command_rec.payload[0][:-1]
+                result = int(float(meas) * _MILI_UNITS)
+        return result
+
+
+    def get_data(self) -> DrvRsDataC:
+        ''' Get the data of the device.
+        Args:
+            - None
+        Returns:
+            - result (DrvRsDataC): Data of the device.
+        Raises:
+            - None
+        '''
+        log.info("Getting datas...")
+        result: DrvRsDataC = DrvRsDataC(mode = self.last_data.mode, \
+                                        status = DrvBaseStatusC(DrvBaseStatusE.COMM_ERROR), \
+                                        voltage = 0, current = 0, power = 0)
+        result.current = self.__read_meas(payload=':MEASure:CURRent?')
+        result.voltage = self.__read_meas(payload=':MEASure:VOLTage?')
+        result.power = self.__read_meas(payload=':MEASure:POWer?')
+        result.status = DrvBaseStatusC(DrvBaseStatusE.OK)
+        self.last_data = result
+        return self.last_data
+
 
     def set_cv_mode(self, volt_ref: int) -> None:
         ''' Set the device in CV mode.
         Args:
-            - volt_ref (int): Voltage reference.
+            - volt_ref (int): Voltage reference in milivolts.
         Returns:
             - None
         Raises:
             - None
         '''
-        if volt_ref > self.__properties.max_volt_limit:
-            volt_ref = self.__properties.max_volt_limit
-        voltage = float(volt_ref / _CONSTANTS.MILI_UNITS)
-
+        log.info("Set CV mode...")
+        if volt_ref > self.properties.max_volt:
+            volt_ref = self.properties.max_volt
+        voltage = float(volt_ref / _MILI_UNITS)
         if voltage > 0.0:
-            self.device_handler.send_msg(f':VOLT {round(voltage, 4)}V')
-            self.device_handler.send_msg('OUTPut ON')
-            self.device_handler.send_msg(':INP 1')
-            self.__actual_data.mode = DrvRsModeE.CV_MODE
-            self.__actual_data.status = DrvPwrStatusC(DrvPwrStatusE.OK)
-
+            msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
+                                    port = self.__port, \
+                                    payload = f':VOLT {round(voltage, 4)}V')
+            self.__tx_chan.send_data(msg)
+            msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
+                                    port = self.__port, \
+                                    payload = _ScpiCmds.OUTPUT_ON.value)
+            self.__tx_chan.send_data(msg)
+            msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
+                                    port = self.__port, \
+                                    payload = _ScpiCmds.DEVICE_ON.value)
+            self.__tx_chan.send_data(msg)
+            self.last_data.mode = DrvBasePwrModeE.CV_MODE
+            self.last_data.status = DrvBaseStatusC(DrvBaseStatusE.OK)
         else:
             self.disable()
-            self.__actual_data.mode = DrvRsModeE.WAIT
-            self.__actual_data.status = DrvPwrStatusC(DrvPwrStatusE.INTERNAL_ERROR)
+            self.last_data.status = DrvBaseStatusC(DrvBaseStatusE.INTERNAL_ERROR)
 
 
     def set_cc_mode(self, curr_ref: int) -> None:
@@ -166,24 +259,29 @@ class DrvRsDeviceC(DrvPwrDeviceC):
         Raises:
             - None
         '''
-        if curr_ref > self.__properties.max_current_limit:
-            curr_ref = self.__properties.max_current_limit
-        current = float(curr_ref / _CONSTANTS.MILI_UNITS)
+        log.info("Set CC mode...")
+        if curr_ref > self.properties.max_current:
+            curr_ref = self.properties.max_current
+        current = float(curr_ref / _MILI_UNITS)
 
         if current > 0.0:
-            self.device_handler.send_msg(f':CURR {round(current, 4)}A')
-            self.device_handler.send_msg('OUTPut ON')
-            self.device_handler.send_msg(':INP 1')
-            self.__actual_data.mode = DrvRsModeE.CC_MODE
-        # pylint: disable=fixme
-        # TODO: Se podría leer la corriente y ver que es igual a la enviada, \
-        # en vez de poner CC_MODE directamente
-            self.__actual_data.status = DrvPwrStatusC(DrvPwrStatusE.OK)
-
+            msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
+                                    port = self.__port, \
+                                    payload = f':CURR {round(current, 4)}A')
+            self.__tx_chan.send_data(msg)
+            msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
+                                    port = self.__port, \
+                                    payload = _ScpiCmds.OUTPUT_ON.value)
+            self.__tx_chan.send_data(msg)
+            msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
+                                    port = self.__port, \
+                                    payload = _ScpiCmds.DEVICE_ON.value)
+            self.__tx_chan.send_data(msg)
+            self.last_data.mode = DrvBasePwrModeE.CC_MODE
+            self.last_data.status = DrvBaseStatusC(DrvBaseStatusE.OK)
         else:
             self.disable()
-            self.__actual_data.mode = DrvRsModeE.WAIT
-            self.__actual_data.status = DrvPwrStatusC(DrvPwrStatusE.INTERNAL_ERROR)
+            self.last_data.status = DrvBaseStatusC(DrvBaseStatusE.INTERNAL_ERROR)
 
 
     def disable(self) -> None:
@@ -195,61 +293,15 @@ class DrvRsDeviceC(DrvPwrDeviceC):
         Raises:
             - None
         '''
-        self.device_handler.send_msg('OUTPut OFF')
-        self.device_handler.send_msg(':INP 0')
-
-
-    def get_data(self) -> DrvRsDataC:
-        ''' Get the data of the device.
-        Args:
-            - None
-        Returns:
-            - DrvRsDataC: Data of the device.
-        Raises:
-            - None
-        '''
-        current = 0
-        voltage = 0
-        power = 0
-        status = DrvPwrStatusC(DrvPwrStatusE.COMM_ERROR)
-
-        #Get current
-        read_curr = self.device_handler.send_and_read(':MEASure:CURRent?')[0]
-        if read_curr is not None:
-            current = self.device_handler.decode_numbers(read_curr)
-            self.__actual_data.current = int(current * _CONSTANTS.MILI_UNITS)
-        #Get voltage
-        read_volt = self.device_handler.send_and_read(':MEASure:VOLTage?')[0]
-        if read_volt is not None:
-            voltage = self.device_handler.decode_numbers(read_volt)
-            self.__actual_data.voltage = int(voltage * _CONSTANTS.MILI_UNITS)
-        #Get power
-        read_power = self.device_handler.send_and_read(':MEASure:POWer?')[0]
-        if read_power is not None:
-            power = self.device_handler.decode_numbers(read_power)
-            self.__actual_data.power = int(power * _CONSTANTS.MILI_UNITS)
-        #Get status
-        if current is not None and voltage is not None and power is not None:
-            status = DrvPwrStatusC(DrvPwrStatusE.OK)
-        self.__actual_data.status = status
-
-        return self.__actual_data
-
-
-    def get_properties(self) -> DrvRsPropertiesC:
-        ''' Get the properties of the device.
-        Args:
-            - None
-        Returns:
-            - DrvRsPropertiesC: Properties of the device.
-        Raises:
-            - None
-        '''
-        return self.__properties
+        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
+                                port = self.__port, \
+                                payload = _ScpiCmds.DEVICE_OFF.value)
+        self.__tx_chan.send_data(msg)
+        self.last_data.mode = DrvBasePwrModeE.WAIT
 
 
     def close(self) -> None:
-        ''' Deactivates the load and closes the serial port.
+        ''' Desactivates the load and close the serial port.
         Args:
             - None
         Returns:
@@ -257,6 +309,10 @@ class DrvRsDeviceC(DrvPwrDeviceC):
         Raises:
             - None
         '''
+        log.info("Close the load device...")
         self.disable()
-        self.device_handler.send_msg(':SYST:LOCK 0\n')
-        self.device_handler.close()
+        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
+                                port = self.__port, \
+                                payload = _ScpiCmds.LOCK_OFF.value)
+        self.__tx_chan.send_data(msg)
+        self.__rx_chan.terminate()
