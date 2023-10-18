@@ -36,7 +36,7 @@ __SCPI_MAX_MESSAGE_SIZE = 400 # bytes per msg
 #######################             CLASSES              #######################
 def main():
     '''
-    Example usage of drv_scpi with a source_ea device.
+    Example usage of drv_ea with a source_ea device.
     '''
     source_conf_scpi = DrvScpiSerialConfC(port = __SERIAL_PORT,
                                           separator = '\n',
@@ -49,17 +49,19 @@ def main():
                                           inter_byte_timeout  = None)
 
     source = DrvEaDeviceC(config = source_conf_scpi, rx_chan_name = __RX_CHAN_NAME)
-    log.info(f"properties: {source.properties}")
+    log.info(f"properties: {source.properties.model}")
     source.set_cc_mode(curr_ref = 2, voltage_limit = 20000)
     init = time.time()
 
     while (time.time() - init) < 5:
-        log.info(f"Meas: {source.get_data()}")
+        data = source.get_data()
+        log.info(f"Mode: {data.mode} - Voltage: {data.voltage} - Current: {data.current}")
 
     source.set_cv_mode(volt_ref = 10000, current_limit = 500)
     init = time.time()
     while (time.time() - init) < 5:
-        log.info(f"Meas: {source.get_data()}")
+        data = source.get_data()
+        log.info(f"Mode: {data.mode} - Voltage: {data.voltage} - Current: {data.current}")
     source.close()
 
 
