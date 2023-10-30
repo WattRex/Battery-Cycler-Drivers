@@ -71,7 +71,7 @@ class DrvDbSqlEngineC:
             raise err
 
 
-    def commit_changes(self) -> None:
+    def commit_changes(self, raise_exception = False) -> None:
         '''
         Perform a commit againt the used database. If any error occurs, a
         rollback is performed.
@@ -85,6 +85,8 @@ class DrvDbSqlEngineC:
             log.critical(err)
             log.critical("Error while commiting change to DB. Performing rollback...")
             self.session.rollback()
+            if raise_exception:
+                raise err
 
 
     def close_connection(self) -> None:
