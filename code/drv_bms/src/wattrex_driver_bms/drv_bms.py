@@ -125,19 +125,20 @@ class DrvBmsDataC():
 
 class DrvBmsDeviceC:
     "Principal class of BMS"
-    def __init__(self, rx_chan_name: str = 'RX_CAN_BMS', dev_id: int, can_id: int) -> None:
+    def __init__(self, dev_id: int, can_id: int, rx_chan_name: str = 'RX_CAN_BMS') -> None:
 
-        self.dev_id: int = (int(0x100) | dev_id) & 0x7FF
+        self.dev_id: dev_id
+        self.can_id: int = (int(0x100) | can_id) & 0x7FF
         log.info(f"Device ID: {self.dev_id: 03x}")
         self.__data = DrvBmsDataC([])
         self.__data.status = DrvBaseStatusC(DrvBaseStatusE.OK)
         self.__tx_chan = SysShdIpcChanC(name = _TX_CHAN)
-        self.__rx_chan_name = rx_chan_name + '_' + str(f'{self.dev_id & 0x00F:02x}')
+        self.__rx_chan_name = rx_chan_name + '_' + str(f'{self.can_id & 0x00F:02x}')
         self.__rx_chan = SysShdIpcChanC(name = self.__rx_chan_name,
                                       max_msg = _MAX_MSG,
                                       max_message_size = _MAX_MESSAGE_SIZE)
 
-        filter = DrvCanFilterC(addr=self.dev_id, mask=0x7FF, chan_name=self.__rx_chan_name)
+        filter = DrvCanFilterC(addr=self.can_id, mask=0x7FF, chan_name=self.__rx_chan_name)
         add_msg = DrvCanCmdDataC(data_type = DrvCanCmdTypeE.ADD_FILTER,
                                 payload = filter)
         self.__tx_chan.send_data(add_msg)
