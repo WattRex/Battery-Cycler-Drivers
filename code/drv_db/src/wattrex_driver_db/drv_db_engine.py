@@ -71,10 +71,14 @@ class DrvDbSqlEngineC:
             raise err
 
 
-    def commit_changes(self, raise_exception = False) -> None:
+    def commit_changes(self, raise_exception : bool = False) -> None:
         '''
         Perform a commit againt the used database. If any error occurs, a
         rollback is performed.
+
+        Args:
+            raise_exception (bool, optional): If True, an exception is raised if any error occurs. \
+                Defaults to False.
 
         Raises:
             err: Throw an exception if any error occurs during commit transaction.
