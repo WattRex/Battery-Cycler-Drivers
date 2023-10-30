@@ -104,7 +104,7 @@ class DrvDbComputationalUnitC(Base):
     __tablename__ = 'ComputationalUnit'
 
     CUID = Column(MEDIUMINT(unsigned=True), primary_key=True)
-    Name = Column(String(50), nullable=False)
+    HostName = Column(String(50), nullable=False)
     IP = Column(String(20), nullable=False)
     Port = Column(SMALLINT(unsigned=True), nullable=False)
     User = Column(String(30), nullable=False)
