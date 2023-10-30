@@ -40,7 +40,7 @@ if __name__ == '__main__':
     can_node = DrvCanNodeC(working_flag=can_flag, tx_buffer_size= 100)
     sleep(1)
     can_node.start()
-    device = DrvBmsDeviceC(dev_id = _DEV_ID, rx_chan_name = _RX_CHAN)
+    device = DrvBmsDeviceC(dev_id = _DEV_ID, rx_chan_name = _RX_CHAN, can_id= _DEV_ID)
     while 1:
         device.get_data()
         sleep(0.001)

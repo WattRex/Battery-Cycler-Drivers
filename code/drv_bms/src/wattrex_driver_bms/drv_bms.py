@@ -125,7 +125,7 @@ class DrvBmsDataC():
 
 class DrvBmsDeviceC:
     "Principal class of BMS"
-    def __init__(self, rx_chan_name: str = 'RX_CAN_BMS', dev_id: int) -> None:
+    def __init__(self, rx_chan_name: str = 'RX_CAN_BMS', dev_id: int, can_id: int) -> None:
 
         self.dev_id: int = (int(0x100) | dev_id) & 0x7FF
         log.info(f"Device ID: {self.dev_id: 03x}")
