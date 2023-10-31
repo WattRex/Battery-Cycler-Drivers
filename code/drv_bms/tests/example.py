@@ -28,8 +28,7 @@ from can_sniffer import DrvCanNodeC
 from src.wattrex_driver_bms import DrvBmsDeviceC # pylint: disable=wrong-import-position
 
 #######################              ENUMS               #######################
-_DEV_ID = 3
-_RX_CHAN = 'RX_CAN' # rx_can_x
+_DEV_ID = 4
 
 #######################              CLASS               #######################
 
@@ -40,7 +39,14 @@ if __name__ == '__main__':
     can_node = DrvCanNodeC(working_flag=can_flag, tx_buffer_size= 100)
     sleep(1)
     can_node.start()
-    device = DrvBmsDeviceC(dev_id = _DEV_ID, rx_chan_name = _RX_CHAN, can_id= _DEV_ID)
-    while 1:
-        device.get_data()
-        sleep(0.001)
+    device = DrvBmsDeviceC(dev_id = _DEV_ID, config_file= 'tests/config_file.yml' , can_id= _DEV_ID)
+    try:
+        while 1:
+            device.get_data()
+            sleep(0.0001)
+    except KeyboardInterrupt:
+        device.close()
+        sleep(1)
+        can_flag.clear()
+        can_node.join()
+        log.info('Exiting example')

@@ -11,13 +11,13 @@ import os
 #######################         GENERIC IMPORTS          #######################
 from enum import Enum
 #######################       THIRD PARTY IMPORTS        #######################
-
+from datetime import datetime, timedelta
 #######################      SYSTEM ABSTRACTION IMPORTS  #######################
 path.append(os.getcwd())
 from system_logger_tool import sys_log_logger_get_module_logger # pylint: disable=wrong-import-position
 log = sys_log_logger_get_module_logger(__name__)
 from system_shared_tool import SysShdIpcChanC # pylint: disable=wrong-import-position
-
+from system_config_tool import sys_conf_read_config_params
 #######################          PROJECT IMPORTS         #######################
 from can_sniffer import DrvCanCmdTypeE, DrvCanCmdDataC, DrvCanFilterC, DrvCanMessageC
 from wattrex_driver_base import DrvBaseStatusE, DrvBaseStatusC
@@ -28,9 +28,11 @@ from wattrex_driver_base import DrvBaseStatusE, DrvBaseStatusC
 _MAX_MSG = 100
 _MAX_MESSAGE_SIZE = 400
 _TX_CHAN = 'TX_CAN'
+_RX_CHAN = 'RX_CAN_BMS'
 _MEASURE_NAMES = ['vcell1', 'vcell2', 'vcell3', 'vcell4', 'vcell5', 'vcell6', 'vcell7', 'vcell8',
                     'vcell9', 'vcell10', 'vcell11', 'vcell12', 'vstack', 'temp1', 'temp2', 'temp3',
                     'temp4', 'pres1', 'pres2']
+_TIMEOUT_RESPONSE = 30
 
 class _BmsStatusE(Enum):
     "Modes of the device"
@@ -48,7 +50,7 @@ class DrvBmsDataC():
     Class method to create a DRVDB model of database BMS.
     '''
     def __init__(self, list_measures: list) -> None:
-        log.info(f"Writting data: {list_measures}")
+        log.debug(f"Writting data: {list_measures}")
         self.__status = DrvBaseStatusC(DrvBaseStatusE.OK)
         self.vcell1: int = 0
         self.vcell2: int = 0
@@ -112,37 +114,72 @@ class DrvBmsDataC():
         elif isinstance(new_status, DrvBaseStatusE):
             self.__status = DrvBaseStatusC(new_status)
 
-#     def __str__(self) -> str:
-#                 '''
-#         Returns:
-#             - None.
-#         Raises:
-#             - None.
-#         '''
+    def __str__(self) -> str:
+        """
+        Returns a string representation of the BMS data.
 
-# TODO: improve comment and add info of bms used
+        The string contains the voltage and temperature measurements of the BMS,
+        as well as its status.
+
+        Returns:
+            str: A string representation of the BMS data.
+        """
+        return (f"vcell1: {self.vcell1} vcell2: {self.vcell2}\n"
+                f"vcell3: {self.vcell3} vcell4: {self.vcell4}\n"
+                f"vcell5: {self.vcell5} vcell6: {self.vcell6}\n"
+                f"vcell7: {self.vcell7} vcell8: {self.vcell8}\n"
+                f"vcell9: {self.vcell9} vcell10: {self.vcell10}\n"
+                f"vcell11: {self.vcell11} vcell12: {self.vcell12}\n"
+                f"vstack: {self.vstack}\n"
+                f"temp1: {self.temp1} temp2: {self.temp2}\n"
+                f"temp3: {self.temp3} temp4: {self.temp4}\n"
+                f"pres1: {self.pres1} pres2: {self.pres2}\n"
+                f"status: {self.status}")
 
 
 class DrvBmsDeviceC:
     "Principal class of BMS"
-    def __init__(self, dev_id: int, can_id: int, rx_chan_name: str = 'RX_CAN_BMS') -> None:
-
-        self.dev_id: dev_id
-        self.can_id: int = (int(0x100) | can_id) & 0x7FF
+    def __init__(self, dev_id: int, can_id: int, rx_chan_name: str|None = None,
+                 config_file: str|None = None) -> None:
+        """Constructor of the class."""
+        if config_file is not None:
+            config = sys_conf_read_config_params(config_file, section= 'bms')
+            for param in config:
+                if param == 'RX_CHANNEL':
+                    global _RX_CHAN
+                    _RX_CHAN = config[param]
+                elif param == 'TX_CHANNEL':
+                    global _TX_CHAN
+                    _TX_CHAN = config[param]
+                elif param == 'MAX_MSG':
+                    global _MAX_MSG
+                    _MAX_MSG = config[param]
+                elif param == 'MAX_MESSAGE_SIZE':
+                    global _MAX_MESSAGE_SIZE
+                    _MAX_MESSAGE_SIZE = config[param]
+                elif param == 'TIMEOUT_RESPONSE':
+                    global _TIMEOUT_RESPONSE
+                    _TIMEOUT_RESPONSE = config[param]
+                else:
+                    log.error(f"Parameter {param} not found in config file")
+        self.dev_id= dev_id
+        self.__can_id: int = (int(0x100) | can_id) & 0x7FF
         log.info(f"Device ID: {self.dev_id: 03x}")
         self.__data = DrvBmsDataC([])
         self.__data.status = DrvBaseStatusC(DrvBaseStatusE.OK)
         self.__tx_chan = SysShdIpcChanC(name = _TX_CHAN)
-        self.__rx_chan_name = rx_chan_name + '_' + str(f'{self.can_id & 0x00F:02x}')
+        if rx_chan_name is None:
+            rx_chan_name = _RX_CHAN
+        self.__rx_chan_name = rx_chan_name + '_' + str(f'{self.__can_id & 0x00F:02x}')
         self.__rx_chan = SysShdIpcChanC(name = self.__rx_chan_name,
                                       max_msg = _MAX_MSG,
                                       max_message_size = _MAX_MESSAGE_SIZE)
-
-        filter = DrvCanFilterC(addr=self.can_id, mask=0x7FF, chan_name=self.__rx_chan_name)
+        filter = DrvCanFilterC(addr=self.__can_id, mask=0x7FF, chan_name=self.__rx_chan_name)
         add_msg = DrvCanCmdDataC(data_type = DrvCanCmdTypeE.ADD_FILTER,
                                 payload = filter)
         self.__tx_chan.send_data(add_msg)
         self.status: DrvBaseStatusC = DrvBaseStatusC(DrvBaseStatusE.OK)
+        self.__last_recv_ts: datetime = datetime.now()
         self.__reset_raw_data()
 
 
@@ -155,6 +192,13 @@ class DrvBmsDeviceC:
         while not self.__rx_chan.is_empty():
             raw_data: DrvCanMessageC = self.__rx_chan.receive_data_unblocking()
             self._defragment(raw_data.payload)
+        # Check if message receive between expected time
+        if self.__last_recv_ts + timedelta(seconds=_TIMEOUT_RESPONSE) < datetime.now():
+            if self.__data.status == DrvBaseStatusC(DrvBaseStatusE.OK):
+                self.__data.status = DrvBaseStatusC(DrvBaseStatusE.COMM_ERROR)
+            log.error(f"Timeout on communication with BMS: {self.__data.status}")
+            self.__reset_raw_data()
+            self.__last_recv_ts = datetime.now()
         return self.__data
 
     def __reset_raw_data(self) -> None:
@@ -194,10 +238,8 @@ class DrvBmsDeviceC:
                            f"Expected frag: {self.__next_idx_frag}. Recv frag: {frag_idx}"))
                 self.__data.status = DrvBaseStatusC(DrvBaseStatusE.COMM_ERROR)
                 self.__reset_raw_data()
-
             else:
                 self.__raw_data.extend(data[1:])
-                # log.debug(f"Frag {self.dev_id} - [{frag_idx}/{n_frags}]")
 
                 # Prepare for new fragment reception
                 self.__next_idx_frag += 1
@@ -215,8 +257,10 @@ class DrvBmsDeviceC:
                             new_data.append(new_elem)
 
                         self.__data = DrvBmsDataC(new_data)
-                        # add __str__ function
-                        log.info(f"Data received from BMS: {self.__data.__dict__}")
+                        ## RESET TIMEOUT
+                        self.__last_recv_ts = datetime.now()
+                        self.__data.status = DrvBaseStatusC(DrvBaseStatusE.OK)
+                        log.info(f"Data received from BMS: {self.__data.__str__()}")
                         self.__reset_raw_data()
 
 
