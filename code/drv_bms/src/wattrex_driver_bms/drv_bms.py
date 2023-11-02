@@ -194,7 +194,7 @@ class DrvBmsDeviceC: #pylint: disable=too-many-instance-attributes
             self._defragment(raw_data.payload)
         # Check if message receive between expected time
         if self.__last_recv_ts + timedelta(seconds=_TIMEOUT_RESPONSE) < datetime.now():
-            if self.__data.status == DrvBaseStatusC(DrvBaseStatusE.OK):
+            if self.__data.status == DrvBaseStatusE.OK:
                 self.__data.status = DrvBaseStatusC(DrvBaseStatusE.COMM_ERROR)
             log.error(f"Timeout on communication with BMS: {self.__data.status}")
             self.__reset_raw_data()
@@ -210,7 +210,7 @@ class DrvBmsDeviceC: #pylint: disable=too-many-instance-attributes
 
     def _defragment(self, data) -> None:
         '''
-        Defragment the message received from BMS with dev_id. When all fragments has 
+        Defragment the message received from BMS with dev_id. When all fragments has
         been received and defragmented, the resulting message is parsed and stored
         into the local data.
 
@@ -260,7 +260,7 @@ class DrvBmsDeviceC: #pylint: disable=too-many-instance-attributes
                         ## RESET TIMEOUT
                         self.__last_recv_ts = datetime.now()
                         self.__data.status = DrvBaseStatusC(DrvBaseStatusE.OK)
-                        log.info(f"Data received from BMS: {str(self.__data)}")
+                        log.info(f"Data received from BMS: {self.__data}")
                         self.__reset_raw_data()
 
 
