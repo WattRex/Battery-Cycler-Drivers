@@ -26,7 +26,7 @@ from wattrex_driver_base import DrvBaseStatusE, DrvBaseStatusC
 
 #######################              ENUMS               #######################
 _MAX_MSG = 100
-_MAX_MESSAGE_SIZE = 400
+_MAX_MESSAGE_SIZE = 120
 _TX_CHAN = 'TX_CAN'
 _RX_CHAN = 'RX_CAN_BMS'
 _MEASURE_NAMES = ['vcell1', 'vcell2', 'vcell3', 'vcell4', 'vcell5', 'vcell6', 'vcell7', 'vcell8',
