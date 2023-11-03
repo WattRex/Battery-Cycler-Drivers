@@ -155,6 +155,13 @@ class DrvDbCyclingLimitE(BaseEnum):         # pylint: disable= too-many-ancestor
     POWER = 'POWER'
 
 
+class DrvDbPolarityE(BaseEnum):         # pylint: disable= too-many-ancestors
+    '''Enum used to define polarity.
+    '''
+    POS = 'POS'
+    NEG = 'NEG'
+
+
 #######################             CLASSES              #######################
 
 

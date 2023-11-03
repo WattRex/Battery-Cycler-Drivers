@@ -25,12 +25,12 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 
 
 #######################          MODULE IMPORTS          #######################
-from .drv_db_types import (DrvDbBatteryTechE, DrvDbBipolarTypeE, DrvDbCyclingLimitE,
-                        DrvDbCyclingModeE, DrvDbDeviceTypeE, DrvDbElectrolyteTypeE,
-                        DrvDbLeadAcidChemistryE, DrvDbLithiumChemistryE, DrvDbMembraneTypeE,
-                        DrvDbAvailableCuE, DrvDbConnStatusE, DrvDbRedoxPolarityE)
-from .drv_db_dao_base import (DrvDbBaseStatusC, DrvDbBaseExperimentC, DrvDbBaseExtendedMeasureC,
-                            DrvDbBaseGenericMeasureC)
+from .drv_db_types import DrvDbBatteryTechE, DrvDbBipolarTypeE, DrvDbCyclingLimitE, \
+                        DrvDbCyclingModeE, DrvDbDeviceTypeE, DrvDbElectrolyteTypeE, \
+                        DrvDbLeadAcidChemistryE, DrvDbLithiumChemistryE, DrvDbMembraneTypeE,\
+                        DrvDbAvailableCuE, DrvDbPolarityE, DrvDbConnStatusE
+from .drv_db_dao_base import DrvDbBaseStatusC, DrvDbBaseExperimentC, DrvDbBaseExtendedMeasureC, \
+                            DrvDbBaseGenericMeasureC
 
 #######################              ENUMS               #######################
 
@@ -104,6 +104,7 @@ class DrvDbComputationalUnitC(Base):
     __tablename__ = 'ComputationalUnit'
 
     CUID = Column(MEDIUMINT(unsigned=True), primary_key=True)
+    MAC = Column(String(30), nullable=False)
     HostName = Column(String(50), nullable=False)
     IP = Column(String(20), nullable=False)
     Port = Column(SMALLINT(unsigned=True), nullable=False)
@@ -179,7 +180,7 @@ class DrvDbLinkConfigurationC(Base):
 
     CompDevID = Column(ForeignKey(DrvDbCompatibleDeviceC.CompDevID), primary_key=True,
                     nullable=False)
-    Property = Column(String(30), primary_key = True, nullable=False)
+    Property = Column(String(30), nullable=False, primary_key=True)
     Value = Column(String(30), nullable=False)
 
 class DrvDbAvailableMeasuresC(Base):
@@ -293,8 +294,7 @@ class DrvDbRedoxElectrolyteC(Base):
 
     BatID = Column(ForeignKey(DrvDbBatteryC.BatID), primary_key=True, nullable=False)
     ExpID = Column(ForeignKey(DrvDbMasterExperimentC.ExpID), primary_key=True, nullable=False)
-    Polarity = Column(Enum(*(DrvDbRedoxPolarityE.get_all_values())), primary_key=True,
-                      nullable=False)
+    Polarity = Column(Enum(*DrvDbPolarityE.get_all_values()), nullable=False)
     ElectrolyteVol = Column(MEDIUMINT(unsigned=True), nullable=False)
     InitialSOC = Column(MEDIUMINT(unsigned=True), nullable=False)
     MinFlowRate = Column(MEDIUMINT(unsigned=True), nullable=False)
