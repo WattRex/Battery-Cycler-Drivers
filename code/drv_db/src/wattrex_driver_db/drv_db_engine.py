@@ -7,7 +7,7 @@ Raises:
     ConnectionError: Max db connection resets reached. Connection with db may have been lost.
 '''
 #######################        MANDATORY IMPORTS         #######################
-
+from __future__ import annotations
 #######################         GENERIC IMPORTS          #######################
 from typing import Any
 
