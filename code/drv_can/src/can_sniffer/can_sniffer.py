@@ -5,23 +5,23 @@ in order to configure channels and send/received messages.
 """
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
-
+from typing import List
 #######################         GENERIC IMPORTS          #######################
-import threading
-from typing import Any, Iterable, Callable, Mapping
+from threading import Event
 from enum import Enum
-
+from can import ThreadSafeBus, Message, CanOperationError
 
 #######################       THIRD PARTY IMPORTS        #######################
-from can import ThreadSafeBus, Message, CanOperationError
-from system_shared_tool import SysShdChanC
-import system_logger_tool as sys_log
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
-if __name__ == '__main__':
-    cycler_logger = sys_log.SysLogLoggerC()
-log = sys_log.sys_log_logger_get_module_logger(__name__)
+from system_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
 
+#######################       LOGGER CONFIGURATION       #######################
+if __name__ == '__main__':
+    cycler_logger = SysLogLoggerC(file_log_levels='../log_config.yaml')
+log: Logger = sys_log_logger_get_module_logger(__name__)
+
+from system_shared_tool import SysShdIpcChanC, SysShdNodeC, SysShdNodeParamsC, SysShdNodeStatusE
 #######################          MODULE IMPORTS          #######################
 
 
@@ -31,11 +31,16 @@ log = sys_log.sys_log_logger_get_module_logger(__name__)
 
 
 #######################             CLASSES              #######################
-
-_TIMEOUT_SEND_MSG : float = 0.2
-_TIMEOUT_RX_MSG : float = 0.02
-_MAX_DLC_SIZE : int = 8
-
+class _Constants:
+    """
+    Class to store constants used in the module.
+    """
+    MAX_MESSAGE_SIZE: int = 250
+    TIMEOUT_SEND_MSG : float = 0.2
+    TIMEOUT_RX_MSG : float = 0.02
+    MAX_DLC_SIZE : int = 8
+    MIN_ID          = 0x000     # As the last 4 bits will identify the messages are reserved
+    MAX_ID          = 0x7FF     # In standard mode the can id max value is 0x7FF
 class DrvCanCmdTypeE(Enum):
     """
     Type of command for the CAN
@@ -47,7 +52,7 @@ class DrvCanCmdTypeE(Enum):
 class DrvCanMessageC:
     """The class to create messages correctly to be send by can .
     """
-    def __init__(self, addr : int, size : int, data : int | bytearray) -> None:
+    def __init__(self, addr : int, size : int, payload : int | bytearray) -> None:
         '''
         Initialize a CAN message.
 
@@ -61,37 +66,41 @@ class DrvCanMessageC:
         '''
         self.addr = addr
         self.dlc = size
-        if self.dlc > _MAX_DLC_SIZE:
+        if self.dlc > _Constants.MAX_DLC_SIZE:
             log.error(f"Message payload size on bytes (size = {self.dlc}) \
-                      is higher than {_MAX_DLC_SIZE}")
+                      is higher than {_Constants.MAX_DLC_SIZE}")
             raise BytesWarning("To many element for a CAN message")
-        if isinstance(data,int):
-            self.data = data.to_bytes(size, byteorder='little', signed = False)
+        if isinstance(payload,int):
+            self.payload = payload.to_bytes(size, byteorder='little', signed = False)
         else:
-            self.data = data
+            self.payload = payload
 
-class DrvCanFilterC():
+class DrvCanFilterC:
     """This class is used to create objects that
     works as messages to make write or erase filters in can .
     """
-    def __init__(self, addr : int, mask : int, chan):
-        if 0 <= addr <= 0x7FF:
+    def __init__(self, addr : int, mask : int, chan_name: str):
+        if _Constants.MIN_ID <= addr <= _Constants.MAX_ID:
             self.addr = addr
         else:
             log.error("Wrong value for address, value must be between 0-0x7ff")
-            raise ValueError
+            raise ValueError("Wrong value for address, value must be between 0-0x7ff")
 
-        if 0 <= mask <= 0x7FF:
+        if _Constants.MIN_ID <= mask <= _Constants.MAX_ID:
             self.mask = mask
         else:
             log.error("Wrong value for mask, value must be between 0 and 0x7ff")
-            raise ValueError
+            raise ValueError("Wrong value for mask, value must be between 0 and 0x7ff")
 
-        if isinstance(chan, SysShdChanC):
-            self.chan = chan
-        else:
-            log.error("Wrong type for channel, must be a SysShdChanC object")
-            raise ValueError
+        self.chan_name = chan_name
+
+class _CanActiveFilterC(DrvCanFilterC):
+    """This class is used to create objects that contains active filters.
+    """
+    def __init__(self, addr : int, mask : int, chan_name: str):
+        super().__init__(addr, mask, chan_name)
+        self.chan: SysShdIpcChanC = SysShdIpcChanC(name= self.chan_name, max_message_size= 150)
+
     def match(self, id_can: int) -> bool:
         """Checks if the id_can matches with the selected filter.
 
@@ -103,7 +112,13 @@ class DrvCanFilterC():
             aux = True
         return aux
 
-class DrvCanCmdDataC():
+    def close_chan(self):
+        """Closes the communication channel.
+        """
+        log.debug(f"Closing channel {self.chan_name}")
+        self.chan.terminate()
+
+class DrvCanCmdDataC:
     """
     Returns a function that can be called when the command is not available .
     """
@@ -111,40 +126,25 @@ class DrvCanCmdDataC():
         self.data_type = data_type
         self.payload = payload
 
-class DrvCanParamsC:
-    """
-    Class that contains the can parameters in order to create the thread correctly
-    """
-    def __init__(self, target: Callable[..., object] | None = ...,
-        name: str | None = ..., args: Iterable[Any] = ...,
-        kwargs: Mapping[str, Any] | None = ..., *, daemon: bool | None = ...):
-        self.target = target
-        self.name = name
-        self.args = args
-        self.kwargs = kwargs
-        self.daemon = daemon
-
-class DrvCanNodeC(threading.Thread):
-    """Returns a removable version of the DRv command .
-
-    Args:
-        threading ([type]): [description]
+class DrvCanNodeC(SysShdNodeC): #pylint: disable= abstract-method
+    """Class to manage the CAN communication.
     """
 
-    def __init__(self, tx_buffer: SysShdChanC,
-        working_flag : threading.Event, can_params: DrvCanParamsC =
-        DrvCanParamsC()) -> None:
-        '''
-        Initialize the thread node used to received messages from CAN network.
+    def __init__(self, tx_buffer_size: int, working_flag : Event, name: str= "CAN_NODE",
+                cycle_period: int= 200,
+                can_params: SysShdNodeParamsC = SysShdNodeParamsC()) -> None:
+        """ Initialize the CAN node.
 
         Args:
-            chanPlak (SysShdChanC): Chan used to store messages received from plaks.
-            chanEPC (SysShdChanC): Chan used to store messages received from EPCs.
-        '''
+            tx_buffer_size (int): [description]
+            working_flag (Event): [description]
+            name (str, optional): [description]. Defaults to "CAN_NODE".
+            cycle_period (int, optional): [Period in miliseconds]. Defaults to 100.
+            can_params (SysShdNodeParamsC, optional): [description]. Defaults to SysShdNodeParamsC()
+        """
 
-        super().__init__(group = None, target = can_params.target, name = can_params.name,
-                         args = can_params.args, kwargs = can_params.kwargs,
-                         daemon = can_params.daemon)
+        super().__init__(name=name, cycle_period=cycle_period, working_flag=working_flag,
+                        node_params=can_params)
         self.working_flag = working_flag
         # cmd_can_down = 'sudo ip link set down can0'
         self.__can_bus : ThreadSafeBus = ThreadSafeBus(interface='socketcan',
@@ -152,10 +152,11 @@ class DrvCanNodeC(threading.Thread):
                                 receive_own_messages=False, fd=True)
         self.__can_bus.flush_tx_buffer()
 
-        self.tx_buffer: SysShdChanC = tx_buffer
+        self.tx_buffer: SysShdIpcChanC = SysShdIpcChanC(name='TX_CAN',
+                                            max_msg = int(tx_buffer_size),
+                                            max_message_size= _Constants.MAX_MESSAGE_SIZE)
 
-        self.__active_filter = []
-
+        self.__active_filter: List[_CanActiveFilterC] = []
 
     def __parse_msg(self, message: DrvCanMessageC) -> None:
         '''
@@ -172,14 +173,26 @@ class DrvCanNodeC(threading.Thread):
                 act_filter.chan.send_data(message)
                 break
 
-    def __apply_filter(self, add_filter : DrvCanFilterC) -> None:
+    def __apply_filter(self, add_filter : _CanActiveFilterC) -> None:
         '''Created a shared object and added it to the active filter list
 
         Args:
             data_frame (DrvCanFilterC): Filter to apply.
         '''
-        self.__active_filter.append(add_filter)
-        log.debug("Filter added correctly")
+        already_in = False
+        for act_filter in self.__active_filter:
+            if act_filter.addr == add_filter.addr and act_filter.mask == add_filter.mask:
+                already_in = True
+                if act_filter.chan_name == add_filter.chan_name:
+                    log.warning("Filter already added")
+                else:
+                    log.error("Filter already added with different channel name")
+                    raise ValueError("Filter already added with different channel name")
+        if not already_in:
+            log.info(f"Adding new filter with id {hex(add_filter.addr)} "+
+            f"and mask {hex(add_filter.mask)}")
+            self.__active_filter.append(add_filter)
+            log.debug("Filter added correctly")
 
     def __remove_filter(self, del_filter : DrvCanFilterC) -> None:
         '''Delete a shared object from the active filter list
@@ -187,8 +200,24 @@ class DrvCanNodeC(threading.Thread):
         Args:
             del_filter (DrvCanFilterC): Filter to remove.
         '''
-        self.__active_filter.remove(del_filter)
-        log.debug("Filter removed correctly")
+        already_out = True
+        filter_pos=0
+        for act_filter in self.__active_filter:
+            if act_filter.addr == del_filter.addr and act_filter.mask == del_filter.mask:
+                already_out = False
+                if act_filter.chan_name == del_filter.chan_name:
+                    log.info(f"Removing filter with id {hex(del_filter.addr)} "+
+                        f"and mask {hex(del_filter.mask)}")
+                    filter_chn: _CanActiveFilterC = self.__active_filter.pop(filter_pos)
+                    filter_chn.close_chan()
+                    log.debug("Filter removed correctly")
+                else:
+                    log.error("Filter in with different channel name")
+                    raise ValueError("Filter already added with different channel name")
+            else:
+                filter_pos += 1
+        if already_out:
+            log.warning("Filter already removed")
 
     def __send_message(self, data : DrvCanMessageC) -> None:
         '''Send a CAN message
@@ -200,9 +229,9 @@ class DrvCanNodeC(threading.Thread):
             err (CanOperationError): Raised when error with CAN connection occurred
         '''
         msg = Message(arbitration_id=data.addr, is_extended_id=False,
-                    dlc=data.dlc, data=bytes(data.data))
+                    dlc=data.dlc, data=bytes(data.payload))
         try:
-            self.__can_bus.send(msg, timeout=_TIMEOUT_SEND_MSG)
+            self.__can_bus.send(msg, timeout=_Constants.TIMEOUT_SEND_MSG)
             log.debug("Message correctly send")
         except CanOperationError as err:
             log.error(err)
@@ -227,13 +256,9 @@ class DrvCanNodeC(threading.Thread):
             self.__send_message(command.payload)
         elif (command.data_type == DrvCanCmdTypeE.ADD_FILTER
             and isinstance(command.payload,DrvCanFilterC)):
-            log.info(f"Adding new filter with id {hex(command.payload.addr)} "+
-                        f"and mask {hex(command.payload.mask)}")
-            self.__apply_filter(command.payload)
+            self.__apply_filter(_CanActiveFilterC(**command.payload.__dict__))
         elif (command.data_type == DrvCanCmdTypeE.REMOVE_FILTER
             and isinstance(command.payload,DrvCanFilterC)):
-            log.info(f"Removing filter with id {hex(command.payload.addr)} "+
-                        f"and mask {hex(command.payload.mask)}")
             self.__remove_filter(command.payload)
         else:
             log.error("Can`t apply command. \
@@ -245,33 +270,43 @@ class DrvCanNodeC(threading.Thread):
         Stop the CAN thread .
         """
         log.critical("Stopping CAN thread.")
-        self.__can_bus.shutdown()
+        for filters in self.__active_filter:
+            filters.close_chan()
         self.working_flag.clear()
+        self.tx_buffer.terminate()
+        self.__can_bus.shutdown()
+        self.status = SysShdNodeStatusE.STOP
 
-    def run(self) -> None:
+    def process_iteration(self) -> None:
         '''
         Main method executed by the CAN thread. It receive data from EPCs and PLAKs
         and store it on the corresponding chan.
         '''
-        log.info("Start running process")
-        while self.working_flag.isSet():
-            try:
-                if not self.tx_buffer.is_empty():
-                    # Ignore warning as receive_data return an object,
-                    # which in this case must be of type DrvCanCmdDataC
-                    command : DrvCanCmdDataC = self.tx_buffer.receive_data() # type: ignore
-                    log.debug(f"Command to apply: {command.data_type.name}")
-                    self.__apply_command(command)
-                msg : Message = self.__can_bus.recv(timeout=_TIMEOUT_RX_MSG)
-                if isinstance(msg,Message):
-                    if (0x000 <= msg.arbitration_id <= 0x7FF
-                        and not msg.is_error_frame):
-                        self.__parse_msg(DrvCanMessageC(msg.arbitration_id,msg.dlc,msg.data))
-                    else:
-                        log.error(f"Message receive can`t be parsed, id: {hex(msg.arbitration_id)}"+
-                                  f" and frame: {msg.is_error_frame}")
-            except Exception as err:
-                log.error(f"Error while sending CAN message\n{err}")
-        log.critical("Stop can working")
-        self.stop()
+        log.debug(f"CAN thread status {self.status}")
+        try:
+            if not self.tx_buffer.is_empty():
+                # Ignore warning as receive_data return an object,
+                # which in this case must be of type DrvCanCmdDataC
+                command : DrvCanCmdDataC = self.tx_buffer.receive_data() # type: ignore
+                log.debug(f"Command to apply: {command.data_type.name}")
+                self.__apply_command(command)
+                self.status = SysShdNodeStatusE.OK
+            msg : Message = self.__can_bus.recv(timeout=_Constants.TIMEOUT_RX_MSG)
+            if isinstance(msg,Message):
+                if (0x000 <= msg.arbitration_id <= 0x7FF
+                    and not msg.is_error_frame):
+                    self.__parse_msg(DrvCanMessageC(msg.arbitration_id,msg.dlc,msg.data))
+                else:
+                    log.error(f"Message receive can`t be parsed, id: {hex(msg.arbitration_id)}"+
+                                f" and error in frame is: {msg.is_error_frame}")
+        except CanOperationError as err:
+            log.error(f"Error while sending CAN message\n{err}")
+            self.status = SysShdNodeStatusE.COMM_ERROR
+        except ValueError as err:
+            log.error(f"Error while applying/removing filter with error {err}")
+            self.status = SysShdNodeStatusE.COMM_ERROR
+        except Exception:
+            log.error("Error in can thread")
+            self.status = SysShdNodeStatusE.INTERNAL_ERROR
+            self.working_flag.clear()
 #######################            FUNCTIONS             #######################

@@ -12,7 +12,7 @@ sqlacodegen mysql+mysqlconnector://user:password@ip:port/db_name --outfile drv_d
 #######################         GENERIC IMPORTS          #######################
 
 #######################       THIRD PARTY IMPORTS        #######################
-from sqlalchemy import Column
+from sqlalchemy import Column, Enum
 from sqlalchemy.dialects.mysql import MEDIUMINT
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -26,6 +26,7 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 #######################          MODULE IMPORTS          #######################
 from .drv_db_dao_base import DrvDbBaseExperimentC, DrvDbBaseGenericMeasureC,\
     DrvDbBaseExtendedMeasureC, DrvDbBaseStatusC
+from .drv_db_types import DrvDbCyclingModeE
 
 #######################              ENUMS               #######################
 
@@ -34,7 +35,7 @@ from .drv_db_dao_base import DrvDbBaseExperimentC, DrvDbBaseGenericMeasureC,\
 Base = declarative_base()
 metadata = Base.metadata
 
-class DrvDbCacheExperimentC(DrvDbBaseExperimentC):
+class DrvDbCacheExperimentC(DrvDbBaseExperimentC): #pylint: disable=too-many-instance-attributes
     '''
     Class method to create a simplified model of database Experiment table.
     '''
@@ -53,6 +54,7 @@ class DrvDbCacheGenericMeasureC(DrvDbBaseGenericMeasureC):
     __table_args__ = {'extend_existing': True}
 
     InstrID = Column(MEDIUMINT(unsigned=True), nullable=False)
+    PowerMode = Column(Enum(*DrvDbCyclingModeE.get_all_values()), nullable= False)
 
 class DrvDbCacheExtendedMeasureC(DrvDbBaseExtendedMeasureC):
     '''
@@ -61,7 +63,7 @@ class DrvDbCacheExtendedMeasureC(DrvDbBaseExtendedMeasureC):
     __tablename__ = 'ExtendedMeasures'
     __table_args__ = {'extend_existing': True}
 
-    MeasType = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False)
+    UsedMeasID = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False)
 
 class DrvDbCacheStatusC(DrvDbBaseStatusC):
     '''

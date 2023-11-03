@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 # users can install this project, e.g.:
 #
 # $ pip install <sampleproject>
-name = "can_sniffer"
+name = "wattrex-driver-bms"
 
 # Versions should comply with PEP 440:
 # https://www.python.org/dev/peps/pep-0440/
@@ -20,7 +20,7 @@ dynamic = ["version", "dependencies"]
 # This is a one-line description or tagline of what your project does. This
 # corresponds to the "Summary" metadata field:
 # https://packaging.python.org/specifications/core-metadata/#summary
-description ="Sniffer to send and receive can messages running in an independant thread." # Optional
+description ="Driver to mannage the bms hardware and get measures from it." # Optional
 
 # This is an optional longer description of your project that represents
 # the body of text which users will see when they visit PyPI.
@@ -49,7 +49,8 @@ license = {file = "LICENSE.txt"}
 # Note that this is a list of additional keywords, separated
 # by commas, to be used to assist searching for the distribution in a
 # larger catalog.
-keywords= ["CANBus", "Embedded Systems", "Sniffer"]  # Optional
+keywords= ["Battery Mannagement Systems", "Embedded Systems", "Can", "Redox flow battery",
+        "Logger system"]  # Optional
 
 # This should be your name or the name of the organization who originally
 # authored the project, and a valid email address corresponding to the name
@@ -137,7 +138,7 @@ dependencies = {file = ["requirements.txt"]}
 "Homepage" = "https://github.com/WattRex/Battery-Cycler-Drivers"
 "Bug Reports" = "https://github.com/WattRex/Battery-Cycler-Drivers/issues"
 "Bug Tracker" = "https://github.com/WattRex/Battery-Cycler-Drivers/issues"
-"Source" = "https://github.com/WattRex/Battery-Cycler-Drivers/tree/develop/code/drv_can"
+"Source" = "https://github.com/WattRex/Battery-Cycler-Drivers/tree/develop/code/drv_bms"
 "Funding" = "https://donate.pypi.org"
 # "Say Thanks!" = "http://saythanks.io/to/example"
 
@@ -158,6 +159,6 @@ dependencies = {file = ["requirements.txt"]}
 
 [tool.setuptools_scm]
 root = "../../"
-write_to = "code/drv_can/src/can_sniffer/__version__.py"
+write_to = "code/drv_bms/src/wattrex_driver_bms/__version__.py"
 version_scheme="python-simplified-semver"
 normalize="True"
