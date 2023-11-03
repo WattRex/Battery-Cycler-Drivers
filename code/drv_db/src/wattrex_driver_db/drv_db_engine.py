@@ -7,7 +7,7 @@ Raises:
     ConnectionError: Max db connection resets reached. Connection with db may have been lost.
 '''
 #######################        MANDATORY IMPORTS         #######################
-
+from __future__ import annotations
 #######################         GENERIC IMPORTS          #######################
 from typing import Any
 
@@ -38,18 +38,18 @@ class DrvDbSqlEngineC:
 
     __MAX_RESETS = 2
 
-    def __init__(self, db_type : DrvDbTypeE, config_file: str):
+    def __init__(self, db_type : DrvDbTypeE, config_file: str, section: str|None = None):
         '''
         Create an connector to the MySQL database server
 
         Args:
             db_type (DrvDbTypeE): type of database to connect to.
-            config_file (str): path to the configuration file. \
+            config_file (str): path to the configuration file.
         '''
         try:
             self.config_file = config_file
             # read connection parameters
-            params = sys_conf_read_config_params(filename=config_file, section='database')
+            params = sys_conf_read_config_params(filename=config_file, section= section)
             # create engine
             if db_type == DrvDbTypeE.CACHE_DB and params['engine'] == DrvDbTypeE.CACHE_DB.value:
                 url = 'mysql+mysqlconnector://'
