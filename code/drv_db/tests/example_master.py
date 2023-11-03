@@ -34,13 +34,13 @@ def test_read() -> None:
     """Runs the test read command from master database.
     """
     drv = DrvDbSqlEngineC(db_type=DrvDbTypeE.MASTER_DB,
-                          config_file='code/drv_db/tests/.cred_master.yaml')
+                          config_file='code/drv_db/tests/.cred.yaml', section='master_db')
     log.info("Connected to master database.")
 
     stmt = select(DrvDbBatteryC)
-    result = drv.session.execute(stmt).one()
+    result = drv.session.execute(stmt).all()
     row: DrvDbBatteryC = result[0]
-    print(row.__dict__)
+    print(row[0].__dict__)
 
     stmt = select(DrvDbMasterExperimentC)
     result = drv.session.execute(stmt).all()

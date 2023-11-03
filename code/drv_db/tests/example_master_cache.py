@@ -33,9 +33,9 @@ def test_read() -> None:
     """Runs a test to read from cache and write on master
     """
     drv_cache = DrvDbSqlEngineC(db_type=DrvDbTypeE.CACHE_DB,
-                          config_file='code/drv_db/tests/.cred_cache.yaml')
+                          config_file='code/drv_db/tests/.cred.yaml', section='cache_db')
     drv_master = DrvDbSqlEngineC(db_type=DrvDbTypeE.MASTER_DB,
-                          config_file='code/drv_db/tests/.cred_master.yaml')
+                          config_file='code/drv_db/tests/.cred.yaml', section='master_db')
 
     stmt = select(DrvDbCacheExperimentC)
     result = drv_cache.session.execute(stmt).all()
