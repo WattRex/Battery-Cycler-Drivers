@@ -28,7 +28,7 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 from .drv_db_types import DrvDbBatteryTechE, DrvDbBipolarTypeE, DrvDbCyclingLimitE, \
                         DrvDbCyclingModeE, DrvDbDeviceTypeE, DrvDbElectrolyteTypeE, \
                         DrvDbLeadAcidChemistryE, DrvDbLithiumChemistryE, DrvDbMembraneTypeE,\
-                        DrvDbAvailableCuE
+                        DrvDbAvailableCuE, DrvDbPolarityE
 from .drv_db_dao_base import DrvDbBaseStatusC, DrvDbBaseExperimentC, DrvDbBaseExtendedMeasureC, \
                             DrvDbBaseGenericMeasureC
 from .drv_db_dao_cache import DrvDbCacheExperimentC, DrvDbCacheGenericMeasureC, \
@@ -105,11 +105,11 @@ class DrvDbComputationalUnitC(Base):
     __tablename__ = 'ComputationalUnit'
 
     CUID = Column(MEDIUMINT(unsigned=True), primary_key=True)
-    Name = Column(String(50), nullable=False)
+    MAC = Column(String(30), nullable=False)
+    HostName = Column(String(50), nullable=False)
     IP = Column(String(20), nullable=False)
     Port = Column(SMALLINT(unsigned=True), nullable=False)
-    User = Column(String(20), nullable=False)
-    Pass = Column(String(100), nullable=False)
+    User = Column(String(30), nullable=False)
     LastConnection = Column(DateTime, nullable=False)
     Available = Column(Enum(*(DrvDbAvailableCuE.get_all_values())), nullable=False)
 
@@ -167,7 +167,7 @@ class DrvDbLinkConfigurationC(Base):
 
     CompDevID = Column(ForeignKey(DrvDbCompatibleDeviceC.CompDevID), primary_key=True,
                     nullable=False)
-    Property = Column(String(30), nullable=False)
+    Property = Column(String(30), nullable=False, primary_key=True)
     Value = Column(String(30), nullable=False)
 
 class DrvDbMeasuresDeclarationC(Base):
@@ -306,5 +306,8 @@ class DrvDbRedoxElectrolyteC(Base):
 
     BatID = Column(ForeignKey(DrvDbBatteryC.BatID), primary_key=True, nullable=False)
     ExpID = Column(ForeignKey(DrvDbMasterExperimentC.ExpID), primary_key=True, nullable=False)
+    Polarity = Column(Enum(*DrvDbPolarityE.get_all_values()), nullable=False)
     ElectrolyteVol = Column(MEDIUMINT(unsigned=True), nullable=False)
+    InitialSOC = Column(MEDIUMINT(unsigned=True), nullable=False)
+    MinFlowRate = Column(MEDIUMINT(unsigned=True), nullable=False)
     MaxFlowRate = Column(MEDIUMINT(unsigned=True), nullable=False)

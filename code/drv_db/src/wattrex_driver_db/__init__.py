@@ -6,7 +6,8 @@ from .drv_db_engine import DrvDbSqlEngineC
 from .drv_db_types import DrvDbCyclingModeE, DrvDbEquipStatusE, DrvDbExpStatusE, DrvDbTypeE, \
                         DrvDbCyclingLimitE, DrvDbMembraneTypeE, DrvDbElectrolyteTypeE, \
                         DrvDbBatteryTechE, DrvDbBipolarTypeE, DrvDbDeviceTypeE, \
-                        DrvDbLeadAcidChemistryE, DrvDbLithiumChemistryE, DrvDbAvailableCuE
+                        DrvDbLeadAcidChemistryE, DrvDbLithiumChemistryE, DrvDbAvailableCuE, \
+                        DrvDbPolarityE
 from .drv_db_dao_base import DrvDbAlarmC
 from .drv_db_dao_cache import DrvDbCacheExperimentC, DrvDbCacheGenericMeasureC, \
                             DrvDbCacheExtendedMeasureC, DrvDbCacheStatusC
@@ -27,5 +28,5 @@ __all__ = [
     'DrvDbComputationalUnitC', 'DrvDbCyclerStationC', 'DrvDbCompatibleDeviceC', 'DrvDbUsedDeviceC',\
     'DrvDbMeasuresDeclarationC', 'DrvDbProfileC', 'DrvDbInstructionC', 'DrvDbMasterExperimentC',\
     'DrvDbMasterGenericMeasureC', 'DrvDbMasterExtendedMeasureC', 'DrvDbMasterStatusC',\
-    'DrvDbLinkConfigurationC'
+    'DrvDbLinkConfigurationC', 'DrvDbPolarityE'
 ]

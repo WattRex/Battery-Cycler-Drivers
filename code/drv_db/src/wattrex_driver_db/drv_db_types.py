@@ -129,9 +129,9 @@ class DrvDbCyclingModeE(BaseEnum):          # pylint: disable= too-many-ancestor
     '''Enum used to define cycling control modes.
     '''
     WAIT = 'WAIT'
-    CC = 'CC'
-    CV = 'CV'
-    CP = 'CP'
+    CC_MODE = 'CC_MODE'
+    CV_MODE = 'CV_MODE'
+    CP_MODE = 'CP_MODE'
     DISABLE = 'DISABLE'
 
 
@@ -142,6 +142,13 @@ class DrvDbCyclingLimitE(BaseEnum):         # pylint: disable= too-many-ancestor
     VOLTAGE = 'VOLTAGE'
     CURRENT = 'CURRENT'
     POWER = 'POWER'
+
+
+class DrvDbPolarityE(BaseEnum):         # pylint: disable= too-many-ancestors
+    '''Enum used to define polarity.
+    '''
+    POS = 'POS'
+    NEG = 'NEG'
 
 
 #######################             CLASSES              #######################
