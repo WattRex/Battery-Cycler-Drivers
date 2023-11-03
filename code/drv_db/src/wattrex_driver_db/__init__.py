@@ -29,7 +29,9 @@ __all__ = [
     'DrvDbLeadAcidChemistryE', 'DrvDbLithiumChemistryE', 'DrvDbAvailableCuE', \
     'DrvDbBatteryC', 'DrvDbLithiumC', 'DrvDbLeadAcidC', 'DrvDbRedoxStackC',\
     'DrvDbComputationalUnitC', 'DrvDbCyclerStationC', 'DrvDbCompatibleDeviceC', 'DrvDbUsedDeviceC',\
-    'DrvDbMeasuresDeclarationC', 'DrvDbProfileC', 'DrvDbInstructionC', 'DrvDbMasterExperimentC',\
+    'DrvDbProfileC', 'DrvDbInstructionC', 'DrvDbMasterExperimentC',\
     'DrvDbMasterGenericMeasureC', 'DrvDbMasterExtendedMeasureC', 'DrvDbMasterStatusC',\
-    'DrvDbLinkConfigurationC', 'DrvDbPolarityE'
+    'DrvDbLinkConfigurationC', 'DrvDbPolarityE', 'DrvDbUsedMeasuresC', 'DrvDbDetectedDeviceC',\
+    'DrvDbAvailableMeasuresC', 'transform_experiment_db', 'transform_gen_meas_db',\
+    'transform_status_db', 'transform_ext_meas_db'
 ]

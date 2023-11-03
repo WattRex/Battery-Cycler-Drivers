@@ -28,11 +28,10 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 from .drv_db_types import DrvDbBatteryTechE, DrvDbBipolarTypeE, DrvDbCyclingLimitE, \
                         DrvDbCyclingModeE, DrvDbDeviceTypeE, DrvDbElectrolyteTypeE, \
                         DrvDbLeadAcidChemistryE, DrvDbLithiumChemistryE, DrvDbMembraneTypeE,\
-                        DrvDbAvailableCuE, DrvDbPolarityE
+                        DrvDbAvailableCuE, DrvDbPolarityE, DrvDbConnStatusE
 from .drv_db_dao_base import DrvDbBaseStatusC, DrvDbBaseExperimentC, DrvDbBaseExtendedMeasureC, \
                             DrvDbBaseGenericMeasureC
-from .drv_db_dao_cache import DrvDbCacheExperimentC, DrvDbCacheGenericMeasureC, \
-                            DrvDbCacheExtendedMeasureC, DrvDbCacheStatusC
+
 #######################              ENUMS               #######################
 
 
