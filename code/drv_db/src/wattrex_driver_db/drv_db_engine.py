@@ -75,7 +75,7 @@ class DrvDbSqlEngineC:
             self.n_resets = 0
 
         except Exception as err:
-            log.error(msg=f"Error on DB Session creation. Please check DB " +\
+            log.error(msg="Error on DB Session creation. Please check DB " +\
                       f"credentials and params: {params}")
             log.error(msg=err)
             raise err
