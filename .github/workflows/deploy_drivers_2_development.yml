@@ -24,9 +24,10 @@ jobs:
     name: Build package ${{ github.ref_name }}
     uses: WattRex/System-Tools/.github/workflows/build_python_package.yml@develop
     with:
-      package-name: ${{ github.ref_name }}
-      package-path: code/${{ github.ref_name }}
-      requirements-path: code/${{ github.ref_name }}
+      package-name: ${{ github.event.pull_request.head.ref }}
+      package-path: code/${{ github.event.pull_request.head.ref }}
+      source-path: code/${{ github.event.pull_request.head.ref }}
+      python-version: "3.10"
 
   build-package-on-pull-request:
     if: ${{ github.event_name == 'pull_request_review' && github.event.review.state == 'approved' }}
