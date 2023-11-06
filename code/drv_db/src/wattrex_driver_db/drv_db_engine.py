@@ -46,14 +46,15 @@ class DrvDbSqlEngineC:
             db_type (DrvDbTypeE): type of database to connect to.
             config_file (str): path to the configuration file.
         '''
+        params = {}
+        # read connection parameters
+        self.config_file = config_file
+        section='database'
+        if db_type == DrvDbTypeE.CACHE_DB:
+            section = 'cache_db'
+        if db_type == DrvDbTypeE.MASTER_DB:
+            section = 'master_db'
         try:
-            # read connection parameters
-            self.config_file = config_file
-            section='database'
-            if db_type == DrvDbTypeE.CACHE_DB:
-                section = 'cache_db'
-            if db_type == DrvDbTypeE.MASTER_DB:
-                section = 'master_db'
             params = sys_conf_read_config_params(filename=config_file, section= section)
 
             # create engine
@@ -65,16 +66,17 @@ class DrvDbSqlEngineC:
             else:
                 raise ConnectionError("Data base type or engine not supported")
 
-
             url += params['user'] + ':' + params['password'] + '@' \
                     + params['host'] + ':' + str(params['port']) + '/' + params['database']
+            log.debug(f"Creating database engine with url: [{url}]")
             self.engine: Engine = create_engine(url=url, echo=False, future=True)
             self.session : Session = Session(bind=self.engine, future=True)
             self.session.begin()
             self.n_resets = 0
 
         except Exception as err:
-            log.error(msg="Error on DB Session creation. Please check DB credentials and params")
+            log.error(msg="Error on DB Session creation. Please check DB " +\
+                      f"credentials and params: {params}")
             log.error(msg=err)
             raise err
 
