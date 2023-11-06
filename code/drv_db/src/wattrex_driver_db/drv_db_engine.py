@@ -46,14 +46,15 @@ class DrvDbSqlEngineC:
             db_type (DrvDbTypeE): type of database to connect to.
             config_file (str): path to the configuration file.
         '''
+        params = {}
+        # read connection parameters
+        self.config_file = config_file
+        section='database'
+        if db_type == DrvDbTypeE.CACHE_DB:
+            section = 'cache_db'
+        if db_type == DrvDbTypeE.MASTER_DB:
+            section = 'master_db'
         try:
-            # read connection parameters
-            self.config_file = config_file
-            section='database'
-            if db_type == DrvDbTypeE.CACHE_DB:
-                section = 'cache_db'
-            if db_type == DrvDbTypeE.MASTER_DB:
-                section = 'master_db'
             params = sys_conf_read_config_params(filename=config_file, section= section)
 
             # create engine
@@ -74,7 +75,8 @@ class DrvDbSqlEngineC:
             self.n_resets = 0
 
         except Exception as err:
-            log.error(msg=f"Error on DB Session creation. Please check DB credentials and params: {params}")
+            log.error(msg=f"Error on DB Session creation. Please check DB " +\
+                      f"credentials and params: {params}")
             log.error(msg=err)
             raise err
 
