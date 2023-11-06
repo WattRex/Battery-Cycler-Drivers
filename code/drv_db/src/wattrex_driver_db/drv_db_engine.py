@@ -65,16 +65,16 @@ class DrvDbSqlEngineC:
             else:
                 raise ConnectionError("Data base type or engine not supported")
 
-
             url += params['user'] + ':' + params['password'] + '@' \
                     + params['host'] + ':' + str(params['port']) + '/' + params['database']
+            log.debug(f"Creating database engine with url: [{url}]")
             self.engine: Engine = create_engine(url=url, echo=False, future=True)
             self.session : Session = Session(bind=self.engine, future=True)
             self.session.begin()
             self.n_resets = 0
 
         except Exception as err:
-            log.error(msg="Error on DB Session creation. Please check DB credentials and params")
+            log.error(msg=f"Error on DB Session creation. Please check DB credentials and params: {params}")
             log.error(msg=err)
             raise err
 
