@@ -50,12 +50,8 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
     """Class to create epc devices with all the properties needed.
 
     """
-    def __init__(self, can_id: int, dev_id: int|None = None) -> None:
+    def __init__(self, can_id: int) -> None:
         self.__device_handler: SysShdIpcChanC
-        if dev_id is None:
-            self.dev_id= can_id #pylint: disable=unused-private-member
-        else:
-            self.dev_id= dev_id #pylint: disable=unused-private-member
         if not 'TX_CAN' in run(['ls', '/dev/mqueue/'], stdout= PIPE, check= False).stdout.decode():
             log.error("The can transmission queue doesn`t exist, please launch first the can node")
             raise RuntimeError(("The can transmission queue doesn`t exist, "
