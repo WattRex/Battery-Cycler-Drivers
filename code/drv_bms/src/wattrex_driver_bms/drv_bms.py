@@ -139,7 +139,7 @@ class DrvBmsDataC(): #pylint: disable=too-many-instance-attributes
 
 class DrvBmsDeviceC: #pylint: disable=too-many-instance-attributes
     "Principal class of BMS"
-    def __init__(self, dev_id: int, can_id: int, rx_chan_name: str|None = None,
+    def __init__(self, can_id: int, rx_chan_name: str|None = None,
                  config_file: str|None = None) -> None:
         """Constructor of the class."""
         if config_file is not None:
@@ -162,9 +162,8 @@ class DrvBmsDeviceC: #pylint: disable=too-many-instance-attributes
                     _TIMEOUT_RESPONSE = config[param]
                 else:
                     log.error(f"Parameter {param} not found in config file")
-        self.dev_id= dev_id
         self.__can_id: int = (int(0x100) | can_id) & 0x7FF
-        log.info(f"Device ID: {self.dev_id: 03x}")
+        log.info(f"Device ID: {self.__can_id: 03x}")
         self.__data = DrvBmsDataC([])
         self.__data.status = DrvBaseStatusC(DrvBaseStatusE.OK)
         self.__tx_chan = SysShdIpcChanC(name = _TX_CHAN)
@@ -210,7 +209,7 @@ class DrvBmsDeviceC: #pylint: disable=too-many-instance-attributes
 
     def _defragment(self, data) -> None:
         '''
-        Defragment the message received from BMS with dev_id. When all fragments has
+        Defragment the message received from BMS with can_id. When all fragments has
         been received and defragmented, the resulting message is parsed and stored
         into the local data.
 
@@ -234,7 +233,7 @@ class DrvBmsDeviceC: #pylint: disable=too-many-instance-attributes
         # Normal parse, parse normal message
         else:
             if self.__next_idx_frag != frag_idx:
-                log.error((f"ERROR on [0x{self.dev_id:03x}] - Not received all fragment. "
+                log.error((f"ERROR on [0x{self.__can_id:03x}] - Not received all fragment. "
                            f"Expected frag: {self.__next_idx_frag}. Recv frag: {frag_idx}"))
                 self.__data.status = DrvBaseStatusC(DrvBaseStatusE.COMM_ERROR)
                 self.__reset_raw_data()
@@ -267,7 +266,7 @@ class DrvBmsDeviceC: #pylint: disable=too-many-instance-attributes
     def close(self) -> None:
         ''' Close the serial port.'''
         del_msg = DrvCanCmdDataC(data_type = DrvCanCmdTypeE.REMOVE_FILTER,
-                                payload = DrvCanFilterC(addr=self.dev_id, mask=0x7FF,
+                                payload = DrvCanFilterC(addr=self.__can_id, mask=0x7FF,
                                                         chan_name=self.__rx_chan_name))
         self.__tx_chan.send_data(del_msg)
         self.__rx_chan.terminate()
