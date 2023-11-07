@@ -59,7 +59,7 @@ class DrvDbBaseGenericMeasureC(Base):
     Timestamp = Column(DateTime, nullable=False)
     Voltage = Column(MEDIUMINT(), nullable=False)
     Current = Column(MEDIUMINT(), nullable=False)
-    Power = Column(MEDIUMINT())
+    Power = Column(INTEGER())
 
 class DrvDbBaseExtendedMeasureC(Base):
     '''
@@ -72,7 +72,6 @@ class DrvDbBaseExtendedMeasureC(Base):
     ExpID = Column(ForeignKey(DrvDbBaseGenericMeasureC.ExpID), primary_key= True, nullable=False)
     MeasID = Column(ForeignKey(DrvDbBaseGenericMeasureC.MeasID), primary_key= True, nullable=False)
     Value = Column(MEDIUMINT(), nullable=False)
-
 
 class DrvDbAlarmC(Base):
     '''
@@ -94,6 +93,7 @@ class DrvDbBaseStatusC(Base):
     __tablename__ = 'Status'
     __table_args__ = (ForeignKeyConstraint(['ExpID'], [DrvDbBaseExperimentC.ExpID]),)
 
+    StatusID = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False)
     ExpID = Column(ForeignKey(DrvDbBaseExperimentC.ExpID), primary_key=True, nullable=False)
     Timestamp = Column(DateTime, nullable=False)
     Status = Column(Enum(*DrvDbEquipStatusE.get_all_values()), nullable=False)
