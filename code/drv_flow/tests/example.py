@@ -53,7 +53,7 @@ def example_flowmeter():
     cont = 0
     while cont < 10:
         sleep(0.2)
-        log.info(f"Get meas: {flowmeter.get_meas()}") # pylint: disable=logging-fstring-interpolation
+        log.info(f"Get meas: {flowmeter.get_data()}") # pylint: disable=logging-fstring-interpolation
         cont += 1
 
     flowmeter.close()
