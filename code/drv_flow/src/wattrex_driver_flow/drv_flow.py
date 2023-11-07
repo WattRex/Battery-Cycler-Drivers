@@ -143,7 +143,7 @@ class DrvFlowDeviceC():
             raise ConnectionError("Device not found")
 
 
-    def get_meas(self) -> DrvFlowDataC:
+    def get_data(self) -> DrvFlowDataC:
         ''' Get the measurement of the flowmeter.
         Args:
             - None.
