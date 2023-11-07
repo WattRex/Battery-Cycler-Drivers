@@ -178,7 +178,7 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
                     self.__properties.hw_version = hw_ver
                     log.info(f"Device hw version: {ba2int(hw_ver)}")
                     # The last bits correspond to the serial number
-                    self.__properties.serial_number = ba2int(msg_bits[24:32])
+                    self.__properties.serial_number = str(ba2int(msg_bits[24:32]))
                 #------   0xYYB EPC Status register  ------
                 elif msg_id == _EpcMsgTypeE.STATUS.value:
                     # The first 5 bits correspond each one to a different error type
