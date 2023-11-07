@@ -46,7 +46,7 @@ def example_flowmeter():
                                         write_timeout = None,
                                         inter_byte_timeout  = None)
 
-    flowmeter = DrvFlowDeviceC(config = flow_conf_scpi,
+    flowmeter = DrvFlowDeviceC(dev_id= 0, config = flow_conf_scpi,
                                rx_chan_name = __RX_CHAN_NAME)
     log.info(f"Device: {flowmeter.device_id} \t Firmware: {flowmeter.firmware_version}") # pylint: disable=logging-fstring-interpolation
 

@@ -70,14 +70,14 @@ class DrvFlowDataC():
 
 class DrvFlowDeviceC():
     "Principal class of flowmeter"
-    def __init__(self, config: DrvScpiSerialConfC, rx_chan_name: str) -> None:
+    def __init__(self, dev_id: int, config: DrvScpiSerialConfC, rx_chan_name: str) -> None:
         '''
         Args:
             - config (DrvScpiSerialConfC): Configuration of the serial port.
         Raises:
             - None.
         '''
-        self.__device_id: int = 0
+        self.__device_id: int = dev_id
         self.__firmware_version: int = 0
         self.__tx_chan = SysShdIpcChanC(name = 'tx_scpi')
         self.__rx_chan = SysShdIpcChanC(name = rx_chan_name,
