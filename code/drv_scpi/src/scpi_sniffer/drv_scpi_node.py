@@ -68,7 +68,7 @@ class DrvScpiNodeC(SysShdNodeC):
             if cmd.port in self.__used_dev:
                 log.warning("Device already exist")
             else:
-                self.__used_dev[cmd.port] = DrvScpiHandlerC(serial_conf = cmd.payload,\
+                self.__used_dev[cmd.port] = DrvScpiHandlerC(serial_conf = cmd.payload,
                                 rx_chan_name = cmd.rx_chan_name)
                 log.info("Device added")
 
@@ -118,8 +118,8 @@ class DrvScpiNodeC(SysShdNodeC):
         if not self.tx_scpi.is_empty():
             command : DrvScpiCmdDataC = self.tx_scpi.receive_data() # type: ignore
             if (command.data_type is DrvScpiCmdTypeE.ADD_DEV) or (command.port in self.__used_dev):
-                log.info(f"Port: {command.port.split('/')[-1]}. "+\
-                        f"Command to apply: {command.data_type.name}") # pylint: disable=logging-fstring-interpolation
+                log.info((f"Port: {command.port.split('/')[-1]}. "+
+                        f"Command to apply: {command.data_type.name}"))
                 self.__apply_command(command)
             else:
                 log.error("First add device.")

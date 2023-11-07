@@ -50,11 +50,13 @@ class DrvScpiCmdDataC:
         self.port: str = port
         self.__dict__.update(kwargs)
 
+        ## If deleting device only need the port
         if self.data_type != DrvScpiCmdTypeE.DEL_DEV and not hasattr(self, 'payload'):
             log.error("No exist payload")
             raise TypeError("No exist payload")
         else:
             if self.data_type == DrvScpiCmdTypeE.ADD_DEV:
+                ## When adding deving the payload must be serial and a rx chan name must be provided
                 if not isinstance(self.payload, DrvScpiSerialConfC):
                     log.error("Payload must be a DrvScpiSerialConfC object")
                     raise TypeError("Payload must be a DrvScpiSerialConfC object")
@@ -64,12 +66,13 @@ class DrvScpiCmdDataC:
                 elif not isinstance(self.rx_chan_name, str):
                     log.error("rx_chan_name must be a string")
                     raise TypeError("rx_chan_name must be a string")
-
-            elif (self.data_type in (DrvScpiCmdTypeE.WRITE, DrvScpiCmdTypeE.WRITE_READ,)) and \
-                not isinstance(self.payload, str):
+            ## When writing and reading the payload must be a string
+            elif ((self.data_type in (DrvScpiCmdTypeE.WRITE, DrvScpiCmdTypeE.WRITE_READ,)) and
+                not isinstance(self.payload, str)):
                 log.error("Payload must be a string")
                 raise TypeError("Payload must be a string")
-
+            ## When responding the payload must be a list and a status must be provided,
+            ## this message is the answer of the device.
             elif self.data_type == DrvScpiCmdTypeE.RESP:
                 if not isinstance(self.payload, list):
                     log.error("Payload must be a list")
