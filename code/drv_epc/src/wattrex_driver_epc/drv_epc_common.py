@@ -71,7 +71,7 @@ class EpcConstC:
     MID_SIDE_BITFIELD   = 32
     MIN_MSG_SIZE        = 150
     TO_DECI_WATS        = 100000
-    MAX_READS           = 300
+    MAX_READS           = 3000
 
 #######################             CLASSES              #######################
 class DrvEpcStatusC:
