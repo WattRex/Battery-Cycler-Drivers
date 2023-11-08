@@ -52,10 +52,6 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
     """
     def __init__(self, can_id: int) -> None:
         self.__device_handler: SysShdIpcChanC
-        if not 'TX_CAN' in run(['ls', '/dev/mqueue/'], stdout= PIPE, check= False).stdout.decode():
-            log.error("The can transmission queue doesn`t exist, please launch first the can node")
-            raise RuntimeError(("The can transmission queue doesn`t exist, "
-                                "please launch first the can node"))
         self.__tx_can = SysShdIpcChanC('TX_CAN')
         self.__live_data : DrvEpcDataC = DrvEpcDataC()
         self.__properties: DrvEpcPropertiesC = DrvEpcPropertiesC(can_id = can_id)
