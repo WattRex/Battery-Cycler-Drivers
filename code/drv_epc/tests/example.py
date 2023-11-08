@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python3 # pylint: disable= duplicate-code
 """
 This module will manage CAN messages and channels
 in order to configure channels and send/received messages.
@@ -34,6 +34,8 @@ from src.wattrex_driver_epc import DrvEpcDeviceC, DrvEpcLimitE, DrvEpcModeE
 #######################              ENUMS               #######################
 
 #######################             CLASSES              #######################
+path = os.path.join(os.getcwd(),'tests','example')
+
 class _ConstantsC():
     TO_MILIS = 1000
     TO_DECIS = 100
@@ -46,7 +48,7 @@ class _ManageEpcC():
         self.epc= DrvEpcDeviceC(can_id)
 
         self.df_epc = open(os.path.join(path, #pylint: disable= consider-using-with
-                    f'epc{hex(epc_dev.epc.get_properties().can_id)}_data.csv'), 'a', 
+                    f'epc{hex(can_id)}_data.csv'), 'a', 
                     encoding="utf-8")
         if len(txt)!=0:
             self.file = open( # pylint: disable= consider-using-with
@@ -94,7 +96,6 @@ if __name__ == '__main__':
         can = DrvCanNodeC(tx_buffer_size = 150, working_flag = _working_can)
         can.start()
 
-        path = os.path.join(os.getcwd(),'example')
         if not os.path.exists(path):
             os.mkdir(path)
         n_dev = input("Introduce the can_id of "+
