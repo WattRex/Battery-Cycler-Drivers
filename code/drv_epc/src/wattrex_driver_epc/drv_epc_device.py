@@ -9,7 +9,6 @@ from __future__ import annotations
 
 #######################         GENERIC IMPORTS          #######################
 from enum import Enum
-from subprocess import run, PIPE
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
 from system_logger_tool import SysLogLoggerC, sys_log_logger_get_module_logger
 if __name__ == '__main__':
