@@ -7,7 +7,7 @@ from .drv_db_types import DrvDbCyclingModeE, DrvDbEquipStatusE, DrvDbExpStatusE,
                         DrvDbCyclingLimitE, DrvDbMembraneTypeE, DrvDbElectrolyteTypeE, \
                         DrvDbBatteryTechE, DrvDbBipolarTypeE, DrvDbDeviceTypeE, \
                         DrvDbLeadAcidChemistryE, DrvDbLithiumChemistryE, DrvDbAvailableCuE, \
-                        DrvDbPolarityE
+                        DrvDbPolarityE, DrvDbConnStatusE
 from .drv_db_dao_base import DrvDbAlarmC
 from .drv_db_dao_cache import (DrvDbCacheExperimentC, DrvDbCacheGenericMeasureC,
                             DrvDbCacheExtendedMeasureC, DrvDbCacheStatusC)
