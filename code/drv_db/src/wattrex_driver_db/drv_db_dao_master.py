@@ -25,14 +25,13 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 
 
 #######################          MODULE IMPORTS          #######################
-from .drv_db_types import (DrvDbBatteryTechE, DrvDbBipolarTypeE, DrvDbCyclingLimitE,
-                        DrvDbCyclingModeE, DrvDbDeviceTypeE, DrvDbElectrolyteTypeE,
-                        DrvDbLeadAcidChemistryE, DrvDbLithiumChemistryE, DrvDbMembraneTypeE,
-                        DrvDbAvailableCuE, DrvDbConnStatusE, DrvDbRedoxPolarityE)
-from .drv_db_dao_base import (DrvDbBaseStatusC, DrvDbBaseExperimentC, DrvDbBaseExtendedMeasureC,
-                            DrvDbBaseGenericMeasureC)
-from .drv_db_dao_cache import (DrvDbCacheExperimentC, DrvDbCacheGenericMeasureC,
-                            DrvDbCacheExtendedMeasureC, DrvDbCacheStatusC)
+from .drv_db_types import DrvDbBatteryTechE, DrvDbBipolarTypeE, DrvDbCyclingLimitE, \
+                        DrvDbCyclingModeE, DrvDbDeviceTypeE, DrvDbElectrolyteTypeE, \
+                        DrvDbLeadAcidChemistryE, DrvDbLithiumChemistryE, DrvDbMembraneTypeE,\
+                        DrvDbAvailableCuE, DrvDbPolarityE, DrvDbConnStatusE
+from .drv_db_dao_base import DrvDbBaseStatusC, DrvDbBaseExperimentC, DrvDbBaseExtendedMeasureC, \
+                            DrvDbBaseGenericMeasureC
+
 #######################              ENUMS               #######################
 
 
@@ -105,7 +104,8 @@ class DrvDbComputationalUnitC(Base):
     __tablename__ = 'ComputationalUnit'
 
     CUID = Column(MEDIUMINT(unsigned=True), primary_key=True)
-    Name = Column(String(50), nullable=False)
+    MAC = Column(String(30), nullable=False)
+    HostName = Column(String(50), nullable=False)
     IP = Column(String(20), nullable=False)
     Port = Column(SMALLINT(unsigned=True), nullable=False)
     User = Column(String(30), nullable=False)
@@ -180,7 +180,7 @@ class DrvDbLinkConfigurationC(Base):
 
     CompDevID = Column(ForeignKey(DrvDbCompatibleDeviceC.CompDevID), primary_key=True,
                     nullable=False)
-    Property = Column(String(30), primary_key = True, nullable=False)
+    Property = Column(String(30), nullable=False, primary_key=True)
     Value = Column(String(30), nullable=False)
 
 class DrvDbAvailableMeasuresC(Base):
@@ -251,20 +251,6 @@ class DrvDbMasterExperimentC(DrvDbBaseExperimentC): #pylint: disable=too-many-in
     BatID = Column(ForeignKey(DrvDbBatteryC.BatID), nullable=False)
     ProfID = Column(ForeignKey(DrvDbProfileC.ProfID), nullable=False)
 
-    def transform(self, exp: DrvDbCacheExperimentC):
-        """Transform an experiment from cache DB to master DB.
-        """
-        self.ExpID = exp.ExpID #pylint: disable=invalid-name
-        self.Name = exp.Name #pylint: disable=invalid-name
-        self.Description = exp.Description #pylint: disable=invalid-name
-        self.BatID = exp.BatID #pylint: disable=invalid-name
-        self.CSID = exp.CSID #pylint: disable=invalid-name
-        self.ProfID = exp.ProfID #pylint: disable=invalid-name
-        self.DateCreation = exp.DateCreation #pylint: disable=invalid-name
-        self.DateBegin = exp.DateBegin #pylint: disable=invalid-name
-        self.DateFinish = exp.DateFinish #pylint: disable=invalid-name
-        self.Status = exp.Status #pylint: disable=invalid-name
-
 
 class DrvDbMasterGenericMeasureC(DrvDbBaseGenericMeasureC): #pylint: disable=too-many-instance-attributes
     '''
@@ -275,18 +261,7 @@ class DrvDbMasterGenericMeasureC(DrvDbBaseGenericMeasureC): #pylint: disable=too
                       {'extend_existing': True},)
 
     InstrID = Column(ForeignKey(DrvDbInstructionC.InstrID), nullable=False)
-
-    def transform(self, exp: DrvDbCacheGenericMeasureC):
-        """Transform a generic measurement from cache DB to master DB.
-        """
-        self.Timestamp = exp.Timestamp #pylint: disable=invalid-name
-        self.InstrID = exp.InstrID #pylint: disable=invalid-name
-        self.ExpID = exp.ExpID #pylint: disable=invalid-name
-        self.MeasID = exp.MeasID #pylint: disable=invalid-name
-        self.Current = exp.Current #pylint: disable=invalid-name
-        self.Voltage = exp.Voltage #pylint: disable=invalid-name
-        self.Power = exp.Power #pylint: disable=invalid-name
-        self.PwrMode = exp.PwrMode #pylint: disable=invalid-name
+    PowerMode = Column(Enum(*DrvDbCyclingModeE.get_all_values()))
 
 class DrvDbMasterExtendedMeasureC(DrvDbBaseExtendedMeasureC):
     '''
@@ -299,14 +274,6 @@ class DrvDbMasterExtendedMeasureC(DrvDbBaseExtendedMeasureC):
     UsedMeasID = Column(ForeignKey(DrvDbUsedMeasuresC.UsedMeasID),
                       primary_key=True, nullable=False)
 
-    def transform(self, exp: DrvDbCacheExtendedMeasureC):
-        """Transform an extended measurement from cache DB to master DB.
-        """
-        self.UsedMeasID = exp.UsedMeasID #pylint: disable=invalid-name
-        self.ExpID = exp.ExpID #pylint: disable=invalid-name
-        self.Value = exp.Value #pylint: disable=invalid-name
-        self.MeasID = exp.MeasID #pylint: disable=invalid-name
-
 class DrvDbMasterStatusC(DrvDbBaseStatusC):
     '''
     Class method to create a DRVDB model of database Status table.
@@ -316,15 +283,6 @@ class DrvDbMasterStatusC(DrvDbBaseStatusC):
                       {'extend_existing': True},)
 
     DevID = Column(ForeignKey(DrvDbUsedDeviceC.DevID), primary_key=True, nullable=False)
-
-    def transform(self, exp: DrvDbCacheStatusC):
-        """Transform a status from cache DB to master DB.
-        """
-        self.DevID = exp.DevID #pylint: disable=invalid-name
-        self.ExpID = exp.ExpID #pylint: disable=invalid-name
-        self.Status = exp.Status #pylint: disable=invalid-name
-        self.ErrorCode = exp.ErrorCode #pylint: disable=invalid-name
-        self.Timestamp = exp.Timestamp #pylint: disable=invalid-name
 
 class DrvDbRedoxElectrolyteC(Base):
     '''
@@ -336,8 +294,7 @@ class DrvDbRedoxElectrolyteC(Base):
 
     BatID = Column(ForeignKey(DrvDbBatteryC.BatID), primary_key=True, nullable=False)
     ExpID = Column(ForeignKey(DrvDbMasterExperimentC.ExpID), primary_key=True, nullable=False)
-    Polarity = Column(Enum(*(DrvDbRedoxPolarityE.get_all_values())), primary_key=True,
-                      nullable=False)
+    Polarity = Column(Enum(*DrvDbPolarityE.get_all_values()), nullable=False)
     ElectrolyteVol = Column(MEDIUMINT(unsigned=True), nullable=False)
     InitialSOC = Column(MEDIUMINT(unsigned=True), nullable=False)
     MinFlowRate = Column(MEDIUMINT(unsigned=True), nullable=False)

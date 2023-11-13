@@ -1,5 +1,4 @@
-bitarray>=2.8.1
-can_sniffer>=0.0.6
-pytz>=2023.3
 system_logger_tool>=0.0.3
 system_shared_tool>=0.2.5
+can_sniffer>=0.0.7
+wattrex_driver_base>=0.0.3
