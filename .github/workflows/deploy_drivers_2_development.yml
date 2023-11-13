@@ -25,9 +25,8 @@ jobs:
     uses: WattRex/System-Tools/.github/workflows/build_python_package.yml@develop
     with:
       package-name: ${{ github.ref_name }}
-      package-path: code/${{ github.ref_name }}
-      source-path: code/${{ github.ref_name }}
-      python-version: "3.10"
+      package-path: "code/${{ github.ref_name }}"
+      source-path: "code/${{ github.ref_name }}/src"
 
   build-package-on-pull-request:
     if: ${{ github.event_name == 'pull_request_review' && github.event.review.state == 'approved' }}
@@ -35,12 +34,11 @@ jobs:
     uses: WattRex/System-Tools/.github/workflows/build_python_package.yml@develop
     with:
       package-name: ${{ github.event.pull_request.head.ref }}
-      package-path: code/${{ github.event.pull_request.head.ref }}
-      source-path: code/${{ github.event.pull_request.head.ref }}
+      package-path: "code/${{ github.event.pull_request.head.ref }}"
+      source-path: "code/${{ github.event.pull_request.head.ref }}/src"
       python-version: "3.10"
 
   publish-package:
-
     name: Publish package ${{ github.event.pull_request.head.ref }} to PyPi
     if:     ${{ github.event_name == 'pull_request_review' }} && ${{ github.event.review.state == 'approved' }}
     needs: build-package-on-pull-request
@@ -48,11 +46,6 @@ jobs:
     environment: development
     permissions:
       id-token: write
-      # strategy:
-        #   fail-fast: false
-        #   matrix:
-          #     # python-version: ["3.7", "3.9", "3.11"]
-          #     python-version: ["3.11"]
 
     steps:
       - name: Download a single artifact
