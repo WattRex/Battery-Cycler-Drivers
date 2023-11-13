@@ -6,6 +6,7 @@ Create a driver mqqtt broker to subsc.
 from __future__ import annotations
 
 #######################         GENERIC IMPORTS          #######################
+
 #######################       THIRD PARTY IMPORTS        #######################
 from paho.mqtt.client import Client, MQTTv311, MQTTMessage
 from paho.mqtt.properties import Properties
@@ -17,7 +18,6 @@ from system_logger_tool import Logger, sys_log_logger_get_module_logger
 log: Logger = sys_log_logger_get_module_logger(__name__)
 
 #######################          PROJECT IMPORTS         #######################
-
 
 #######################          MODULE IMPORTS          #######################
 
@@ -114,6 +114,16 @@ class DrvMqttDriverC:
         log.debug(f"Subscribing to [{topic}]")
         self.__subs_topics[topic] = callback
         self.__client.subscribe(topic=topic, qos=DRV_MQTT_QOS)
+
+    def unsubscribe(self, topic):
+        """Unsubscribe from a topic
+
+        Args:
+            topic ([type]): [description]
+        """
+        log.debug(f"Unsubscribing from [{topic}]")
+        self.__client.unsubscribe(topic=topic)
+        self.__subs_topics.pop(topic)
 
     def process_data(self):
         """Processes the incoming data and waits for it to complete .
