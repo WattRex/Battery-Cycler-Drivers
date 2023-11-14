@@ -59,10 +59,8 @@ class DrvDbSqlEngineC:
 
             # create engine
             if db_type == DrvDbTypeE.CACHE_DB:
-                # and params['engine'] == DrvDbTypeE.CACHE_DB.value:
                 url = 'mysql+mysqlconnector://'
             elif db_type == DrvDbTypeE.MASTER_DB:
-                # and params['engine'] == DrvDbTypeE.MASTER_DB.value:
                 url = 'mysql+mysqlconnector://'
                 section = 'cache_db'
             else:
