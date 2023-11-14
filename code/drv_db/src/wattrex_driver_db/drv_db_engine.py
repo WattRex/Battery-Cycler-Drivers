@@ -38,7 +38,7 @@ class DrvDbSqlEngineC:
 
     __MAX_RESETS = 2
 
-    def __init__(self, db_type : DrvDbTypeE, config_file: str, section: str|None = None):
+    def __init__(self, db_type : DrvDbTypeE, config_file: str):
         '''
         Create an connector to the MySQL database server
 
@@ -58,9 +58,11 @@ class DrvDbSqlEngineC:
             params = sys_conf_read_config_params(filename=config_file, section= section)
 
             # create engine
-            if db_type == DrvDbTypeE.CACHE_DB and params['engine'] == DrvDbTypeE.CACHE_DB.value:
+            if db_type == DrvDbTypeE.CACHE_DB:
+                # and params['engine'] == DrvDbTypeE.CACHE_DB.value:
                 url = 'mysql+mysqlconnector://'
-            elif db_type == DrvDbTypeE.MASTER_DB and params['engine'] == DrvDbTypeE.MASTER_DB.value:
+            elif db_type == DrvDbTypeE.MASTER_DB:
+                # and params['engine'] == DrvDbTypeE.MASTER_DB.value:
                 url = 'mysql+mysqlconnector://'
                 section = 'cache_db'
             else:

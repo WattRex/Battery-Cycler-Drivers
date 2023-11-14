@@ -34,7 +34,7 @@ def test_read() -> None:
     """Runs the test read command from master database.
     """
     drv = DrvDbSqlEngineC(db_type=DrvDbTypeE.MASTER_DB,
-                          config_file='code/drv_db/tests/.cred.yaml', section='master_db')
+                          config_file='code/drv_db/tests/.cred.yaml')
     log.info("Connected to master database.")
 
     stmt = select(DrvDbBatteryC)
