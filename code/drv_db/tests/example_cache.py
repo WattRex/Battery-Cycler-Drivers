@@ -33,7 +33,7 @@ def test_read() -> None:
     """Runs the test read command from cache database.
     """
     drv = DrvDbSqlEngineC(db_type=DrvDbTypeE.CACHE_DB,
-                          config_file='code/drv_db/tests/.cred.yaml', section='cache_db')
+                          config_file='code/drv_db/tests/.cred.yaml')
     print("Connection done")
     stmt = select(DrvDbCacheExperimentC)
     result = drv.session.execute(stmt).all()

@@ -32,8 +32,8 @@ class BaseEnum(Enum):
 class DrvDbTypeE(BaseEnum):
     '''Enum used to define database types.
     '''
-    CACHE_DB = 'mysql'
-    MASTER_DB = 'mysql'
+    CACHE_DB = 'cache_db'
+    MASTER_DB = 'master_db'
 
 ### CYCLER ###
 class DrvDbBatteryTechE(BaseEnum):          # pylint: disable= too-many-ancestors
