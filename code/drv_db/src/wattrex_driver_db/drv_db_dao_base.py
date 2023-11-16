@@ -14,7 +14,7 @@ sqlacodegen mysql+mysqlconnector://user:password@ip:port/db_name --outfile drv_d
 #######################       THIRD PARTY IMPORTS        #######################
 from sqlalchemy import Column, DateTime, ForeignKey, String, Enum, ForeignKeyConstraint
 from sqlalchemy.dialects.mysql import INTEGER, MEDIUMINT, SMALLINT
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
 from system_logger_tool import Logger, sys_log_logger_get_module_logger
