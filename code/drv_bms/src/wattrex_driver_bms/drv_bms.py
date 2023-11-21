@@ -17,22 +17,16 @@ path.append(os.getcwd())
 from system_logger_tool import sys_log_logger_get_module_logger # pylint: disable=wrong-import-position
 log = sys_log_logger_get_module_logger(__name__)
 from system_shared_tool import SysShdIpcChanC # pylint: disable=wrong-import-position
-from system_config_tool import sys_conf_read_config_params
 #######################          PROJECT IMPORTS         #######################
 from can_sniffer import DrvCanCmdTypeE, DrvCanCmdDataC, DrvCanFilterC, DrvCanMessageC
 from wattrex_driver_base import DrvBaseStatusE, DrvBaseStatusC
 
 #######################          MODULE IMPORTS          #######################
 
+######################             CONSTANTS              ######################
+from .context import (DEFAULT_MAX_MSG, DEFAULT_MAX_MESSAGE_SIZE, DEFAULT_RX_CHAN,
+                      DEFAULT_TX_CHAN, DEFAULT_MEASURE_NAMES, DEFAULT_TIMEOUT_RESPONSE)
 #######################              ENUMS               #######################
-_MAX_MSG = 100
-_MAX_MESSAGE_SIZE = 120
-_TX_CHAN = 'TX_CAN'
-_RX_CHAN = 'RX_CAN_BMS'
-_MEASURE_NAMES = ['vcell1', 'vcell2', 'vcell3', 'vcell4', 'vcell5', 'vcell6', 'vcell7', 'vcell8',
-                    'vcell9', 'vcell10', 'vcell11', 'vcell12', 'vstack', 'temp1', 'temp2', 'temp3',
-                    'temp4', 'pres1', 'pres2']
-_TIMEOUT_RESPONSE = 30
 
 class _BmsStatusE(Enum):
     "Modes of the device"
@@ -87,9 +81,9 @@ class DrvBmsDataC(): #pylint: disable=too-many-instance-attributes
         self.pres1: int = 0
         self.pres2: int = 0
 
-        if len(list_measures) == len(_MEASURE_NAMES):
+        if len(list_measures) == len(DEFAULT_MEASURE_NAMES):
             self.status: DrvBaseStatusC = DrvBaseStatusC(DrvBaseStatusE.OK)
-            for count, value in enumerate(_MEASURE_NAMES):
+            for count, value in enumerate(DEFAULT_MEASURE_NAMES):
                 setattr(self, value, list_measures[count])
         elif len(list_measures) == 0:
             pass
@@ -139,40 +133,17 @@ class DrvBmsDataC(): #pylint: disable=too-many-instance-attributes
 
 class DrvBmsDeviceC: #pylint: disable=too-many-instance-attributes
     "Principal class of BMS"
-    def __init__(self, can_id: int, rx_chan_name: str|None = None,
-                 config_file: str|None = None) -> None:
+    def __init__(self, can_id: int, rx_chan_name: str= DEFAULT_RX_CHAN) -> None:
         """Constructor of the class."""
-        if config_file is not None:
-            config = sys_conf_read_config_params(config_file, section= 'bms')
-            for param in config:
-                if param == 'RX_CHANNEL':
-                    global _RX_CHAN # pylint: disable=global-statement
-                    _RX_CHAN = config[param]
-                elif param == 'TX_CHANNEL':
-                    global _TX_CHAN # pylint: disable=global-statement
-                    _TX_CHAN = config[param]
-                elif param == 'MAX_MSG':
-                    global _MAX_MSG # pylint: disable=global-statement
-                    _MAX_MSG = config[param]
-                elif param == 'MAX_MESSAGE_SIZE':
-                    global _MAX_MESSAGE_SIZE # pylint: disable=global-statement
-                    _MAX_MESSAGE_SIZE = config[param]
-                elif param == 'TIMEOUT_RESPONSE':
-                    global _TIMEOUT_RESPONSE # pylint: disable=global-statement
-                    _TIMEOUT_RESPONSE = config[param]
-                else:
-                    log.error(f"Parameter {param} not found in config file")
         self.__can_id: int = (int(0x100) | can_id) & 0x7FF
         log.info(f"Device ID: {self.__can_id: 03x}")
         self.__data = DrvBmsDataC([])
         self.__data.status = DrvBaseStatusC(DrvBaseStatusE.OK)
-        self.__tx_chan = SysShdIpcChanC(name = _TX_CHAN)
-        if rx_chan_name is None:
-            rx_chan_name = _RX_CHAN
+        self.__tx_chan = SysShdIpcChanC(name = DEFAULT_TX_CHAN)
         self.__rx_chan_name = rx_chan_name + '_' + str(f'{self.__can_id & 0x00F:02x}')
         self.__rx_chan = SysShdIpcChanC(name = self.__rx_chan_name,
-                                      max_msg = _MAX_MSG,
-                                      max_message_size = _MAX_MESSAGE_SIZE)
+                                      max_msg = DEFAULT_MAX_MSG,
+                                      max_message_size = DEFAULT_MAX_MESSAGE_SIZE)
         filter_bms = DrvCanFilterC(addr=self.__can_id, mask=0x7FF, chan_name=self.__rx_chan_name)
         add_msg = DrvCanCmdDataC(data_type = DrvCanCmdTypeE.ADD_FILTER,
                                 payload = filter_bms)
@@ -192,7 +163,7 @@ class DrvBmsDeviceC: #pylint: disable=too-many-instance-attributes
             raw_data: DrvCanMessageC = self.__rx_chan.receive_data_unblocking()
             self._defragment(raw_data.payload)
         # Check if message receive between expected time
-        if self.__last_recv_ts + timedelta(seconds=_TIMEOUT_RESPONSE) < datetime.now():
+        if self.__last_recv_ts + timedelta(seconds=DEFAULT_TIMEOUT_RESPONSE) < datetime.now():
             if self.__data.status == DrvBaseStatusE.OK:
                 self.__data.status = DrvBaseStatusC(DrvBaseStatusE.COMM_ERROR)
             log.error(f"Timeout on communication with BMS: {self.__data.status}")
