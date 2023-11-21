@@ -133,8 +133,9 @@ class DrvCanNodeC(SysShdNodeC): #pylint: disable= abstract-method
     """Class to manage the CAN communication.
     """
 
-    def __init__(self, working_flag : Event, tx_buffer_size: int|None = None, name: str|None= None,
-                cycle_period: int|None= None,
+    def __init__(self, working_flag : Event, tx_buffer_size: int= DEFAULT_CHAN_NUM_MSG,
+                 name: str= DEFAULT_NODE_NAME,
+                cycle_period: int = DEFAULT_NODE_PERIOD,
                 can_params: SysShdNodeParamsC = SysShdNodeParamsC()) -> None:
         """ Initialize the CAN node.
 
@@ -145,12 +146,6 @@ class DrvCanNodeC(SysShdNodeC): #pylint: disable= abstract-method
             cycle_period (int, optional): [Period in miliseconds]. Defaults to 100.
             can_params (SysShdNodeParamsC, optional): [description]. Defaults to SysShdNodeParamsC()
         """
-        if cycle_period is None:
-            cycle_period = DEFAULT_NODE_PERIOD
-        if name is None:
-            name = DEFAULT_NODE_NAME
-        if tx_buffer_size is None:
-            tx_buffer_size = DEFAULT_CHAN_NUM_MSG
         super().__init__(name=name, cycle_period=cycle_period, working_flag=working_flag,
                         node_params=can_params)
         self.working_flag = working_flag
