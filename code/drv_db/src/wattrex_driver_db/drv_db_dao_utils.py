@@ -62,6 +62,7 @@ def transform_status_db(source: DrvDbCacheStatusC| DrvDbMasterStatusC,
                         target: DrvDbCacheStatusC| DrvDbMasterStatusC):
     """Transform a status from cache DB to master DB.
     """
+    target.StatusID = source.StatusID #pylint: disable=invalid-name
     target.DevID = source.DevID #pylint: disable=invalid-name
     target.ExpID = source.ExpID #pylint: disable=invalid-name
     target.Status = source.Status #pylint: disable=invalid-name
