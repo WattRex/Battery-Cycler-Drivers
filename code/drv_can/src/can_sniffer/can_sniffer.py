@@ -22,10 +22,15 @@ if __name__ == '__main__':
 log: Logger = sys_log_logger_get_module_logger(__name__)
 
 from system_shared_tool import SysShdIpcChanC, SysShdNodeC, SysShdNodeParamsC, SysShdNodeStatusE
+#######################          PROJECT IMPORTS         #######################
+
 #######################          MODULE IMPORTS          #######################
 
+######################             CONSTANTS              ######################
+from .context import (DEFAULT_CHAN_NUM_MSG, DEFAULT_MAX_MSG_SIZE, DEFAULT_TIMEOUT_SEND_MSG,
+                      DEFAULT_TIMEOUT_RX_MSG, DEFAULT_NODE_PERIOD, DEFAULT_NODE_NAME,
+                      DEFAULT_TX_NAME, DEFAULT_IFACE_NAME, DEFAULT_IFACE_CHAN_NAME)
 
-#######################          PROJECT IMPORTS         #######################
 
 #######################              ENUMS               #######################
 
@@ -35,8 +40,6 @@ class _Constants:
     """
     Class to store constants used in the module.
     """
-    MAX_MESSAGE_SIZE: int = 250
-    TIMEOUT_SEND_MSG : float = 0.2
     TIMEOUT_RX_MSG : float = 0.02
     MAX_DLC_SIZE : int = 8
     MIN_ID          = 0x000     # As the last 4 bits will identify the messages are reserved
@@ -130,8 +133,8 @@ class DrvCanNodeC(SysShdNodeC): #pylint: disable= abstract-method
     """Class to manage the CAN communication.
     """
 
-    def __init__(self, tx_buffer_size: int, working_flag : Event, name: str= "CAN_NODE",
-                cycle_period: int= 200,
+    def __init__(self, working_flag : Event, tx_buffer_size: int|None = None, name: str|None= None,
+                cycle_period: int|None= None,
                 can_params: SysShdNodeParamsC = SysShdNodeParamsC()) -> None:
         """ Initialize the CAN node.
 
@@ -142,19 +145,24 @@ class DrvCanNodeC(SysShdNodeC): #pylint: disable= abstract-method
             cycle_period (int, optional): [Period in miliseconds]. Defaults to 100.
             can_params (SysShdNodeParamsC, optional): [description]. Defaults to SysShdNodeParamsC()
         """
-
+        if cycle_period is None:
+            cycle_period = DEFAULT_NODE_PERIOD
+        if name is None:
+            name = DEFAULT_NODE_NAME
+        if tx_buffer_size is None:
+            tx_buffer_size = DEFAULT_CHAN_NUM_MSG
         super().__init__(name=name, cycle_period=cycle_period, working_flag=working_flag,
                         node_params=can_params)
         self.working_flag = working_flag
         # cmd_can_down = 'sudo ip link set down can0'
-        self.__can_bus : ThreadSafeBus = ThreadSafeBus(interface='socketcan',
-                                channel='can0', bitrate=125000,
+        self.__can_bus : ThreadSafeBus = ThreadSafeBus(interface=DEFAULT_IFACE_NAME,
+                                channel=DEFAULT_IFACE_CHAN_NAME, bitrate=125000,
                                 receive_own_messages=False, fd=True)
         self.__can_bus.flush_tx_buffer()
 
-        self.tx_buffer: SysShdIpcChanC = SysShdIpcChanC(name='TX_CAN',
-                                            max_msg = int(tx_buffer_size),
-                                            max_message_size= _Constants.MAX_MESSAGE_SIZE)
+        self.tx_buffer: SysShdIpcChanC = SysShdIpcChanC(name= DEFAULT_TX_NAME,
+                                            max_msg = tx_buffer_size,
+                                            max_message_size= DEFAULT_MAX_MSG_SIZE)
 
         self.__active_filter: List[_CanActiveFilterC] = []
 
@@ -231,7 +239,7 @@ class DrvCanNodeC(SysShdNodeC): #pylint: disable= abstract-method
         msg = Message(arbitration_id=data.addr, is_extended_id=False,
                     dlc=data.dlc, data=bytes(data.payload))
         try:
-            self.__can_bus.send(msg, timeout=_Constants.TIMEOUT_SEND_MSG)
+            self.__can_bus.send(msg, timeout=DEFAULT_TIMEOUT_SEND_MSG)
             log.debug("Message correctly send")
         except CanOperationError as err:
             log.error(err)
@@ -291,9 +299,9 @@ class DrvCanNodeC(SysShdNodeC): #pylint: disable= abstract-method
                 log.debug(f"Command to apply: {command.data_type.name}")
                 self.__apply_command(command)
                 self.status = SysShdNodeStatusE.OK
-            msg : Message = self.__can_bus.recv(timeout=_Constants.TIMEOUT_RX_MSG)
+            msg : Message = self.__can_bus.recv(timeout=DEFAULT_TIMEOUT_RX_MSG)
             if isinstance(msg,Message):
-                if (0x000 <= msg.arbitration_id <= 0x7FF
+                if (_Constants.MIN_ID <= msg.arbitration_id <= _Constants.MAX_ID
                     and not msg.is_error_frame):
                     self.__parse_msg(DrvCanMessageC(msg.arbitration_id,msg.dlc,msg.data))
                 else:
