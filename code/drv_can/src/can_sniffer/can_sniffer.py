@@ -40,7 +40,6 @@ class _Constants:
     """
     Class to store constants used in the module.
     """
-    TIMEOUT_RX_MSG : float = 0.02
     MAX_DLC_SIZE : int = 8
     MIN_ID          = 0x000     # As the last 4 bits will identify the messages are reserved
     MAX_ID          = 0x7FF     # In standard mode the can id max value is 0x7FF
