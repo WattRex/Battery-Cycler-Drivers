@@ -258,7 +258,6 @@ class DrvDbMasterGenericMeasureC(DrvDbCacheGenericMeasureC): #pylint: disable=to
                       {'extend_existing': True},)
 
     InstrID = Column(nullable=False)
-    PowerMode = Column(Enum(*DrvDbCyclingModeE.get_all_values()))
 
 class DrvDbMasterExtendedMeasureC(DrvDbCacheExtendedMeasureC):
     '''

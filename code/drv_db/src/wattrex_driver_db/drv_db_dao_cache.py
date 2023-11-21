@@ -12,8 +12,7 @@ sqlacodegen mysql+mysqlconnector://user:password@ip:port/db_name --outfile drv_d
 #######################         GENERIC IMPORTS          #######################
 
 #######################       THIRD PARTY IMPORTS        #######################
-from sqlalchemy import (Column, Enum, PrimaryKeyConstraint, ForeignKeyConstraint, ForeignKey,
-                        DateTime, String)
+from sqlalchemy import Column, Enum, PrimaryKeyConstraint, ForeignKeyConstraint, DateTime, String
 from sqlalchemy.dialects.mysql import MEDIUMINT, INTEGER, SMALLINT
 from sqlalchemy.orm import declarative_base
 
@@ -66,7 +65,6 @@ class DrvDbCacheGenericMeasureC(Base):
     Voltage = Column(MEDIUMINT(), nullable=False)
     Current = Column(MEDIUMINT(), nullable=False)
     Power = Column(INTEGER())
-
     InstrID = Column(MEDIUMINT(unsigned=True), nullable=False)
     PowerMode = Column(Enum(*DrvDbCyclingModeE.get_all_values()), nullable= False)
 
@@ -76,7 +74,7 @@ class DrvDbCacheExtendedMeasureC(Base):
     '''
     __tablename__ = 'ExtendedMeasures'
     __table_args__ = (PrimaryKeyConstraint('ExpID', 'MeasID', 'UsedMeasID'),
-                    ForeignKeyConstraint(['ExpID', 'MeasID'], [DrvDbCacheGenericMeasureC.ExpID, 
+                    ForeignKeyConstraint(['ExpID', 'MeasID'], [DrvDbCacheGenericMeasureC.ExpID,
                                                             DrvDbCacheGenericMeasureC.MeasID]),)
 
     ExpID = Column(primary_key= True, nullable=False)
@@ -97,16 +95,3 @@ class DrvDbCacheStatusC(Base):
     Status = Column(Enum(*DrvDbEquipStatusE.get_all_values()), nullable=False)
     ErrorCode = Column(SMALLINT(unsigned=True), nullable=False)
     DevID = Column(MEDIUMINT(unsigned=True), nullable=False)
-
-# class DrvDbAlarmC(Base):
-#     '''
-#     Class method to create a base model of database Alarm table.
-#     '''
-#     __tablename__ = 'Alarm'
-#     __table_args__ = (ForeignKeyConstraint(['ExpID'], [DrvDbCacheExperimentC.ExpID]),)
-
-#     ExpID = Column(primary_key=True, nullable=False)
-#     AlarmID = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False)
-#     Timestamp = Column(DateTime, nullable=False)
-#     Code = Column(MEDIUMINT(unsigned=True), nullable=False)
-#     Value = Column(MEDIUMINT(), nullable=False)
