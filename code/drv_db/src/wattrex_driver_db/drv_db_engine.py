@@ -29,6 +29,8 @@ from .drv_db_types import DrvDbTypeE
 
 #######################              ENUMS               #######################
 
+######################             CONSTANTS              ######################
+from .context import DEFAULT_CRED_FILEPATH
 
 #######################             CLASSES              #######################
 class DrvDbSqlEngineC:
@@ -38,7 +40,7 @@ class DrvDbSqlEngineC:
 
     __MAX_RESETS = 2
 
-    def __init__(self, db_type : DrvDbTypeE, config_file: str):
+    def __init__(self, db_type : DrvDbTypeE, config_file: str= DEFAULT_CRED_FILEPATH):
         '''
         Create an connector to the MySQL database server
 

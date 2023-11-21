@@ -12,8 +12,8 @@ sqlacodegen mysql+mysqlconnector://user:password@ip:port/db_name --outfile drv_d
 #######################         GENERIC IMPORTS          #######################
 
 #######################       THIRD PARTY IMPORTS        #######################
-from sqlalchemy import Column, DateTime, ForeignKey, String, Enum, ForeignKeyConstraint
-from sqlalchemy.dialects.mysql import INTEGER, MEDIUMINT, SMALLINT
+from sqlalchemy import Column, DateTime, ForeignKeyConstraint
+from sqlalchemy.dialects.mysql import MEDIUMINT
 from sqlalchemy.orm import declarative_base
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
@@ -24,7 +24,7 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 
 
 #######################          MODULE IMPORTS          #######################
-from .drv_db_types import DrvDbExpStatusE, DrvDbEquipStatusE
+from .drv_db_dao_cache import DrvDbCacheExperimentC
 
 #######################              ENUMS               #######################
 
@@ -33,68 +33,15 @@ from .drv_db_types import DrvDbExpStatusE, DrvDbEquipStatusE
 Base = declarative_base()
 metadata = Base.metadata
 
-class DrvDbBaseExperimentC(Base):
-    '''
-    Class method to create a simplified model of database GenericMeasures table.
-    '''
-    __tablename__ = 'Experiment'
-
-    ExpID = Column(MEDIUMINT(unsigned=True), primary_key=True)
-    Name = Column(String(30), nullable=False)
-    Description = Column(String(250), nullable=False)
-    DateCreation = Column(DateTime, nullable=False)
-    DateBegin = Column(DateTime, nullable=True)
-    DateFinish = Column(DateTime, nullable=True)
-    Status = Column(Enum(*DrvDbExpStatusE.get_all_values()), nullable=False)
-
-class DrvDbBaseGenericMeasureC(Base):
-    '''
-    Class method to create a simplified model of database GenericMeasures table.
-    '''
-    __tablename__ = 'GenericMeasures'
-    __table_args__ = (ForeignKeyConstraint(['ExpID'], [DrvDbBaseExperimentC.ExpID]),)
-
-    ExpID = Column(ForeignKey(DrvDbBaseExperimentC.ExpID), primary_key=True, nullable=False)
-    MeasID = Column(INTEGER(unsigned=True), primary_key=True, nullable=False)
-    Timestamp = Column(DateTime, nullable=False)
-    Voltage = Column(MEDIUMINT(), nullable=False)
-    Current = Column(MEDIUMINT(), nullable=False)
-    Power = Column(INTEGER())
-
-class DrvDbBaseExtendedMeasureC(Base):
-    '''
-    Class method to create a base model of database ExtendedMeasures table.
-    '''
-    __tablename__ = 'ExtendedMeasures'
-    __table_args__ = (ForeignKeyConstraint(['ExpID'], [DrvDbBaseGenericMeasureC.ExpID]),
-                      ForeignKeyConstraint(['MeasID'], [DrvDbBaseGenericMeasureC.MeasID]),)
-
-    ExpID = Column(ForeignKey(DrvDbBaseGenericMeasureC.ExpID), primary_key= True, nullable=False)
-    MeasID = Column(ForeignKey(DrvDbBaseGenericMeasureC.MeasID), primary_key= True, nullable=False)
-    Value = Column(MEDIUMINT(), nullable=False)
-
 class DrvDbAlarmC(Base):
     '''
     Class method to create a base model of database Alarm table.
     '''
     __tablename__ = 'Alarm'
-    __table_args__ = (ForeignKeyConstraint(['ExpID'], [DrvDbBaseExperimentC.ExpID]),)
+    __table_args__ = (ForeignKeyConstraint(['ExpID'], [DrvDbCacheExperimentC.ExpID]),)
 
-    ExpID = Column(ForeignKey(DrvDbBaseExperimentC.ExpID), primary_key=True, nullable=False)
+    ExpID = Column(primary_key=True, nullable=False)
     AlarmID = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False)
     Timestamp = Column(DateTime, nullable=False)
     Code = Column(MEDIUMINT(unsigned=True), nullable=False)
     Value = Column(MEDIUMINT(), nullable=False)
-
-class DrvDbBaseStatusC(Base):
-    '''
-    Class method to create a base model of database Status table.
-    '''
-    __tablename__ = 'Status'
-    __table_args__ = (ForeignKeyConstraint(['ExpID'], [DrvDbBaseExperimentC.ExpID]),)
-
-    StatusID = Column(MEDIUMINT(unsigned=True), primary_key=True, nullable=False)
-    ExpID = Column(ForeignKey(DrvDbBaseExperimentC.ExpID), primary_key=True, nullable=False)
-    Timestamp = Column(DateTime, nullable=False)
-    Status = Column(Enum(*DrvDbEquipStatusE.get_all_values()), nullable=False)
-    ErrorCode = Column(SMALLINT(unsigned=True), nullable=False)
