@@ -26,6 +26,9 @@ from .drv_epc_common import (DrvEpcDataC, DrvEpcDataCtrlC, DrvEpcPropertiesC, Dr
                 DrvEpcLimitE, DrvEpcModeE, EpcConstC)
 #######################          PROJECT IMPORTS         #######################
 
+######################             CONSTANTS              ######################
+from .context import (DEFAULT_MAX_MSG, DEFAULT_TX_CHAN, DEFAULT_RX_CHAN, DEFAULT_MAX_READS,
+                        DEFAULT_MAX_MESSAGE_SIZE)
 #######################              ENUMS               #######################
 
 class _EpcMsgTypeE(Enum):
@@ -51,7 +54,7 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
     """
     def __init__(self, can_id: int) -> None:
         self.__device_handler: SysShdIpcChanC
-        self.__tx_can = SysShdIpcChanC('TX_CAN')
+        self.__tx_can = SysShdIpcChanC(DEFAULT_TX_CHAN)
         self.__live_data : DrvEpcDataC = DrvEpcDataC()
         self.__properties: DrvEpcPropertiesC = DrvEpcPropertiesC(can_id = can_id)
 
@@ -72,7 +75,7 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
             log.debug("The device doesn`t have any message to read")
         else:
             i=0
-            while not self.__device_handler.is_empty() and i<=EpcConstC.MAX_READS:
+            while not self.__device_handler.is_empty() and i<=DEFAULT_MAX_READS:
                 i = i+1
                 # Read a message from the can queue of the device
                 msg: DrvCanMessageC = self.__device_handler.receive_data()
@@ -755,10 +758,11 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
             mask (int): [mask apply to the addr in order to save the can messages]
         """
         # After same test the posix channel needs to have a minimum message size of 150 bytes
-        self.__device_handler = SysShdIpcChanC(name= 'RX_CAN_'+hex(self.__properties.can_id),
-                                               max_message_size=EpcConstC.MIN_MSG_SIZE)
+        self.__device_handler = SysShdIpcChanC(name= DEFAULT_RX_CHAN+hex(self.__properties.can_id),
+                                               max_message_size=DEFAULT_MAX_MESSAGE_SIZE,
+                                               max_msg= DEFAULT_MAX_MSG)
         open_filter = DrvCanFilterC(addr=self.__properties.can_id,mask= EpcConstC.MASK_CAN_DEVICE,
-                                    chan_name= 'RX_CAN_'+hex(self.__properties.can_id))
+                                    chan_name= DEFAULT_RX_CHAN+hex(self.__properties.can_id))
         self.__send_to_can(DrvCanCmdTypeE.ADD_FILTER, open_filter)
         # Once the device can receive messages it has to know which hw version has
         # in order to identificate which sensors are present
@@ -773,7 +777,7 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         self.set_periodic(ack_en= False, elect_en= False, temp_en= False)
         self.read_can_buffer()
         close_filter = DrvCanFilterC(addr=self.__properties.can_id,mask= EpcConstC.MASK_CAN_DEVICE,
-                                    chan_name= 'RX_CAN_'+hex(self.__properties.can_id))
+                                    chan_name= DEFAULT_RX_CHAN+hex(self.__properties.can_id))
         self.__send_to_can(DrvCanCmdTypeE.REMOVE_FILTER, close_filter)
         self.__device_handler.delete_until_last()
         self.__device_handler.terminate()

@@ -22,6 +22,12 @@ from bitarray.util import int2ba
 
 #######################          PROJECT IMPORTS         #######################
 
+######################             CONSTANTS              ######################
+from .context import (DEFAULT_MAX_HS_VOLT, DEFAULT_MIN_HS_VOLT, DEFAULT_MAX_LS_VOLT,
+                        DEFAULT_MIN_LS_VOLT, DEFAULT_MAX_LS_CURR, DEFAULT_MIN_LS_CURR,
+                        DEFAULT_MAX_LS_PWR, DEFAULT_MIN_LS_PWR, DEFAULT_MAX_TEMP,
+                        DEFAULT_MIN_TEMP)
+
 #######################              ENUMS               #######################
 class DrvEpcLimitE(Enum):
     """
@@ -55,23 +61,21 @@ class EpcConstC:
     '''
     MIN_CAN_ID          = 0x000     # As the last 4 bits will identify the messages are reserved
     MAX_CAN_ID          = 0x7FF     # In standard mode the can id max value is 0x7FF
-    MAX_HS_VOLT         = 14100     # Max high side voltage the epc has as hardware limits
-    MIN_HS_VOLT         = 5300      # Min high side voltage the epc has as hardware limits
-    MAX_LS_VOLT         = 5100      # Max low side voltage the epc has as hardware limits
-    MIN_LS_VOLT         = 400       # Min low side voltage the epc has as hardware limits
-    MAX_LS_CURR         = 15500     # Max low side current the epc has as hardware limits
-    MIN_LS_CURR         = -15500    # Min low side current the epc has as hardware limits
-    MAX_LS_PWR          = 800       # Max low side power the epc has as hardware limits
-    MIN_LS_PWR          = -800      # Min low side power the epc has as hardware limits
-    MAX_TEMP            = 700       # Max temperature the epc has as hardware limits
-    MIN_TEMP            = -200      # Min temperature the epc has as hardware limits
+    MAX_HS_VOLT         = DEFAULT_MAX_HS_VOLT # Max high side voltage the epc has as hardware limits
+    MIN_HS_VOLT         = DEFAULT_MIN_HS_VOLT # Min high side voltage the epc has as hardware limits
+    MAX_LS_VOLT         = DEFAULT_MAX_LS_VOLT # Max low side voltage the epc has as hardware limits
+    MIN_LS_VOLT         = DEFAULT_MIN_LS_VOLT # Min low side voltage the epc has as hardware limits
+    MAX_LS_CURR         = DEFAULT_MAX_LS_CURR # Max low side current the epc has as hardware limits
+    MIN_LS_CURR         = DEFAULT_MIN_LS_CURR # Min low side current the epc has as hardware limits
+    MAX_LS_PWR          = DEFAULT_MAX_LS_PWR  # Max low side power the epc has as hardware limits
+    MIN_LS_PWR          = DEFAULT_MIN_LS_PWR  # Min low side power the epc has as hardware limits
+    MAX_TEMP            = DEFAULT_MAX_TEMP    # Max temperature the epc has as hardware limits
+    MIN_TEMP            = DEFAULT_MIN_TEMP    # Min temperature the epc has as hardware limits
     MASK_CAN_DEVICE     = 0x7F0
     MASK_CAN_MESSAGE    = 0x00F
     LOW_SIDE_BITFIELD   = 16
     MID_SIDE_BITFIELD   = 32
-    MIN_MSG_SIZE        = 150
     TO_DECI_WATS        = 100000
-    MAX_READS           = 3000
 
 #######################             CLASSES              #######################
 class DrvEpcStatusC:
