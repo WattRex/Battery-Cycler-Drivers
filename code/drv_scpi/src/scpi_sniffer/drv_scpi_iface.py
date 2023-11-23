@@ -26,7 +26,9 @@ from .drv_scpi_cmd import DrvScpiSerialConfC, DrvScpiCmdTypeE, DrvScpiCmdDataC #
 #######################          MODULE IMPORTS          #######################
 
 #######################              ENUMS               #######################
-NUM_ATTEMPTS = 10
+
+######################             CONSTANTS              ######################
+from .context import DEFAULT_NUM_ATTEMPTS, DEFAULT_RX_CHAN
 
 #######################             CLASSES              #######################
 class DrvScpiErrorC(Exception):
@@ -41,7 +43,7 @@ class DrvScpiErrorC(Exception):
 
 class DrvScpiHandlerC:
     "Driver for SCPI devices."
-    def __init__(self, serial_conf: DrvScpiSerialConfC, rx_chan_name: str) -> None:
+    def __init__(self, serial_conf: DrvScpiSerialConfC, rx_chan_name: str= DEFAULT_RX_CHAN) -> None:
         '''
         Args:
             - serial_conf (DrvScpiSerialConfC): Configuration of the serial port.
@@ -120,7 +122,7 @@ class DrvScpiHandlerC:
             - None.
         '''
         msg_read = self.__serial.readline()
-        log.warning(f"Port: {self.__rx_chan_name} \t Message read RX: {msg_read}")
+        log.debug(f"Port: {self.__serial.port} \t Message read RX: {msg_read}")
 
         resp_msg = DrvScpiCmdDataC(port = self.__serial.port, data_type = DrvScpiCmdTypeE.RESP,
                                     payload = [], status = SysShdNodeStatusE.OK)
@@ -137,7 +139,7 @@ class DrvScpiHandlerC:
             self.__rx_chan.send_data(resp_msg)
         else:
             self.num_attempts_read += 1
-            if self.num_attempts_read >= NUM_ATTEMPTS:
+            if self.num_attempts_read >= DEFAULT_NUM_ATTEMPTS:
                 log.critical(f"rx chan: {self.__rx_chan_name}. No response from device") # pylint: disable=logging-fstring-interpolation
                 self.status = SysShdNodeStatusE.COMM_ERROR
 

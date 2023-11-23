@@ -27,15 +27,16 @@ from .drv_scpi_iface import DrvScpiHandlerC # pylint: disable=wrong-import-posit
 from .drv_scpi_cmd import DrvScpiCmdDataC, DrvScpiCmdTypeE # pylint: disable=wrong-import-position
 
 #######################              ENUMS               #######################
-SCPI_MAX_MSG = 300          # messages per queue
-SCPI_MAX_MESSAGE_SIZE = 400 # bytes per msg
-TX_NAME_CHAN = 'tx_scpi'
-_NODE_NAME = 'scpi_sniffer'
+
+######################             CONSTANTS              ######################
+from .context import (DEFAULT_CHAN_NUM_MSG, DEFAULT_MAX_MSG_SIZE, DEFAULT_TX_CHAN,
+                      DEFAULT_NODE_NAME, DEFAULT_NODE_PERIOD)
 
 #######################             CLASSES              #######################
 class DrvScpiNodeC(SysShdNodeC):
     "Returns a removable version of the DRV command."
-    def __init__(self, working_flag: Event, cycle_period: int):
+    def __init__(self, working_flag: Event, cycle_period: int= DEFAULT_NODE_PERIOD,
+                 name: str = DEFAULT_NODE_NAME):
         '''
         Args:
             - working_flag (Event): Flag to know if the SCPI is working.
@@ -44,11 +45,11 @@ class DrvScpiNodeC(SysShdNodeC):
             - None.
         '''
         self.__used_dev: Dict(str, DrvScpiHandlerC) = {}
-        self.tx_scpi: SysShdIpcChanC = SysShdIpcChanC(name = TX_NAME_CHAN,
-                                                      max_msg= SCPI_MAX_MSG,
-                                                      max_message_size= SCPI_MAX_MESSAGE_SIZE)
+        self.tx_scpi: SysShdIpcChanC = SysShdIpcChanC(name = DEFAULT_TX_CHAN,
+                                                      max_msg= DEFAULT_CHAN_NUM_MSG,
+                                                      max_message_size= DEFAULT_MAX_MSG_SIZE)
         self.tx_scpi.delete_until_last()
-        super().__init__(name = _NODE_NAME, cycle_period = cycle_period,\
+        super().__init__(name = name, cycle_period = cycle_period,\
                         working_flag = working_flag)
         signal(SIGINT, self.signal_handler)
 
@@ -65,12 +66,13 @@ class DrvScpiNodeC(SysShdNodeC):
         # Add device
         if cmd.data_type == DrvScpiCmdTypeE.ADD_DEV:
             log.info("Adding device...")
-            if cmd.port in self.__used_dev:
+            if cmd.port in self.__used_dev.keys():
                 log.warning("Device already exist")
             else:
                 self.__used_dev[cmd.port] = DrvScpiHandlerC(serial_conf = cmd.payload,
                                 rx_chan_name = cmd.rx_chan_name)
                 log.info("Device added")
+            log.info(f"List of devices added: {self.__used_dev.keys()}")
 
         # Delete device
         elif cmd.data_type == DrvScpiCmdTypeE.DEL_DEV:
