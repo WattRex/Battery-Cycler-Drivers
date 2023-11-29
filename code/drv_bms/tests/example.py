@@ -39,7 +39,7 @@ if __name__ == '__main__':
     can_node = DrvCanNodeC(working_flag=can_flag, tx_buffer_size= 100)
     sleep(1)
     can_node.start()
-    device = DrvBmsDeviceC(config_file= 'tests/config_file.yml' , can_id= _CAN_ID)
+    device = DrvBmsDeviceC(can_id= _CAN_ID)
     try:
         while 1:
             device.get_data()
