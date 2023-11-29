@@ -57,7 +57,13 @@ class DrvDbBaseGenericMeasureC:
     Power = Column(INTEGER())
 
     @declared_attr
-    def ExpID(cls):
+    def ExpID(cls): # pylint: disable=no-self-argument, invalid-name
+        '''
+        Returns the foreign key column for the experiment ID.
+
+        :return: The foreign key column for the experiment ID.
+        :rtype: Column
+        '''
         log.critical(f"EXPID DrvDbBaseGenericMeasureC")
         return Column(ForeignKey(DrvDbBaseExperimentC.ExpID), primary_key=True, nullable=False)
 
@@ -68,14 +74,27 @@ class DrvDbBaseExtendedMeasureC:
     Value = Column(MEDIUMINT(), nullable=False)
 
     @declared_attr
-    def ExpID(cls):
+    def ExpID(cls): # pylint: disable=no-self-argument, invalid-name
+        '''
+        Returns the foreign key column for the experiment ID.
+
+        :return: The foreign key column for the experiment ID.
+        :rtype: Column
+        '''
         log.critical(f"EXPID DrvDbBaseExtendedMeasureC")
         return Column(ForeignKey(DrvDbBaseExperimentC.ExpID), primary_key= True, nullable=False)
-    
+
     @declared_attr
-    def MeasID(cls):
-        return Column(ForeignKey(DrvDbBaseGenericMeasureC.MeasID), primary_key= True, nullable=False)
-    
+    def MeasID(cls): # pylint: disable=no-self-argument, invalid-name
+        '''
+        Returns the foreign key column for the Meas ID.
+
+        :return: The foreign key column for the Meas ID.
+        :rtype: Column
+        '''
+        return Column(ForeignKey(DrvDbBaseGenericMeasureC.MeasID), primary_key= True,
+                      nullable=False)
+
 class DrvDbBaseStatusC:
     '''
     Class method to create a base model of database Status table.
@@ -85,9 +104,15 @@ class DrvDbBaseStatusC:
     Timestamp = Column(DateTime, nullable=False)
     Status = Column(Enum(*DrvDbEquipStatusE.get_all_values()), nullable=False)
     ErrorCode = Column(SMALLINT(unsigned=True), nullable=False)
-    
+
     @declared_attr
-    def ExpID(cls):
+    def ExpID(cls): # pylint: disable=no-self-argument, invalid-name
+        '''
+        Returns the foreign key column for the experiment ID.
+
+        :return: The foreign key column for the experiment ID.
+        :rtype: Column
+        '''
         log.critical(f"EXPID DrvDbBaseStatusC")
         return Column(ForeignKey(DrvDbBaseExperimentC.ExpID), primary_key=True, nullable=False)
 
