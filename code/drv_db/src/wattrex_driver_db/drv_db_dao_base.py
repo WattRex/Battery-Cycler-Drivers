@@ -64,7 +64,7 @@ class DrvDbBaseGenericMeasureC:
         :return: The foreign key column for the experiment ID.
         :rtype: Column
         '''
-        log.critical(f"EXPID DrvDbBaseGenericMeasureC")
+        log.debug("EXPID DrvDbBaseGenericMeasureC")
         return Column(ForeignKey(DrvDbBaseExperimentC.ExpID), primary_key=True, nullable=False)
 
 class DrvDbBaseExtendedMeasureC:
@@ -81,7 +81,7 @@ class DrvDbBaseExtendedMeasureC:
         :return: The foreign key column for the experiment ID.
         :rtype: Column
         '''
-        log.critical(f"EXPID DrvDbBaseExtendedMeasureC")
+        log.debug("EXPID DrvDbBaseExtendedMeasureC")
         return Column(ForeignKey(DrvDbBaseExperimentC.ExpID), primary_key= True, nullable=False)
 
     @declared_attr
@@ -113,7 +113,7 @@ class DrvDbBaseStatusC:
         :return: The foreign key column for the experiment ID.
         :rtype: Column
         '''
-        log.critical(f"EXPID DrvDbBaseStatusC")
+        log.debug("EXPID DrvDbBaseStatusC")
         return Column(ForeignKey(DrvDbBaseExperimentC.ExpID), primary_key=True, nullable=False)
 
 class DrvDbAlarmC(Base):
