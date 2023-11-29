@@ -5,6 +5,7 @@ This is an example of use of the can module.
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
 import sys
+import os
 #######################         GENERIC IMPORTS          #######################
 from threading import Event
 import time
@@ -12,11 +13,11 @@ import time
 from system_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
 
 #######################       LOGGER CONFIGURATION       #######################
-if __name__ == '__main__':
-    cycler_logger = SysLogLoggerC(file_log_levels='../log_config.yaml')
+cycler_logger = SysLogLoggerC(file_log_levels='code/log_config.yaml')
 log: Logger = sys_log_logger_get_module_logger(__name__)
 
 #######################          MODULE IMPORTS          #######################
+sys.path.append(os.getcwd()+'/code/drv_can/')
 from system_shared_tool import SysShdIpcChanC
 from src.can_sniffer import DrvCanCmdDataC, DrvCanCmdTypeE, DrvCanFilterC, DrvCanNodeC,\
                             DrvCanMessageC
@@ -62,7 +63,7 @@ if __name__ == '__main__':
     _working_can = Event()
     _working_can.set()
     #Create the thread for CAN
-    can = DrvCanNodeC(tx_buffer_size= 150, working_flag=_working_can)
+    can = DrvCanNodeC(working_flag=_working_can)
     try:
         can.start()
         #Example of messages
