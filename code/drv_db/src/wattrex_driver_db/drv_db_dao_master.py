@@ -28,8 +28,8 @@ from .drv_db_types import (DrvDbBatteryTechE, DrvDbBipolarTypeE, DrvDbCyclingLim
                         DrvDbCyclingModeE, DrvDbDeviceTypeE, DrvDbElectrolyteTypeE,
                         DrvDbLeadAcidChemistryE, DrvDbLithiumChemistryE, DrvDbMembraneTypeE,
                         DrvDbAvailableCuE, DrvDbPolarityE, DrvDbConnStatusE)
-from .drv_db_dao_cache import (DrvDbCacheStatusC, DrvDbCacheExperimentC, DrvDbCacheExtendedMeasureC,
-                            DrvDbCacheGenericMeasureC)
+from .drv_db_dao_base import (DrvDbBaseStatusC, DrvDbBaseExperimentC, DrvDbBaseExtendedMeasureC,
+                            DrvDbBaseGenericMeasureC)
 
 #######################              ENUMS               #######################
 
@@ -234,48 +234,44 @@ class DrvDbInstructionC(Base):
     LimitType = Column(Enum(*(DrvDbCyclingLimitE.get_all_values())), nullable=False)
     LimitPoint = Column(MEDIUMINT(), nullable=False)
 
-class DrvDbMasterExperimentC(DrvDbCacheExperimentC): #pylint: disable=too-many-instance-attributes
+class DrvDbMasterExperimentC(DrvDbBaseExperimentC, Base): #pylint: disable=too-many-instance-attributes
     '''
     Class method to create a DRVDB model of database Experiment table.
     '''
     __tablename__ = 'Experiment'
     __table_args__ = (ForeignKeyConstraint(['CSID'], [DrvDbCyclerStationC.CSID]),
                       ForeignKeyConstraint(['BatID'], [DrvDbBatteryC.BatID]),
-                      ForeignKeyConstraint(['ProfID'],[DrvDbProfileC.ProfID]),
-                    {'extend_existing': True},)
+                      ForeignKeyConstraint(['ProfID'],[DrvDbProfileC.ProfID]),)
 
     CSID = Column(nullable=False)
     BatID = Column(nullable=False)
     ProfID = Column(nullable=False)
 
 
-class DrvDbMasterGenericMeasureC(DrvDbCacheGenericMeasureC): #pylint: disable=too-many-instance-attributes
+class DrvDbMasterGenericMeasureC(DrvDbBaseGenericMeasureC, Base): #pylint: disable=too-many-instance-attributes
     '''
     Class method to create a model of cache database GenericMeasures table.
     '''
     __tablename__ = 'GenericMeasures'
-    __table_args__ = (ForeignKeyConstraint(['InstrID'], [DrvDbInstructionC.InstrID]),
-                      {'extend_existing': True},)
+    __table_args__ = (ForeignKeyConstraint(['InstrID'], [DrvDbInstructionC.InstrID]),)
 
     InstrID = Column(nullable=False)
 
-class DrvDbMasterExtendedMeasureC(DrvDbCacheExtendedMeasureC):
+class DrvDbMasterExtendedMeasureC(DrvDbBaseExtendedMeasureC, Base):
     '''
     Class method to create a DRVDB model of database ExtendedMeasures table.
     '''
     __tablename__ = 'ExtendedMeasures'
-    __table_args__ = (ForeignKeyConstraint(['UsedMeasID'], [DrvDbUsedMeasuresC.UsedMeasID]),
-                      {'extend_existing': True},)
+    __table_args__ = (ForeignKeyConstraint(['UsedMeasID'], [DrvDbUsedMeasuresC.UsedMeasID]),)
 
     UsedMeasID = Column(primary_key=True, nullable=False)
 
-class DrvDbMasterStatusC(DrvDbCacheStatusC):
+class DrvDbMasterStatusC(DrvDbBaseStatusC, Base):
     '''
     Class method to create a DRVDB model of database Status table.
     '''
     __tablename__ = 'Status'
-    __table_args__ = (ForeignKeyConstraint(['DevID'], [DrvDbUsedDeviceC.DevID]),
-                      {'extend_existing': True},)
+    __table_args__ = (ForeignKeyConstraint(['DevID'], [DrvDbUsedDeviceC.DevID]),)
 
     DevID = Column(primary_key=True, nullable=False)
 
