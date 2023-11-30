@@ -26,13 +26,10 @@ from scpi_sniffer import DrvScpiSerialConfC, DrvScpiCmdDataC, DrvScpiCmdTypeE
 from wattrex_driver_base import DrvBaseStatusE, DrvBaseStatusC
 
 #######################          MODULE IMPORTS          #######################
-
+######################             CONSTANTS              ######################
+from .context import (DEFAULT_MAX_WAIT_TIME, DEFAULT_TIME_BETWEEN_ATTEMPTS, DEFAULT_TIMEOUT_REC,
+                    DEFAULT_MAX_MSG, DEFAULT_MAX_MESSAGE_SIZE, DEFAULT_RX_CHAN, DEFAULT_TX_CHAN)
 #######################              ENUMS               #######################
-_MAX_WAIT_TIME = 3
-_TIME_BETWEEN_ATTEMPTS = 0.1
-_TIMEOUT_REC = 0.1
-_MAX_MSG = 100
-_MAX_MESSAGE_SIZE = 300
 
 class _ScpiCmds(Enum):
     "Modes of the device"
@@ -70,7 +67,7 @@ class DrvFlowDataC():
 
 class DrvFlowDeviceC():
     "Principal class of flowmeter"
-    def __init__(self, config: DrvScpiSerialConfC, rx_chan_name: str) -> None:
+    def __init__(self, config: DrvScpiSerialConfC, rx_chan_name: str= DEFAULT_RX_CHAN) -> None:
         '''
         Args:
             - config (DrvScpiSerialConfC): Configuration of the serial port.
@@ -79,10 +76,10 @@ class DrvFlowDeviceC():
         '''
         self.__device_id: int = 0
         self.__firmware_version: int = 0
-        self.__tx_chan = SysShdIpcChanC(name = 'tx_scpi')
-        self.__rx_chan = SysShdIpcChanC(name = rx_chan_name,
-                                      max_msg = _MAX_MSG,
-                                      max_message_size= _MAX_MESSAGE_SIZE)
+        self.__tx_chan = SysShdIpcChanC(name = DEFAULT_TX_CHAN)
+        self.__rx_chan = SysShdIpcChanC(name = rx_chan_name+'_'+config.port,
+                                      max_msg = DEFAULT_MAX_MSG,
+                                      max_message_size= DEFAULT_MAX_MESSAGE_SIZE)
         self.__port = config.port
 
         add_msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.ADD_DEV,
@@ -124,8 +121,8 @@ class DrvFlowDeviceC():
 
         # Wait until receive the message
         time_init = time()
-        while (time() - time_init) < _MAX_WAIT_TIME:
-            sleep(_TIME_BETWEEN_ATTEMPTS)
+        while (time() - time_init) < DEFAULT_MAX_WAIT_TIME:
+            sleep(DEFAULT_TIME_BETWEEN_ATTEMPTS)
             if not self.__rx_chan.is_empty():
                 command_rec : DrvScpiCmdDataC = self.__rx_chan.receive_data()
                 msg = command_rec.payload[0]
@@ -160,7 +157,7 @@ class DrvFlowDeviceC():
             self.__wait_4_response = True
         else:
             if not self.__rx_chan.is_empty():
-                data : DrvScpiCmdDataC = self.__rx_chan.receive_data(timeout = _TIMEOUT_REC)
+                data : DrvScpiCmdDataC = self.__rx_chan.receive_data(timeout = DEFAULT_TIMEOUT_REC)
                 msg_received = data.payload[0]
                 self.__wait_4_response = False
                 if len(msg_received) > 0 and ('ERROR' not in msg_received) and \
