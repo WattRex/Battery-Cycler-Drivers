@@ -66,7 +66,7 @@ class DrvScpiNodeC(SysShdNodeC):
         # Add device
         if cmd.data_type == DrvScpiCmdTypeE.ADD_DEV:
             log.info("Adding device...")
-            if cmd.port in self.__used_dev.keys():
+            if cmd.port in self.__used_dev.keys(): #pylint: disable= consider-iterating-dictionary
                 log.warning("Device already exist")
             else:
                 self.__used_dev[cmd.port] = DrvScpiHandlerC(serial_conf = cmd.payload,

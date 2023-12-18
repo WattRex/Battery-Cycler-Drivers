@@ -54,16 +54,16 @@ def example_with_flowmeter():
                                         write_timeout = None,
                                         inter_byte_timeout  = None)
 
-    rx_chan = SysShdIpcChanC(name=__RX_CHAN_NAME, max_msg=__FLOW_MAX_MSG,
+    rx_chan = SysShdIpcChanC(name=__RX_CHAN_NAME, max_msg=__FLOW_MAX_MSG, #pylint: disable= redefined-outer-name
                              max_message_size= __FLOW_MSG_SIZE)
 
     cmd = DrvScpiCmdDataC(DrvScpiCmdTypeE.ADD_DEV, port=__SERIAL_PORT,\
                 payload = flow_conf_scpi, rx_chan_name=__RX_CHAN_NAME)
-    tx_chan.send_data(cmd)
+    tx_chan.send_data(cmd) #pylint: disable= used-before-assignment
 
     req_meas = ':MEASure:FLOW?'
     cmd_req_meas = DrvScpiCmdDataC(DrvScpiCmdTypeE.WRITE_READ, port=__SERIAL_PORT, payload=req_meas)
-    while working_flag.is_set():
+    while working_flag.is_set(): #pylint: disable= used-before-assignment
         tx_chan.send_data(cmd_req_meas)
         sleep(0.1)
         recv = False
@@ -109,7 +109,7 @@ def example_with_source_ea():
     recv = False
     while (working_flag.is_set() and not recv):
         sleep(0.1)
-        if not rx_chan.is_empty():
+        if not rx_chan.is_empty(): #pylint: disable= used-before-assignment
             resp = rx_chan.receive_data(timeout = 1.0)
             log.info(f"Meas received: {resp}, {resp.payload}")
             recv = True
