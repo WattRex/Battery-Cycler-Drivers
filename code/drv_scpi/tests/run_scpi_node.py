@@ -37,5 +37,5 @@ if __name__ == '__main__':
     _working_scpi = Event()
     _working_scpi.set()
     #Create the thread for SCPI
-    scpi_node = DrvScpiNodeC(working_flag = _working_scpi, cycle_period = 100)
+    scpi_node = DrvScpiNodeC(working_flag = _working_scpi)
     scpi_node.run()
