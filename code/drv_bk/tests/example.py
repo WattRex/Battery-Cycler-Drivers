@@ -6,6 +6,8 @@ Example to bk precision.
 
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
+import sys
+import os
 import time
 
 #######################         GENERIC IMPORTS          #######################
@@ -18,14 +20,15 @@ import time
 from system_logger_tool import sys_log_logger_get_module_logger
 if __name__ == '__main__':
     from system_logger_tool import SysLogLoggerC
-    cycler_logger = SysLogLoggerC()
+    cycler_logger = SysLogLoggerC(file_log_levels= 'code/log_config.yaml')
 log = sys_log_logger_get_module_logger(__name__)
 
 
 #######################          PROJECT IMPORTS         #######################
-from scpi_sniffer import DrvScpiHandlerC
+from scpi_sniffer import DrvScpiSerialConfC
 
 #######################          MODULE IMPORTS          #######################
+sys.path.append(os.getcwd()+'/code/drv_bk/')
 from src.wattrex_driver_bk.drv_bk import DrvBkModeE, DrvBkDeviceC
 
 #######################              ENUMS               #######################
@@ -36,9 +39,9 @@ def main():
     init = time.time()
 
     #Create driver
-    scpi = DrvScpiHandlerC(port = '/dev/ttyUSB1', separator='\n', baudrate=38400, \
+    scpi = DrvScpiSerialConfC(port = '/dev/ttyUSB0', separator='\n', baudrate=38400, \
                                                timeout=1, write_timeout=1)
-    drv = DrvBkDeviceC(handler = scpi)
+    drv = DrvBkDeviceC(config= scpi)
 
     #Set properties
     drv.set_mode(DrvBkModeE.CURR_AUTO)

@@ -25,7 +25,7 @@ from system_config_tool import sys_conf_update_config_params
 # For further information check out README.md
 DEFAULT_MAX_MSG : int           = 100 # Max number of allowed message per chan
 DEFAULT_MAX_MESSAGE_SIZE : int  = 150 # Size of message sent through IPC message queue
-DEFAULT_TX_CHAN : str           = 'TX_SCPI' # Name of the TX channel in CAN
+DEFAULT_TX_CHAN : str           = 'tx_scpi' #'TX_SCPI' # Name of the TX channel in CAN
 DEFAULT_RX_CHAN: str            = 'RX_SCPI_BK'  #Name of the RX channel for epc
 DEFAULT_MAX_VOLT: int =1000 #V # Max voltage allowed
 DEFAULT_MAX_CURR: int = 20 #A # Max current allowed

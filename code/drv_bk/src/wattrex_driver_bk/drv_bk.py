@@ -4,7 +4,7 @@ Driver of multimeter.
 '''
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
-
+from re import findall
 #######################         GENERIC IMPORTS          #######################
 from enum import Enum
 from time import time, sleep
@@ -91,18 +91,58 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
                                   rx_chan_name = DEFAULT_RX_CHAN+'_'+config.port)
         self.__rx_chan.delete_until_last()
         self.__tx_chan.send_data(add_msg)
-        self.__actual_data: DrvBkDataC = DrvBkDataC(mode = DrvBkModeE.VOLT_AUTO,
+        self.last_data: DrvBkDataC = DrvBkDataC(mode = DrvBkModeE.VOLT_AUTO,
                                                      status = DrvBaseStatusC(DrvBaseStatusE.OK),
                                                      voltage = 0, current = 0, power = 0)
 
-        self.__properties: DrvBkPropertiesC = DrvBkPropertiesC(model            = None,
-                                                               serial_number    = None,
-                                                               MAX_VOLT   = 0,
-                                                               MAX_CURR= 0,
-                                                               MAX_PWR  = 0)
+        self.properties: DrvBkPropertiesC = DrvBkPropertiesC(model= None,
+                                                            serial_number= None,
+                                                            MAX_VOLT= 0, MAX_CURR= 0, MAX_PWR= 0)
         self.__initialize_control()
         self.__read_device_properties()
 
+    def __parse_msg(self) -> None:
+        '''Parse the message received from the device.
+        Args:
+            - msg (DrvScpiCmdDataC): Message received from the device.
+        Returns:
+            - None.
+        Raises:
+            - None.
+        '''
+        msg: DrvScpiCmdDataC = self.__rx_chan.receive_data_unblocking()
+        if msg is not None and msg.data_type == DrvScpiCmdTypeE.RESP:
+            log.critical(f"Message received: {msg.payload}")
+            if 'ERROR' not in msg.payload[0]:
+                if 'IDN' in msg.payload[0]:
+                    info = msg.payload[0].split(',')
+                    model = info[0]
+                    serial_number = info[-1]
+                    self.properties = DrvBkPropertiesC(model = model, serial_number = serial_number,
+                                                         MAX_VOLT = DEFAULT_MAX_VOLT * _MILI_UNITS,
+                                                         MAX_CURR = DEFAULT_MAX_CURR * _MILI_UNITS,
+                                                         MAX_PWR = _MAX_PWR * _MILI_UNITS)
+                elif 'FETC' in msg.payload[0]:
+                    response: list = findall(r"-?\d*\.?\d+", msg.payload[0])
+                    if len(response) < 2:
+                        response = float(response[0])
+                    else:
+                        response = float(response[0]) * 10 ** int(response[1])
+                    response = int(response * _MILI_UNITS)
+                    status = DrvBaseStatusC(DrvBaseStatusE.OK)
+
+                    if self.last_data.mode.value.split(':')[0] == 'VOLT':
+                        voltage = response
+                    elif self.last_data.mode.value.split(':')[0] == 'CURR':
+                        current = response
+                    self.last_data = DrvBkDataC(mode = self.last_data.mode, status = status,
+                                                    voltage = voltage, current = current, power = 0)
+                else:
+                    log.error(f'Unknown message received: {msg.payload[0]}')
+            else:
+                log.error(msg.payload[0])
+        else:
+            log.error('Unknown message type received')
 
     def __initialize_control(self) -> None:
         '''Initialize the device control.
@@ -121,21 +161,21 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
         time_init = time()
         while (time()-time_init) < DEFAULT_MAX_WAIT_TIME:
             sleep(DEFAULT_TIME_BETWEEN_ATTEMPTS)
-            if not self.__rx_chan.is_empty():
-                command_rec : DrvScpiCmdDataC = self.__rx_chan.receive_data()
-                msg_rcv = command_rec.payload[0]
-                if len(msg_rcv) > 0 and ('ERROR' not in msg_rcv) and ('IDN' in msg_rcv):
-                    exception = False
-                else:
-                    self.__tx_chan.send_data(msg)
-        self.__rx_chan.delete_until_last()
-        if exception:
-            raise ConnectionError("Device not found")
+            self.__parse_msg()
+        #     if not self.__rx_chan.is_empty():
+        #         command_rec : DrvScpiCmdDataC = self.__rx_chan.receive_data()
+        #         msg_rcv = command_rec.payload[0]
+        #         if len(msg_rcv) > 0 and ('ERROR' not in msg_rcv) and ('IDN' in msg_rcv):
+        #             exception = False
+        #         else:
+        #             self.__tx_chan.send_data(msg)
+        # self.__rx_chan.delete_until_last()
+        # if exception:
+        #     raise ConnectionError("Device not found")
         #Initialize device mode in auto voltage
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, port= self.__port,
                         payload= DrvBkModeE.VOLT_AUTO.value)
         self.__tx_chan.send_data(msg)
-
 
     def __read_device_properties(self) -> None:
         '''Read the device properties .
@@ -159,10 +199,9 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
         else:
             model = None
             serial_number = None
-        self.__properties = DrvBkPropertiesC(model = model, \
-                                             serial_number = serial_number, \
-                                             MAX_VOLT = DEFAULT_MAX_VOLT * _MILI_UNITS,\
-                                             MAX_CURR = DEFAULT_MAX_CURR * _MILI_UNITS,\
+        self.properties = DrvBkPropertiesC(model = model, serial_number = serial_number,
+                                             MAX_VOLT = DEFAULT_MAX_VOLT * _MILI_UNITS,
+                                             MAX_CURR = DEFAULT_MAX_CURR * _MILI_UNITS,
                                              MAX_PWR = _MAX_PWR * _MILI_UNITS)
 
 
@@ -177,10 +216,12 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
         '''
         mode_cod = meas_mode.value.split(':')[0]+':' + meas_mode.value.split(':')[1]
         #Change mode to voltage or current
-        self.device_handler.send_and_read('FUNC '+ mode_cod)
+        self.__tx_chan.send_data(DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
+                                    port= self.__port, payload= _ScpiCmds.CHANGE_MODE + mode_cod))
         #Change range of the mode
-        self.device_handler.send_and_read(meas_mode.value)
-        self.__actual_data.mode = meas_mode
+        self.__tx_chan.send_data(DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
+                                    port= self.__port,payload= meas_mode.value))
+        self.last_data.mode = meas_mode
 
 
     def get_data(self) -> DrvBkDataC:
@@ -192,27 +233,30 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
         Raises:
             - None
         '''
-        current = 0
-        voltage = 0
-        status = DrvPwrStatusC(DrvPwrStatusE.COMM_ERROR)
-        #Read measure
-        self.device_handler.send_and_read('FETC?')
-        response = self.device_handler.receive_msg()[0]
-        if response != '':
-            response = self.device_handler.decode_numbers(response)
-            response = int(response * _MILI_UNITS)
-            status = DrvPwrStatusC(DrvPwrStatusE.OK)
+        self.__tx_chan.send_data(DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
+                                    port= self.__port, payload= 'FETC?'))
+        return self.last_data
+        # current = 0
+        # voltage = 0
+        # status = DrvBaseStatusE(DrvBaseStatusE.COMM_ERROR)
+        # #Read measure
+        # self.device_handler.send_and_read('FETC?')
+        # response = self.device_handler.receive_msg()[0]
+        # if response != '':
+        #     response = self.device_handler.decode_numbers(response)
+        #     response = int(response * _MILI_UNITS)
+        #     status = DrvBaseStatusE(DrvBaseStatusE.OK)
 
-            if self.__actual_data.mode.value.split(':')[0] == 'VOLT':
-                voltage = response
-            elif self.__actual_data.mode.value.split(':')[0] == 'CURR':
-                current = response
-        else:
-            status = DrvPwrStatusC(DrvPwrStatusE.COMM_ERROR)
+        #     if self.last_data.mode.value.split(':')[0] == 'VOLT':
+        #         voltage = response
+        #     elif self.last_data.mode.value.split(':')[0] == 'CURR':
+        #         current = response
+        # else:
+        #     status = DrvBaseStatusE(DrvBaseStatusE.COMM_ERROR)
 
-        self.__actual_data = DrvBkDataC(mode = self.__actual_data.mode, status = status,\
-                                        voltage = voltage, current = current, power = 0)
-        return self.__actual_data
+        # self.last_data = DrvBkDataC(mode = self.last_data.mode, status = status,
+        #                                 voltage = voltage, current = current, power = 0)
+        # return self.last_data
 
 
     def get_properties(self) -> DrvBkPropertiesC:
@@ -224,7 +268,7 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
         Raises:
             - None.
         '''
-        return self.__properties
+        return self.properties
 
 
     def close(self) -> None:
@@ -236,4 +280,7 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
         Raises:
             - None.
         '''
-        self.device_handler.close()
+        self.__tx_chan.send_data(DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.DEL_DEV,
+                                    port= self.__port))
+        self.__tx_chan.close()
+        self.__rx_chan.close()
