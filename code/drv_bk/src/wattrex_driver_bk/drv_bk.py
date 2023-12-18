@@ -6,31 +6,32 @@ Driver of multimeter.
 from __future__ import annotations
 
 #######################         GENERIC IMPORTS          #######################
-
+from enum import Enum
+from time import time, sleep
 
 #######################       THIRD PARTY IMPORTS        #######################
-from enum import Enum
 
 #######################      SYSTEM ABSTRACTION IMPORTS  #######################
 from system_logger_tool import SysLogLoggerC, sys_log_logger_get_module_logger
 if __name__ == '__main__':
     cycler_logger = SysLogLoggerC()
 log = sys_log_logger_get_module_logger(__name__)
-
+from system_shared_tool import SysShdIpcChanC
 #######################          PROJECT IMPORTS         #######################
-from scpi_sniffer import DrvScpiHandlerC
-from wattrex_driver_pwr import DrvPwrPropertiesC, DrvPwrDataC, DrvPwrStatusC,\
-        DrvPwrStatusE, DrvPwrDeviceC
+from scpi_sniffer import DrvScpiSerialConfC, DrvScpiCmdDataC, DrvScpiCmdTypeE
+from wattrex_driver_base import (DrvBasePwrPropertiesC, DrvBasePwrDataC, DrvBaseStatusC,
+        DrvBaseStatusE, DrvBasePwrDeviceC)
 
 #######################          MODULE IMPORTS          #######################
 
+######################             CONSTANTS              ######################
+from .context import (DEFAULT_MAX_VOLT, DEFAULT_MAX_CURR, DEFAULT_TX_CHAN, DEFAULT_RX_CHAN,
+                      DEFAULT_MAX_MSG, DEFAULT_MAX_MESSAGE_SIZE, DEFAULT_MAX_WAIT_TIME,
+                      DEFAULT_TIME_BETWEEN_ATTEMPTS)
 
 #######################              ENUMS               #######################
-class _CONST():
-    MILI_UNITS = 1000
-    MAX_VOLT = 1000 #V
-    MAX_CURR = 20 #A
-    MAX_PWR = MAX_CURR * MAX_VOLT #W
+_MILI_UNITS = 1000
+_MAX_PWR = DEFAULT_MAX_VOLT * DEFAULT_MAX_CURR #W
 
 class DrvBkModeE(Enum):
     "Modes of the device"
@@ -53,9 +54,13 @@ class _DrvBkIntegrationRateE(Enum):
     MEDIUM = '1'
     FAST = '0.1'
 
+class _ScpiCmds(Enum):
+    INIT_DEV_SPEED = 'VOLT:DC:NPLC '+ _DrvBkIntegrationRateE.MEDIUM.value
+    READ_INFO = ':IDN*?'
+    CHANGE_MODE = 'FUNC '
 
 #######################             CLASSES              #######################
-class DrvBkPropertiesC(DrvPwrPropertiesC):
+class DrvBkPropertiesC(DrvBasePwrPropertiesC):
     "Properties of bk device"
     def __init__(self, model: str|None = None, serial_number: str|None = None,
                  MAX_VOLT: int = 0, MAX_CURR: int = 0,
@@ -63,27 +68,37 @@ class DrvBkPropertiesC(DrvPwrPropertiesC):
         super().__init__(model, serial_number, MAX_VOLT, MAX_CURR, MAX_PWR)
 
 
-class DrvBkDataC(DrvPwrDataC):
+class DrvBkDataC(DrvBasePwrDataC):
     "Data class of bk device"
-    def __init__(self, mode: DrvBkModeE, status: DrvPwrStatusC, \
+    def __init__(self, mode: DrvBkModeE, status: DrvBaseStatusC,
                  voltage: int, current: int, power: int) -> None:
-        super().__init__(status = status, mode = mode, voltage = voltage, \
+        super().__init__(status = status, mode = mode, voltage = voltage,
                          current = current, power = power)
 
 
-class DrvBkDeviceC(DrvPwrDeviceC):
+class DrvBkDeviceC(DrvBasePwrDeviceC):
     "Principal class of bk device"
-    def __init__(self, handler: DrvScpiHandlerC) -> None:
-        self.device_handler: DrvScpiHandlerC
-        super().__init__(handler = handler)
-        self.__actual_data: DrvBkDataC = DrvBkDataC(mode = DrvBkModeE.VOLT_AUTO, \
-                                                     status = DrvPwrStatusC(DrvPwrStatusE.OK), \
+    def __init__(self, config: DrvScpiSerialConfC) -> None:
+        super().__init__()
+        self.__tx_chan = SysShdIpcChanC(name = DEFAULT_TX_CHAN)
+        self.__rx_chan = SysShdIpcChanC(name = DEFAULT_RX_CHAN+'_'+config.port,
+                                        max_msg= DEFAULT_MAX_MSG,
+                                        max_message_size= DEFAULT_MAX_MESSAGE_SIZE)
+        self.__port = config.port
+        add_msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.ADD_DEV,
+                                  port = config.port,
+                                  payload = config,
+                                  rx_chan_name = DEFAULT_RX_CHAN+'_'+config.port)
+        self.__rx_chan.delete_until_last()
+        self.__tx_chan.send_data(add_msg)
+        self.__actual_data: DrvBkDataC = DrvBkDataC(mode = DrvBkModeE.VOLT_AUTO,
+                                                     status = DrvBaseStatusC(DrvBaseStatusE.OK),
                                                      voltage = 0, current = 0, power = 0)
 
-        self.__properties: DrvBkPropertiesC = DrvBkPropertiesC(model            = None, \
-                                                               serial_number    = None, \
-                                                               MAX_VOLT   = 0, \
-                                                               MAX_CURR= 0, \
+        self.__properties: DrvBkPropertiesC = DrvBkPropertiesC(model            = None,
+                                                               serial_number    = None,
+                                                               MAX_VOLT   = 0,
+                                                               MAX_CURR= 0,
                                                                MAX_PWR  = 0)
         self.__initialize_control()
         self.__read_device_properties()
@@ -98,10 +113,28 @@ class DrvBkDeviceC(DrvPwrDeviceC):
         Raises:
             - None.
         '''
+        exception = True
         #Initialize device speed
-        self.device_handler.send_and_read('VOLT:DC:NPLC '+ _DrvBkIntegrationRateE.MEDIUM.value)
+        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ, port= self.__port,
+                        payload= _ScpiCmds.INIT_DEV_SPEED)
+        self.__tx_chan.send_data(msg)
+        time_init = time()
+        while (time()-time_init) < DEFAULT_MAX_WAIT_TIME:
+            sleep(DEFAULT_TIME_BETWEEN_ATTEMPTS)
+            if not self.__rx_chan.is_empty():
+                command_rec : DrvScpiCmdDataC = self.__rx_chan.receive_data()
+                msg_rcv = command_rec.payload[0]
+                if len(msg_rcv) > 0 and ('ERROR' not in msg_rcv) and ('IDN' in msg_rcv):
+                    exception = False
+                else:
+                    self.__tx_chan.send_data(msg)
+        self.__rx_chan.delete_until_last()
+        if exception:
+            raise ConnectionError("Device not found")
         #Initialize device mode in auto voltage
-        self.device_handler.send_and_read(DrvBkModeE.VOLT_AUTO.value)
+        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, port= self.__port,
+                        payload= DrvBkModeE.VOLT_AUTO.value)
+        self.__tx_chan.send_data(msg)
 
 
     def __read_device_properties(self) -> None:
@@ -115,11 +148,12 @@ class DrvBkDeviceC(DrvPwrDeviceC):
         '''
         # info = self.device_handler.read_device_info()
         # info = info[1].split()
-        self.device_handler.send_and_read('*IDN?')
-        info = self.device_handler.receive_msg()[0]
-        info = info.split(',')
-
-        if info is not None:
+        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ, port= self.__port,
+                        payload= _ScpiCmds.READ_INFO)
+        self.__tx_chan.send_data(msg)
+        info: DrvScpiCmdDataC = self.__rx_chan.receive_data()
+        if hasattr(info, 'payload'):
+            info = info.payload.split(',')
             model = info[0]
             serial_number = info[-1]
         else:
@@ -127,9 +161,9 @@ class DrvBkDeviceC(DrvPwrDeviceC):
             serial_number = None
         self.__properties = DrvBkPropertiesC(model = model, \
                                              serial_number = serial_number, \
-                                             MAX_VOLT = _CONST.MAX_VOLT * _CONST.MILI_UNITS,\
-                                             MAX_CURR = _CONST.MAX_CURR * _CONST.MILI_UNITS,\
-                                             MAX_PWR = _CONST.MAX_PWR * _CONST.MILI_UNITS)
+                                             MAX_VOLT = DEFAULT_MAX_VOLT * _MILI_UNITS,\
+                                             MAX_CURR = DEFAULT_MAX_CURR * _MILI_UNITS,\
+                                             MAX_PWR = _MAX_PWR * _MILI_UNITS)
 
 
     def set_mode(self, meas_mode: DrvBkModeE) -> None:
@@ -166,7 +200,7 @@ class DrvBkDeviceC(DrvPwrDeviceC):
         response = self.device_handler.receive_msg()[0]
         if response != '':
             response = self.device_handler.decode_numbers(response)
-            response = int(response * _CONST.MILI_UNITS)
+            response = int(response * _MILI_UNITS)
             status = DrvPwrStatusC(DrvPwrStatusE.OK)
 
             if self.__actual_data.mode.value.split(':')[0] == 'VOLT':
