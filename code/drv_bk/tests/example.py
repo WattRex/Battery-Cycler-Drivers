@@ -54,39 +54,43 @@ def main():
                                       baudrate=38200, timeout=1, write_timeout=1)
     ea_scpi_conf = DrvScpiSerialConfC(port = '/dev/wattrex/source/EA_2963640425', separator='\n',
                                       baudrate=9600, timeout=1, write_timeout=1, parity= PARITY_ODD)
-    ea_serial: Serial = Serial(port                  = ea_scpi_conf.port,
-                                    baudrate           = ea_scpi_conf.baudrate,
-                                    bytesize           = ea_scpi_conf.bytesize,
-                                    parity             = ea_scpi_conf.parity,
-                                    stopbits           = ea_scpi_conf.stopbits,
-                                    timeout            = ea_scpi_conf.timeout,
-                                    write_timeout      = ea_scpi_conf.write_timeout,
-                                    inter_byte_timeout = ea_scpi_conf.inter_byte_timeout,
-                                    xonxoff=True, rtscts=False, dsrdtr=False)
+    ea_serial: Serial = Serial(port                 = ea_scpi_conf.port,
+                            baudrate                = ea_scpi_conf.baudrate,
+                            bytesize                = ea_scpi_conf.bytesize,
+                            parity                  = ea_scpi_conf.parity,
+                            stopbits                = ea_scpi_conf.stopbits,
+                            timeout                 = ea_scpi_conf.timeout,
+                            write_timeout           = ea_scpi_conf.write_timeout,
+                            inter_byte_timeout      = ea_scpi_conf.inter_byte_timeout,
+                            xonxoff= True, rtscts= False, dsrdtr= False)
+    log.info(ea_serial.is_open)
+    set_source(0.1, 4.0, ea_serial)
     drv = DrvBkDeviceC(config= bk_scpi_conf)
     try:
         "Main function"
+        # input("Press Enter to start...")
+        disable_source(ea_serial)
         init = time.time()
 
-        input("Press Enter to start...")
         #Set properties
         drv.set_mode(DrvBkModeE.CURR_DC, DrvBkRangeE.AUTO)
         time.sleep(2)
         try:
             while drv.last_data.mode != DrvBkModeE.CURR_DC:
-                drv.__parse_msg()
                 log.info("Waiting to set mode to CURR_AUTO")
+                drv.read_buffer()
                 time.sleep(2)
             log.info("Mode set correctly to CURR_AUTO")
-            drv.set_mode(meas_mode = DrvBkModeE.VOLT_DC, range= DrvBkRangeE.AUTO)
+            drv.set_mode(meas_mode = DrvBkModeE.VOLT_DC, meas_range= DrvBkRangeE.AUTO)
             while drv.last_data.mode != DrvBkModeE.VOLT_DC:
                 log.info("Waiting to set mode to VOLT_AUTO")
+                drv.read_buffer()
                 time.sleep(2)
         except KeyboardInterrupt:
             drv.close()
             time.sleep(3)
             sys.exit(1)
-        input("Press Enter to set source...")
+        # input("Press Enter to set source...")
         log.info("Mode set correctly to VOLT_AUTO")
         set_source(0.1, 4.0, ea_serial)
         for _ in range(10):
@@ -97,6 +101,8 @@ def main():
                     Mode: {data.mode}\tStatus: {data.status}")
             log.info(f"Time elapsed: {time.time() - init}")
             time.sleep(1)
+        if data.voltage < 4000:
+            log.error("Voltage not set correctly")
 
         #Obtain properties
         properties = drv.get_properties()
@@ -112,6 +118,7 @@ def main():
         # working_flag.clear()
     finally:
         disable_source(ea_serial)
+        drv.close()
         log.info(f'SCPI node stopped')
         sys.exit(0)
     # working_flag.clear()
