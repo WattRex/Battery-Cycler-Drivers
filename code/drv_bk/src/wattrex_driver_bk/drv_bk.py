@@ -48,7 +48,6 @@ class DrvBkModeCmdE(Enum):
     CURR_AC = 'CURR:AC'
     ### Trabajo futuro no aplicable al ciclador
     RESISTANCE = 'RES'
-    ## TODO: Cambiar todas los valores de los modos a los correctos
 
 class DrvBkRangeE(Enum):
     "Modes of the device"
@@ -60,7 +59,6 @@ class DrvBkRangeE(Enum):
     R20         = ':RANGE 20'
     R200_V      = ':RANGE 200'
     R1000_V     = ':RANGE 1000'
-    ## TODO: Cambiar todas los valores de los modos a los correctos
 
 class _DrvBkIntegrationRateE(Enum):
     "Integration rate of the device"
@@ -134,7 +132,7 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
             self.__parse_msg()
             i += 1
 
-    def __exp_number(self,str_msg) -> int|None:
+    def __exp_number(self,str_msg: str) -> int|None:
         """
         Converts a string representation of a number in scientific notation to an integer.
         
@@ -145,13 +143,10 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
             int|None: The converted integer value if successful, None otherwise.
         """
         response = None
-        if all([var.isnumeric() for var in str_msg.split('e')]):
-            msg_sci = str_msg.split('e')
-            if len(msg_sci) == 2:
-                response = float(msg_sci[0]) * 10 ** int(msg_sci[1])
-            else:
-                response = float(msg_sci[0])
-        return int(response*_MILI_UNITS)
+        if (len(str_msg.split('.')) == 2 and str_msg.split('.')[0].isdigit() and
+            str_msg.split('.')[1].split('e')[1].replace('-','').isdigit()):
+            response = int(float(str_msg)*_MILI_UNITS)
+        return response
 
     def __parse_msg(self) -> None:
         '''Parse the message received from the device.
@@ -164,7 +159,9 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
         '''
         msg: DrvScpiCmdDataC = self.__rx_chan.receive_data_unblocking()
         if msg is not None and msg.data_type == DrvScpiCmdTypeE.RESP:
-            log.critical(f"Message received: {msg.payload}")
+            if hasattr(msg, 'status') and msg.status.value == DrvBaseStatusE.COMM_ERROR:
+                log.critical("ERROR READING DEVICE")    
+                self.last_data.status = DrvBaseStatusE.COMM_ERROR
             for data in msg.payload:
                 if len(data) >0 and not str(data).startswith(":"):
                     data = self.__exp_number(data) if self.__exp_number(data) is not None else data
@@ -199,57 +196,6 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
                         else:
                             self.last_data.current = data
                         log.info(f"Value read: {data}")
-            # if 'ERROR' not in msg.payload[0]:
-            #     if all([var.isnumeric() for var in msg.payload[0].split('e')]):
-            #         msg_sci = msg.payload[0].split('e')
-            #         if len(msg_sci) == 2:
-            #             response = float(msg_sci[0]) * 10 ** int(msg_sci[1])
-            #         else:
-            #             response = float(msg_sci[0])
-            #         if self.last_data.mode in (DrvBkModeE.VOLT_DC, DrvBkModeE.VOLT_AC):
-            #             self.last_data.voltage = int(response * _MILI_UNITS)
-            #         else:
-            #             self.last_data.current = int(response * _MILI_UNITS)
-            #     if _ScpiCmds.READ_INFO.value in msg.payload[0]:
-            #         info = msg.payload[1].split(',')
-            #         model = info[0]
-            #         serial_number = info[-1]
-            #         self.properties = DrvBkPropertiesC(model = model,
-            #                                          serial_number = serial_number,
-            #                                          MAX_VOLT = DEFAULT_MAX_VOLT * _MILI_UNITS,
-            #                                          MAX_CURR = DEFAULT_MAX_CURR * _MILI_UNITS,
-            #                                          MAX_PWR = _MAX_PWR * _MILI_UNITS)
-        #         if _ScpiCmds.READ_DATA.value in msg.payload[0]:
-        #             response: list = findall(r"-?\d*\.?\d+", msg.payload[0])
-        #             if len(response) < 2:
-        #                 response = float(response[0])
-        #             else:
-        #                 response = float(response[0]) * 10 ** int(response[1])
-        #             response = int(response * _MILI_UNITS)
-        #             status = DrvBaseStatusC(DrvBaseStatusE.OK)
-
-        #             if self.last_data.mode.value.split(':')[0] == 'VOLT':
-        #                 voltage = response
-        #             elif self.last_data.mode.value.split(':')[0] == 'CURR':
-        #                 current = response
-        #             self.last_data = DrvBkDataC(mode = self.last_data.mode, status = status,
-        #                                             voltage = voltage, current = current, power = 0)
-        #         if _ScpiCmds.READ_MODE.value in msg.payload[0]:
-        #             mode_loc= msg.payload[0].replace("b'",
-        #                     "").replace("\\n'","").split(";").index(_ScpiCmds.READ_MODE.value) + 1
-        #             if "volt:dc" in msg.payload[mode_loc]:
-        #                 self.last_data.mode = DrvBkModeE.VOLT_DC
-        #             elif "curr:dc" in msg.payload[mode_loc]:
-        #                 self.last_data.mode = DrvBkModeE.CURR_DC
-        #             elif "volt:ac" in msg.payload[mode_loc]:
-        #                 self.last_data.mode = DrvBkModeE.VOLT_AC
-        #             elif "curr:ac" in msg.payload[mode_loc]:
-        #                 self.last_data.mode = DrvBkModeE.CURR_AC
-        #             log.info(f"Mode set to: {self.last_data.mode}")
-        #         if _ScpiCmds.INIT_DEV_SPEED.value in msg.payload[0]:
-        #             log.info(f"Device speed set to: {msg.payload[0].split(' ')[-1]}")
-        #     else:
-        #         log.error(msg.payload[0])
         elif msg is None:
             pass
         else:
@@ -257,14 +203,7 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
 
     def __initialize_control(self) -> None:
         '''Initialize the device control.
-        Args:
-            - None.
-        Returns:    
-            - None.
-        Raises:
-            - None.
         '''
-        exception = True
         #Initialize device speed
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ, port= self.__port,
                         payload= _ScpiCmds.INIT_DEV_SPEED.value)
@@ -273,16 +212,6 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
         while (time()-time_init) < DEFAULT_MAX_WAIT_TIME:
             sleep(DEFAULT_TIME_BETWEEN_ATTEMPTS)
             self.read_buffer()
-        #     if not self.__rx_chan.is_empty():
-        #         command_rec : DrvScpiCmdDataC = self.__rx_chan.receive_data()
-        #         msg_rcv = command_rec.payload[0]
-        #         if len(msg_rcv) > 0 and ('ERROR' not in msg_rcv) and ('IDN' in msg_rcv):
-        #             exception = False
-        #         else:
-        #             self.__tx_chan.send_data(msg)
-        # self.__rx_chan.delete_until_last()
-        # if exception:
-        #     raise ConnectionError("Device not found")
         #Initialize device mode in auto voltage
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ, port= self.__port,
                             payload= f"{_ScpiCmds.CHANGE_MODE.value}{DrvBkModeCmdE.VOLT_DC.value}")
@@ -301,17 +230,20 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
         Raises:
             - None.
         '''
-        # info = self.device_handler.read_device_info()
-        # info = info[1].split()
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ, port= self.__port,
                         payload= _ScpiCmds.READ_INFO.value)
         self.__tx_chan.send_data(msg)
-        self.read_buffer()
+        i = 0
+        while self.properties.model is None and i<=DEFAULT_MAX_READS:
+            self.read_buffer()
+            sleep(1)
+            log.info("Waiting to read device properties")
+            i +=1
         if self.properties.model is None:
             raise ConnectionError("Device not found")
 
 
-    def set_mode(self, meas_mode: DrvBkModeE, range: DrvBkRangeE = DrvBkRangeE.AUTO) -> None:
+    def set_mode(self, meas_mode: DrvBkModeE, meas_range: DrvBkRangeE = DrvBkRangeE.AUTO) -> None:
         '''Set the device mode.
         Args:
             - meas_mode (DrvBkModeE): Mode to set.
@@ -328,7 +260,7 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
                                     payload= _ScpiCmds.CHANGE_MODE.value + mode_cod.value))
         self.__tx_chan.send_data(DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
                                     port= self.__port,
-                                    payload=":"+mode_cod.value+range.value))
+                                    payload=":"+mode_cod.value+meas_range.value))
         self.__tx_chan.send_data(DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
                                     port= self.__port,
                                     payload= _ScpiCmds.READ_MODE.value))
@@ -344,7 +276,11 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
         '''
         self.__tx_chan.send_data(DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
                                 port= self.__port,
-                                payload= _ScpiCmds.READ_DATA.value+";"+_ScpiCmds.READ_MODE.value))
+                                payload= _ScpiCmds.READ_DATA.value))
+        self.read_buffer()
+        self.__tx_chan.send_data(DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
+                                port= self.__port,
+                                payload= _ScpiCmds.READ_MODE.value))
         self.read_buffer()
         return self.last_data
 
