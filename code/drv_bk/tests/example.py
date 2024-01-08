@@ -9,7 +9,6 @@ from __future__ import annotations
 import sys
 import os
 import time
-from threading import Event
 from serial import Serial, PARITY_ODD
 #######################         GENERIC IMPORTS          #######################
 
@@ -26,7 +25,7 @@ log = sys_log_logger_get_module_logger(__name__)
 
 
 #######################          PROJECT IMPORTS         #######################
-from scpi_sniffer import DrvScpiSerialConfC, DrvScpiNodeC, DrvScpiHandlerC
+from scpi_sniffer import DrvScpiSerialConfC
 
 #######################          MODULE IMPORTS          #######################
 sys.path.append(os.getcwd()+'/code/drv_bk/')
@@ -36,20 +35,26 @@ from src.wattrex_driver_bk.drv_bk import DrvBkModeE, DrvBkDeviceC, DrvBkRangeE
 
 #######################             CLASSES              #######################
 def set_source(current:float, voltage: float, serial: Serial):
+    """
+    Set the source to the given current and voltage.
+    """
     serial.write(f":CURRent {current};:Voltage {voltage};:OUTPut ON\n".encode())
     time.sleep(2)
     serial.write(b":SYST:ERR?\n")
     log.info(serial.readlines())
 def disable_source(serial: Serial):
+    """
+    Disable the source.
+    """
     serial.write(b":OUTP OFF\n")
     log.info(serial.readlines())
 
 
 
 def main():
-    # working_flag = Event()
-    # working_flag.set()
-    # scpi = DrvScpiNodeC(working_flag=working_flag, cycle_period=500)
+    """
+    Main function to test the driver for the multimeter using also a source.
+    """
     bk_scpi_conf = DrvScpiSerialConfC(port = '/dev/wattrex/bk/BK_0001', separator='\n',
                                       baudrate=38200, timeout=1, write_timeout=1)
     ea_scpi_conf = DrvScpiSerialConfC(port = '/dev/wattrex/source/EA_2963640425', separator='\n',
@@ -63,12 +68,8 @@ def main():
                             write_timeout           = ea_scpi_conf.write_timeout,
                             inter_byte_timeout      = ea_scpi_conf.inter_byte_timeout,
                             xonxoff= True, rtscts= False, dsrdtr= False)
-    log.info(ea_serial.is_open)
-    set_source(0.1, 4.0, ea_serial)
     drv = DrvBkDeviceC(config= bk_scpi_conf)
     try:
-        "Main function"
-        # input("Press Enter to start...")
         disable_source(ea_serial)
         init = time.time()
 
@@ -115,16 +116,11 @@ def main():
         disable_source(ea_serial)
         drv.close()
         time.sleep(2)
-        # working_flag.clear()
     finally:
         disable_source(ea_serial)
         drv.close()
-        log.info(f'SCPI node stopped')
+        log.info('SCPI node stopped')
         sys.exit(0)
-    # working_flag.clear()
-    log.info('SCPI node stopped')
-    time.sleep(2)
-
 
 if __name__ == '__main__':
     main()

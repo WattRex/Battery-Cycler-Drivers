@@ -4,7 +4,6 @@ Driver of multimeter.
 '''
 #######################        MANDATORY IMPORTS         #######################
 from __future__ import annotations
-from re import findall
 #######################         GENERIC IMPORTS          #######################
 from enum import Enum
 from time import time, sleep
@@ -76,17 +75,17 @@ class _ScpiCmds(Enum):
 #######################             CLASSES              #######################
 class DrvBkPropertiesC(DrvBasePwrPropertiesC):
     "Properties of bk device"
-    def __init__(self, model: str|None = None, serial_number: str|None = None,
-                 MAX_VOLT: int = 0, MAX_CURR: int = 0,
-                 MAX_PWR: int = 0) -> None:
-        super().__init__(model, serial_number, MAX_VOLT, MAX_CURR, MAX_PWR)
+    def __init__(self, model: str|None = None, serial_number: str|None = None, #pylint: disable= useless-parent-delegation
+                 max_volt: int = 0, max_curr: int = 0,
+                 max_pwr: int = 0) -> None:
+        super().__init__(model, serial_number, max_volt, max_curr, max_pwr)
 
 
 class DrvBkDataC(DrvBasePwrDataC):
     "Data class of bk device"
-    def __init__(self, mode: DrvBkModeE, range: DrvBkRangeE, status: DrvBaseStatusC,
+    def __init__(self, mode: DrvBkModeE, meas_range: DrvBkRangeE, status: DrvBaseStatusC, #pylint: disable= too-many-arguments
                  voltage: int, current: int, power: int) -> None:
-        self.range: DrvBkRangeE = range
+        self.range: DrvBkRangeE = meas_range
         super().__init__(status = status, mode = mode, voltage = voltage,
                          current = current, power = power)
 
@@ -106,13 +105,14 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
                                   rx_chan_name = DEFAULT_RX_CHAN+'_'+config.port.split('/')[-1])
         self.__rx_chan.delete_until_last()
         self.__tx_chan.send_data(add_msg)
-        self.last_data: DrvBkDataC = DrvBkDataC(mode = DrvBkModeE.VOLT_DC, range= DrvBkRangeE.AUTO,
-                                                     status = DrvBaseStatusC(DrvBaseStatusE.OK),
-                                                     voltage = 0, current = 0, power = 0)
+        self.last_data: DrvBkDataC = DrvBkDataC(mode = DrvBkModeE.VOLT_DC,
+                                            meas_range = DrvBkRangeE.AUTO,
+                                            status = DrvBaseStatusC(DrvBaseStatusE.OK),
+                                            voltage = 0, current = 0, power = 0)
 
         self.properties: DrvBkPropertiesC = DrvBkPropertiesC(model= None,
                                                             serial_number= None,
-                                                            MAX_VOLT= 0, MAX_CURR= 0, MAX_PWR= 0)
+                                                            max_volt = 0, max_curr = 0, max_pwr = 0)
         self.__initialize_control()
         self.read_buffer()
         self.__read_device_properties()
@@ -148,7 +148,7 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
             response = int(float(str_msg)*_MILI_UNITS)
         return response
 
-    def __parse_msg(self) -> None:
+    def __parse_msg(self) -> None: #pylint: disable=too-many-branches
         '''Parse the message received from the device.
         Args:
             - msg (DrvScpiCmdDataC): Message received from the device.
@@ -158,43 +158,43 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
             - None.
         '''
         msg: DrvScpiCmdDataC = self.__rx_chan.receive_data_unblocking()
-        if msg is not None and msg.data_type == DrvScpiCmdTypeE.RESP:
-            if hasattr(msg, 'status') and msg.status.value == DrvBaseStatusE.COMM_ERROR:
-                log.critical("ERROR READING DEVICE")    
-                self.last_data.status = DrvBaseStatusE.COMM_ERROR
-            for data in msg.payload:
+        if msg is not None and msg.data_type == DrvScpiCmdTypeE.RESP: #pylint: disable=too-many-nested-blocks
+            if hasattr(msg, 'status') and msg.status.value == DrvBaseStatusE.COMM_ERROR: #pylint: disable=attribute-defined-outside-init
+                log.critical("ERROR READING DEVICE")
+                self.last_data.status = DrvBaseStatusE.COMM_ERROR #pylint: disable=attribute-defined-outside-init
+            for data in msg.payload: #pylint: disable=too-many-nested-blocks #pylint: disable=attribute-defined-outside-init
                 if len(data) >0 and not str(data).startswith(":"):
                     data = self.__exp_number(data) if self.__exp_number(data) is not None else data
                     if isinstance(data, str):
                         if 'volt' in data:
                             if 'ac' in data:
-                                self.last_data.mode = DrvBkModeE.VOLT_AC
+                                self.last_data.mode = DrvBkModeE.VOLT_AC #pylint: disable=attribute-defined-outside-init
                             else:
-                                self.last_data.mode = DrvBkModeE.VOLT_DC
+                                self.last_data.mode = DrvBkModeE.VOLT_DC #pylint: disable=attribute-defined-outside-init
                         elif 'curr' in data:
                             if 'ac' in data:
-                                self.last_data.mode = DrvBkModeE.CURR_AC
+                                self.last_data.mode = DrvBkModeE.CURR_AC #pylint: disable=attribute-defined-outside-init
                             else:
-                                self.last_data.mode = DrvBkModeE.CURR_DC
+                                self.last_data.mode = DrvBkModeE.CURR_DC #pylint: disable=attribute-defined-outside-init
                         elif 'NO ERROR' in data:
-                            self.last_data.status = DrvBaseStatusE.OK
+                            self.last_data.status = DrvBaseStatusE.OK #pylint: disable=attribute-defined-outside-init
                         elif 'ERROR' in data:
-                            self.last_data.status = DrvBaseStatusE.COMM_ERROR
+                            self.last_data.status = DrvBaseStatusE.COMM_ERROR #pylint: disable=attribute-defined-outside-init
                         elif len(data.split(',')) == 3:
                             data = data.split(',')
                             self.properties = DrvBkPropertiesC(model = data[0],
                                             serial_number = data[1],
-                                            MAX_VOLT = DEFAULT_MAX_VOLT * _MILI_UNITS,
-                                            MAX_CURR = DEFAULT_MAX_CURR * _MILI_UNITS,
-                                            MAX_PWR = _MAX_PWR * _MILI_UNITS)
+                                            max_volt = DEFAULT_MAX_VOLT * _MILI_UNITS,
+                                            max_curr = DEFAULT_MAX_CURR * _MILI_UNITS,
+                                            max_pwr  = _MAX_PWR * _MILI_UNITS)
                             log.info(f"Serial number: {data[-1]}")
                             log.info(f"Model: {data[0]}")
                         log.info(f"Response: {data}")
                     else:
                         if self.last_data.mode in (DrvBkModeE.VOLT_DC, DrvBkModeE.VOLT_AC):
-                            self.last_data.voltage = data
+                            self.last_data.voltage = data #pylint: disable=attribute-defined-outside-init
                         else:
-                            self.last_data.current = data
+                            self.last_data.current = data #pylint: disable=attribute-defined-outside-init
                         log.info(f"Value read: {data}")
         elif msg is None:
             pass
