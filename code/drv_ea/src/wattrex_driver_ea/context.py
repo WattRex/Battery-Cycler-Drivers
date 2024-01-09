@@ -29,8 +29,7 @@ DEFAULT_TX_CHAN : str           = 'TX_SCPI' #'TX_SCPI' # Name of the TX channel 
 DEFAULT_RX_CHAN: str            = 'RX_SCPI_EA'  #Name of the RX channel for epc
 DEFAULT_MAX_READS: int = 10
 
-CONSTANTS_NAMES = ('DEFAULT_MAX_VOLT', 'DEFAULT_MAX_CURR', 'DEFAULT_MAX_READS',
-                   'DEFAULT_MAX_MSG', 'DEFAULT_MAX_MESSAGE_SIZE',
-                   'DEFAULT_TX_CHAN', 'DEFAULT_RX_CHAN', 'DEFAULT_MAX_WAIT_TIME')
+CONSTANTS_NAMES = ('DEFAULT_MAX_READS','DEFAULT_MAX_MSG', 'DEFAULT_MAX_MESSAGE_SIZE',
+                   'DEFAULT_TX_CHAN', 'DEFAULT_RX_CHAN')
 sys_conf_update_config_params(context=globals(),
                               constants_names=CONSTANTS_NAMES)

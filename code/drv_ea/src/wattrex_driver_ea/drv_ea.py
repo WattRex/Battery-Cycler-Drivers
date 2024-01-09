@@ -26,8 +26,7 @@ from wattrex_driver_base import (DrvBaseStatusE, DrvBaseStatusC, DrvBasePwrModeE
 
 #######################          MODULE IMPORTS          #######################
 ######################             CONSTANTS              ######################
-from .context import (DEFAULT_TX_CHAN, DEFAULT_RX_CHAN,
-                      DEFAULT_MAX_MSG, DEFAULT_MAX_MESSAGE_SIZE,
+from .context import (DEFAULT_TX_CHAN, DEFAULT_RX_CHAN, DEFAULT_MAX_MSG, DEFAULT_MAX_MESSAGE_SIZE,
                       DEFAULT_MAX_READS)
 #######################              ENUMS               #######################
 _MILI_UNITS = 1000
