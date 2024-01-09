@@ -9,35 +9,35 @@ import os
 
 #######################         GENERIC IMPORTS          #######################
 from enum import Enum
-from time import sleep, time
+from time import sleep
 
 #######################       THIRD PARTY IMPORTS        #######################
 
 #######################      SYSTEM ABSTRACTION IMPORTS  #######################
 path.append(os.getcwd())
-from system_logger_tool import SysLogLoggerC, sys_log_logger_get_module_logger # pylint: disable=wrong-import-position
+from system_logger_tool import sys_log_logger_get_module_logger # pylint: disable=wrong-import-position
 log = sys_log_logger_get_module_logger(__name__)
 from system_shared_tool import SysShdIpcChanC # pylint: disable=wrong-import-position
 
 #######################          PROJECT IMPORTS         #######################
 from scpi_sniffer import DrvScpiSerialConfC, DrvScpiCmdDataC, DrvScpiCmdTypeE
-from wattrex_driver_base import DrvBaseStatusE, DrvBaseStatusC, DrvBasePwrModeE , DrvBasePwrDeviceC, \
-                                DrvBasePwrPropertiesC, DrvBasePwrDataC
+from wattrex_driver_base import (DrvBaseStatusE, DrvBaseStatusC, DrvBasePwrModeE, DrvBasePwrDeviceC,
+                                DrvBasePwrPropertiesC, DrvBasePwrDataC)
 
 #######################          MODULE IMPORTS          #######################
-
+######################             CONSTANTS              ######################
+from .context import (DEFAULT_TX_CHAN, DEFAULT_RX_CHAN,
+                      DEFAULT_MAX_MSG, DEFAULT_MAX_MESSAGE_SIZE,
+                      DEFAULT_MAX_READS)
 #######################              ENUMS               #######################
 _MILI_UNITS = 1000
-_MAX_WAIT_TIME = 1
-_TIME_BETWEEN_ATTEMPTS = 0.1
-_MAX_MSG = 100
-_MAX_MESSAGE_SIZE = 400
-_TX_CHAN_NAME = 'tx_scpi'
+
 
 class _ScpiCmds(Enum):
     "Modes of the device"
     READ_INFO = '*IDN?'
     GET_MEAS  = 'MEASure:ARRay?'
+    GET_OUTPUT = 'OUTPut?'
     CURR_NOM  = 'SYSTem:NOMinal:CURRent?'
     VOLT_NOM  = 'SYSTem:NOMinal:VOLTage?'
     POWER = 'SYSTem:NOMinal:POWer?'
@@ -45,8 +45,8 @@ class _ScpiCmds(Enum):
     LOCK_OFF = 'SYSTem:LOCK: OFF'
     OUTPUT_ON = 'OUTPut: ON'
     OUTPUT_OFF = 'OUTPut: OFF'
-    SEND_CURR = 'CURRent'
-    SEND_VOLT = 'VOLTage'
+    SEND_CURR = 'CURRent '
+    SEND_VOLT = 'VOLTage '
 
 
 #######################             CLASSES              #######################
@@ -64,15 +64,15 @@ class DrvEaPropertiesC(DrvBasePwrPropertiesC):
         Raises:
             - None.
         '''
-        super().__init__(model = model, serial_number = serial_number, \
-                         max_volt_limit = max_volt_limit, \
-                         max_current_limit = max_current_limit, \
+        super().__init__(model = model, serial_number = str(serial_number),
+                         max_volt_limit = max_volt_limit,
+                         max_current_limit = max_current_limit,
                          max_power_limit = max_power_limit)
 
 
 class DrvEaDataC(DrvBasePwrDataC):
     "Data class of power supply device"
-    def __init__(self, mode: DrvBasePwrModeE, status: DrvBaseStatusE,\
+    def __init__(self, mode: DrvBasePwrModeE, status: DrvBaseStatusE,
                  voltage: int, current: int, power: int) -> None:
         '''
         Args:
@@ -84,13 +84,14 @@ class DrvEaDataC(DrvBasePwrDataC):
         Raises:
             - None.
         '''
-        super().__init__(status = status, mode = mode, voltage = voltage, \
+        stat: DrvBaseStatusC = DrvBaseStatusC(status)
+        super().__init__(status = stat, mode = mode, voltage = voltage,
                          current = current, power = power)
 
 
 class DrvEaDeviceC(DrvBasePwrDeviceC):
     "Principal class of ea power supply device"
-    def __init__(self, config: DrvScpiSerialConfC, rx_chan_name: str) -> None:
+    def __init__(self, config: DrvScpiSerialConfC) -> None:
         '''
         Args:
             - config (DrvScpiSerialConfC): Configuration of the serial port.
@@ -98,29 +99,98 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         Raises:
             - None.
         '''
-        self.__tx_chan = SysShdIpcChanC(name = _TX_CHAN_NAME)
-        self.__rx_chan = SysShdIpcChanC(name = rx_chan_name,
-                                      max_msg = _MAX_MSG,
-                                      max_message_size = _MAX_MESSAGE_SIZE)
+        super().__init__()
+        self.__tx_chan = SysShdIpcChanC(name = DEFAULT_TX_CHAN)
+        self.__rx_chan = SysShdIpcChanC(name = DEFAULT_RX_CHAN+'_'+config.port.split('/')[-1],
+                                      max_msg = DEFAULT_MAX_MSG,
+                                      max_message_size = DEFAULT_MAX_MESSAGE_SIZE)
         self.__port = config.port
-        add_msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.ADD_DEV, \
-                                  port = config.port, \
-                                  payload = config, \
-                                  rx_chan_name = rx_chan_name)
+        add_msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.ADD_DEV,
+                                  port = config.port,
+                                  payload = config,
+                                  rx_chan_name = DEFAULT_RX_CHAN+'_'+config.port.split('/')[-1])
         self.__tx_chan.send_data(add_msg)
         self.__rx_chan.delete_until_last()
-        self.last_data: DrvEaDataC = DrvEaDataC(mode = DrvBasePwrModeE.WAIT, \
-                                                status = DrvBaseStatusC(DrvBaseStatusE.OK), \
+        self.__wait_4_response: bool = False
+        self.__last_mode: DrvBasePwrModeE = DrvBasePwrModeE.WAIT
+        self.last_data: DrvEaDataC = DrvEaDataC(mode = DrvBasePwrModeE.WAIT,
+                                                status = DrvBaseStatusE.OK,
                                                 current = 0, voltage = 0, power = 0)
 
-        self.properties: DrvEaPropertiesC = DrvEaPropertiesC(model = '', serial_number = 0,
-                                                                max_volt_limit = 0, \
-                                                                max_current_limit = 0, \
+        self.properties: DrvEaPropertiesC = DrvEaPropertiesC(model = None, serial_number = 0,
+                                                                max_volt_limit = 0,
+                                                                max_current_limit = 0,
                                                                 max_power_limit = 0)
-        self.__wait_4_response = False #TODO: It not used yet
         self.__read_device_properties()
         self.__initialize_control()
+        i = 0
+        while self.properties.model is None and i<=DEFAULT_MAX_READS:
+            self.read_buffer()
+            sleep(1)
+            i += 1
+        i = 0
+        while self.properties.max_power_limit == 0 and i<=DEFAULT_MAX_READS:
+            self.read_buffer()
+            sleep(1)
+            i += 1
+        if self.properties.model is None:
+            log.error("Device not found")
+            raise ConnectionError("Device not found")
 
+    def read_buffer(self) -> None: #pylint: disable=too-many-branches, too-many-statements
+        """
+        Reads data from the receive channel and updates the device properties and last data.
+
+        Returns:
+            None
+        """
+        i = 0
+        while i < DEFAULT_MAX_READS and not self.__rx_chan.is_empty():
+            msg: DrvScpiCmdDataC = self.__rx_chan.receive_data_unblocking()
+            if msg is not None and msg.data_type == DrvScpiCmdTypeE.RESP: #pylint: disable=too-many-nested-blocks
+                if hasattr(msg, 'status') and msg.status.value == DrvBaseStatusE.COMM_ERROR: #pylint: disable=attribute-defined-outside-init
+                    log.critical("ERROR READING DEVICE")
+                    self.last_data.status = DrvBaseStatusE.COMM_ERROR #pylint: disable=attribute-defined-outside-init
+                for data in msg.payload: #pylint: disable=too-many-nested-blocks #pylint: disable=attribute-defined-outside-init
+                    if len(data) >0 and not str(data).startswith(":"):
+                        if 'No error' in data:
+                            self.last_data.status = DrvBaseStatusE.OK #pylint: disable=attribute-defined-outside-init
+                        elif all (x in data for x in ("error", "Error", "ERROR")):
+                            self.last_data.status = DrvBaseStatusE.COMM_ERROR #pylint: disable=attribute-defined-outside-init
+                        elif 'OFF' in data:
+                            self.last_data.mode = DrvBasePwrModeE.WAIT #pylint: disable=attribute-defined-outside-init
+                        elif 'ON' in data and self.last_data.mode == DrvBasePwrModeE.WAIT:
+                            self.last_data.mode = self.__last_mode #pylint: disable=attribute-defined-outside-init
+                        elif data.startswith('EA'):
+                            data = data.split(',')
+                            self.properties.model = data[1] #pylint: disable=attribute-defined-outside-init
+                            self.properties.serial_number = data[2] #pylint: disable=attribute-defined-outside-init
+                            log.debug(f"Serial number: {data[2]}")
+                            log.debug(f"Model: {data[1]}")
+                        elif "W" in data and len(data.split(' ')) == 2:
+                            max_power = int(float(data.split(' ')[0]) * _MILI_UNITS)
+                            self.properties.max_power_limit = max_power #pylint: disable=attribute-defined-outside-init
+                        elif "V" in data and len(data.split(' ')) == 2:
+                            max_volt = int(float(data.split(' ')[0]) * _MILI_UNITS)
+                            self.properties.max_volt_limit = max_volt #pylint: disable=attribute-defined-outside-init
+                        elif "A" in data and len(data.split(' ')) == 2:
+                            max_curr = int(float(data.split(' ')[0]) * _MILI_UNITS)
+                            self.properties.max_current_limit = max_curr #pylint: disable=attribute-defined-outside-init
+                        elif all(x in data for x in ("V,", "A,", "W")):
+                            meas_data = data.split(',')
+                            voltage = int(float(meas_data[0].replace('V', '')) * _MILI_UNITS)
+                            self.last_data.voltage = voltage #pylint: disable=attribute-defined-outside-init
+                            current = int(float(meas_data[1].replace('A', '')) * _MILI_UNITS)
+                            self.last_data.current = current #pylint: disable=attribute-defined-outside-init
+                            power = int(float(meas_data[2].replace('W', '')) * _MILI_UNITS)
+                            self.last_data.power = power #pylint: disable=attribute-defined-outside-init
+                            self.__wait_4_response = False
+                        log.debug(f"Response: {data}")
+            elif msg is None:
+                pass
+            else:
+                log.error(f'Unknown message type received: {msg.__dict__}')
+            i += 1
 
     def __initialize_control(self) -> None:
         ''' Initialize the device.
@@ -131,10 +201,11 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         Raises:
             - None.
         '''
-        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
-                              port = self.__port, \
+        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
+                              port = self.__port,
                               payload = _ScpiCmds.LOCK_ON.value)
         self.__tx_chan.send_data(msg)
+        self.read_buffer()
         self.disable()
 
 
@@ -151,24 +222,17 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
                 port = self.__port, payload = _ScpiCmds.READ_INFO.value)
         self.__tx_chan.send_data(msg)
-        # Wait until receive the message
-        time_init = time()
-        while (time() - time_init) < _MAX_WAIT_TIME:
-            sleep(_TIME_BETWEEN_ATTEMPTS)
-            if not self.__rx_chan.is_empty():
-                command_rec : DrvScpiCmdDataC = self.__rx_chan.receive_data()
-                msg = command_rec.payload[0].split(',')
-                self.properties.model = msg[1]
-                self.properties.serial_number = int(msg[2])
+        self.read_buffer()
         #Max current limit
-        self.properties.max_current_limit = self.__get_nominal_value(_ScpiCmds.CURR_NOM.value)
+        self.__get_nominal_value(_ScpiCmds.CURR_NOM.value)
         #Max voltage limit
-        self.properties.max_volt_limit = self.__get_nominal_value(_ScpiCmds.VOLT_NOM.value)
+        self.__get_nominal_value(_ScpiCmds.VOLT_NOM.value)
         #Max power limit
-        self.properties.max_power_limit = self.__get_nominal_value(_ScpiCmds.POWER.value)
+        self.__get_nominal_value(_ScpiCmds.POWER.value)
+        self.read_buffer()
 
 
-    def __get_nominal_value(self, payload: str) -> int:
+    def __get_nominal_value(self, payload: str) -> None:
         ''' Get nominal value.
         Args:
             - payload (str): Payload of the message.
@@ -177,20 +241,11 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         Raises:
             - None.
         '''
-        result = 0
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
                 port = self.__port, payload = payload)
         self.__tx_chan.send_data(msg)
-        # Wait until receive the message
-        time_init = time()
-        while (time() - time_init) < _MAX_WAIT_TIME:
-            sleep(_TIME_BETWEEN_ATTEMPTS)
-            if not self.__rx_chan.is_empty():
-                command_rec : DrvScpiCmdDataC = self.__rx_chan.receive_data()
-                msg = command_rec.payload[0].split(' ')
-                result = int(float(msg[0]) * _MILI_UNITS)
-        return result
-
+        # Try to read message
+        self.read_buffer()
 
     def get_data(self) -> DrvEaDataC:
         '''Read the device data.
@@ -201,25 +256,14 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         Raises:
             - None.
         '''
-        log.info("Get meas...")
-        result: DrvEaDataC = DrvEaDataC(mode = self.last_data.mode, \
-                                        status = DrvBaseStatusC(DrvBaseStatusE.COMM_ERROR), \
-                                        voltage = 0, current = 0, power = 0)
-
-        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ, \
-                            port = self.__port, \
-                            payload = _ScpiCmds.GET_MEAS.value)
-        self.__tx_chan.send_data(msg)
-        time_init = time()
-        while (time() - time_init) < _MAX_WAIT_TIME:
-            if not self.__rx_chan.is_empty():
-                command_rec : DrvScpiCmdDataC = self.__rx_chan.receive_data()
-                msg = command_rec.payload[0].split(' ')
-                result.voltage  = int(float(msg[0]) * _MILI_UNITS)
-                result.current  = int(float(msg[2]) * _MILI_UNITS)
-                result.power    = int(float(msg[4]) * _MILI_UNITS)
-                result.status = DrvBaseStatusC(DrvBaseStatusE.OK)
-        return result
+        log.debug("Get meas...")
+        if not self.__wait_4_response:
+            self.__tx_chan.send_data(DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
+                                port = self.__port,
+                                payload = _ScpiCmds.GET_MEAS.value))
+            self.__wait_4_response = True
+        self.read_buffer()
+        return self.last_data
 
 
     def set_cc_mode(self, curr_ref: int, voltage_limit: int) -> None:
@@ -235,7 +279,8 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         Raises:
             - None
         '''
-        self.last_data.mode = DrvBasePwrModeE.CC_MODE
+        self.__last_mode = DrvBasePwrModeE.CC_MODE
+        self.last_data.mode = DrvBasePwrModeE.CC_MODE #pylint: disable=attribute-defined-outside-init
         current = round(float(curr_ref) / _MILI_UNITS, 2)
         voltage = round(float(voltage_limit / _MILI_UNITS), 2)
 
@@ -250,14 +295,18 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
                 port = self.__port, payload = _ScpiCmds.SEND_CURR.value + str(current))
         self.__tx_chan.send_data(msg)
-
+        self.read_buffer()
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
                 port = self.__port, payload = _ScpiCmds.SEND_VOLT.value + str(voltage))
         self.__tx_chan.send_data(msg)
-
+        self.read_buffer()
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
                 port = self.__port, payload = _ScpiCmds.OUTPUT_ON.value)
         self.__tx_chan.send_data(msg)
+        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
+                port = self.__port, payload = _ScpiCmds.GET_OUTPUT.value)
+        self.__tx_chan.send_data(msg)
+        self.read_buffer()
 
 
     def set_cv_mode(self, volt_ref: int, current_limit: int) -> None:
@@ -273,7 +322,8 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         Raises:
             - None
         '''
-        self.last_data.mode = DrvBasePwrModeE.CV_MODE
+        self.__last_mode = DrvBasePwrModeE.CV_MODE
+        self.last_data.mode = DrvBasePwrModeE.CV_MODE #pylint: disable=attribute-defined-outside-init
         voltage = round(float(volt_ref)/_MILI_UNITS, 2)
         current = round(float(current_limit/_MILI_UNITS), 2)
         #Check if the power limit is exceeded
@@ -287,15 +337,18 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
                 port = self.__port, payload = _ScpiCmds.SEND_CURR.value + str(current))
         self.__tx_chan.send_data(msg)
-
+        self.read_buffer()
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
                 port = self.__port, payload = _ScpiCmds.SEND_VOLT.value + str(voltage))
         self.__tx_chan.send_data(msg)
-
+        self.read_buffer()
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
                 port = self.__port, payload = _ScpiCmds.OUTPUT_ON.value)
         self.__tx_chan.send_data(msg)
-
+        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
+                port = self.__port, payload = _ScpiCmds.GET_OUTPUT.value)
+        self.__tx_chan.send_data(msg)
+        self.read_buffer()
 
     def disable(self) -> None:
         ''' Set the device in standby mode.
@@ -306,11 +359,14 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         Raises:
             - None 
         '''
-        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE, \
-                                port = self.__port, \
+        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
+                                port = self.__port,
                                 payload = _ScpiCmds.OUTPUT_OFF.value)
         self.__tx_chan.send_data(msg)
-        self.last_data.mode = DrvBasePwrModeE.WAIT
+        self.__tx_chan.send_data(DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
+                                port = self.__port,
+                                payload = _ScpiCmds.GET_OUTPUT.value))
+        # self.last_data.mode = DrvBasePwrModeE.WAIT
 
 
     def close(self) -> None:
@@ -323,7 +379,12 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
             - None.
         '''
         self.disable()
+        self.__tx_chan.send_data(DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
+                                                 port = self.__port,
+                                                 payload = _ScpiCmds.LOCK_OFF.value))
         del_msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.DEL_DEV,
                                   port = self.__port) # pylint: disable=no-member
         self.__tx_chan.send_data(del_msg)
+        self.__tx_chan.close()
+        self.read_buffer()
         self.__rx_chan.terminate()
