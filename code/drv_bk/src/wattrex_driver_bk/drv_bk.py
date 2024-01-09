@@ -187,15 +187,15 @@ class DrvBkDeviceC(DrvBasePwrDeviceC):
                                             max_volt = DEFAULT_MAX_VOLT * _MILI_UNITS,
                                             max_curr = DEFAULT_MAX_CURR * _MILI_UNITS,
                                             max_pwr  = _MAX_PWR * _MILI_UNITS)
-                            log.info(f"Serial number: {data[-1]}")
-                            log.info(f"Model: {data[0]}")
-                        log.info(f"Response: {data}")
+                            log.debug(f"Serial number: {data[-1]}")
+                            log.debug(f"Model: {data[0]}")
+                        log.debug(f"Response: {data}")
                     else:
                         if self.last_data.mode in (DrvBkModeE.VOLT_DC, DrvBkModeE.VOLT_AC):
                             self.last_data.voltage = data #pylint: disable=attribute-defined-outside-init
                         else:
                             self.last_data.current = data #pylint: disable=attribute-defined-outside-init
-                        log.info(f"Value read: {data}")
+                        log.debug(f"Value read: {data}")
         elif msg is None:
             pass
         else:
