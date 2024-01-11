@@ -104,9 +104,10 @@ class DrvScpiNodeC(SysShdNodeC):
         '''
         for handler in self.__used_dev.values():
             handler: DrvScpiHandlerC
-            if handler.wait_4_response:
-                handler.read()
-
+            handler.read()
+            # if handler.wait_4_response:
+            #     handler.read()
+            #     handler.read()
 
     def process_iteration(self) -> None:
         ''' Read the chan.
