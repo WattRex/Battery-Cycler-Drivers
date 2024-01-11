@@ -126,8 +126,8 @@ class DrvScpiHandlerC:
             resp_msg = DrvScpiCmdDataC(port = self.__serial.port, data_type = DrvScpiCmdTypeE.RESP,
                                         payload = [], status = SysShdNodeStatusE.OK)
             if len(msg_read) > 0:
-
-                msg_read_decoded = [self.decode_and_split(msg_read_partially) for msg_read_partially in msg_read]
+                msg_read_decoded = [self.decode_and_split(
+                    msg_read_partially) for msg_read_partially in msg_read]
                 self.wait_4_response = False
                 self.num_attempts_read = 0
                 self.status = SysShdNodeStatusE.OK
