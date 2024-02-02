@@ -91,7 +91,7 @@ class DrvRsDataC(DrvBasePwrDataC):
         self.mode: DrvBasePwrModeE = mode
 
 
-class DrvRsDeviceC(DrvBasePwrDeviceC):
+class DrvRsDeviceC(DrvBasePwrDeviceC): #pylint: disable=too-many-instance-attributes
     "Principal class of RS device"
     def __init__(self, config: DrvScpiSerialConfC) -> None:
         '''
@@ -119,6 +119,7 @@ class DrvRsDeviceC(DrvBasePwrDeviceC):
                                                              max_volt_limit = 0,
                                                              max_current_limit = 0,
                                                              max_power_limit = 0)
+        self.__last_mode = DrvBasePwrModeE.WAIT
         self.last_data: DrvRsDataC = DrvRsDataC(mode = DrvBasePwrModeE.WAIT,
                                                 status = DrvBaseStatusE.OK,
                                                 voltage = 0, current = 0, power = 0)
@@ -164,6 +165,10 @@ class DrvRsDeviceC(DrvBasePwrDeviceC):
                             if self.__wait_4_response:
                                 self.last_data.power = power #pylint: disable=attribute-defined-outside-init
                                 ##  Power is the one to set to false as is the last value requested
+                                if power > 0:
+                                    self.last_data.mode = self.__last_mode
+                                else:
+                                    self.last_data.mode = DrvBasePwrModeE.WAIT
                                 self.__wait_4_response = False
                                 log.debug(f"Power: {power}")
                             else:
@@ -249,7 +254,8 @@ class DrvRsDeviceC(DrvBasePwrDeviceC):
                                     payload = (f":VOLT {round(voltage, 4)}V{self.__separator}"
                                                 f"{_ScpiCmds.OUTPUT_ON.value}"))
             self.__tx_chan.send_data(msg)
-            self.last_data.mode = DrvBasePwrModeE.CV_MODE
+            # self.last_data.mode = DrvBasePwrModeE.CV_MODE
+            self.__last_mode = DrvBasePwrModeE.CV_MODE
             self.last_data.status = DrvBaseStatusC(DrvBaseStatusE.OK)
         else:
             self.disable()
@@ -276,7 +282,8 @@ class DrvRsDeviceC(DrvBasePwrDeviceC):
                                     payload = _ScpiCmds.OUTPUT_ON.value)
 
             self.__tx_chan.send_data(msg)
-            self.last_data.mode = DrvBasePwrModeE.CC_MODE
+            # self.last_data.mode = DrvBasePwrModeE.CC_MODE
+            self.__last_mode = DrvBasePwrModeE.CC_MODE
             self.last_data.status = DrvBaseStatusC(DrvBaseStatusE.OK)
         else:
             self.disable()
@@ -296,7 +303,7 @@ class DrvRsDeviceC(DrvBasePwrDeviceC):
                                 port = self.__port,
                                 payload = _ScpiCmds.OUTPUT_OFF.value)
         self.__tx_chan.send_data(msg)
-        self.last_data.mode = DrvBasePwrModeE.WAIT
+        # self.last_data.mode = DrvBasePwrModeE.WAIT
 
 
     def close(self) -> None:
