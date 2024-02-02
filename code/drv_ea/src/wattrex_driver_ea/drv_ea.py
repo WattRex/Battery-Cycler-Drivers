@@ -183,6 +183,10 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
                             self.last_data.current = current #pylint: disable=attribute-defined-outside-init
                             power = int(float(meas_data[2].replace('W', '')) * _MILI_UNITS)
                             self.last_data.power = power #pylint: disable=attribute-defined-outside-init
+                            if power > 0:
+                                self.last_data.mode = self.__last_mode #pylint: disable=attribute-defined-outside-init
+                            else:
+                                self.last_data.mode = DrvBasePwrModeE.WAIT
                             self.__wait_4_response = False
                         log.debug(f"Response: {data}")
             elif msg is None:
@@ -265,7 +269,7 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         return self.last_data
 
 
-    def set_cc_mode(self, curr_ref: int, voltage_limit: int) -> None:
+    def set_cc_mode(self, curr_ref: int, voltage_limit: int= None) -> None:
         '''
         Use source in constant current mode.
         Sink mode will be set with negative current values.
@@ -273,14 +277,16 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         Args:
             - curr_ref (int): current reference (mili Amps)
             - voltage_limit (int): voltage limit (milivolts)
+                if None, the maximum voltage limit will be used.
         Returns:
             - None
         Raises:
             - None
         '''
         self.__last_mode = DrvBasePwrModeE.CC_MODE
-        self.last_data.mode = DrvBasePwrModeE.CC_MODE #pylint: disable=attribute-defined-outside-init
         current = round(float(curr_ref) / _MILI_UNITS, 2)
+        if voltage_limit is None:
+            voltage_limit = self.properties.max_volt_limit
         voltage = round(float(voltage_limit / _MILI_UNITS), 2)
 
         #Check if the power limit is exceeded
@@ -308,21 +314,21 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         self.read_buffer()
 
 
-    def set_cv_mode(self, volt_ref: int, current_limit: int) -> None:
+    def set_cv_mode(self, volt_ref: int, current_limit: int= None) -> None:
         '''
         Use source in constant voltage mode .
         Security current limit can be also set for both sink and source modes. 
         It is recommended to set both!
         Args:
             - volt_ref (int): voltage reference (milivolts)
-            - current_limit (int): current limit (mili Amps)
+            - current_limit (int): current limit (mili Amps),
+                if None the maximum current limit will be used.
         Returns:
             - None
         Raises:
             - None
         '''
         self.__last_mode = DrvBasePwrModeE.CV_MODE
-        self.last_data.mode = DrvBasePwrModeE.CV_MODE #pylint: disable=attribute-defined-outside-init
         voltage = round(float(volt_ref)/_MILI_UNITS, 2)
         current = round(float(current_limit/_MILI_UNITS), 2)
         #Check if the power limit is exceeded
