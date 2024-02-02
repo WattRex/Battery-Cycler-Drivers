@@ -25,8 +25,8 @@ class DrvBasePwrModeE(Enum):
     '''
     DISABLE = 5
     WAIT = 0
-    CC_MODE = 1
-    CV_MODE = 2
+    CV_MODE = 1
+    CC_MODE = 2
     CP_MODE = 3
     CR_MODE = 4
 
