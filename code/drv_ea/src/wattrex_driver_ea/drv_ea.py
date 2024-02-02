@@ -144,7 +144,7 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
             None
         """
         i = 0
-        while i < DEFAULT_MAX_READS and not self.__rx_chan.is_empty():
+        while i < DEFAULT_MAX_READS and not self.__rx_chan.is_empty(): #pylint: disable=too-many-nested-blocks
             msg: DrvScpiCmdDataC = self.__rx_chan.receive_data_unblocking()
             if msg is not None and msg.data_type == DrvScpiCmdTypeE.RESP: #pylint: disable=too-many-nested-blocks
                 if hasattr(msg, 'status') and msg.status.value == DrvBaseStatusE.COMM_ERROR: #pylint: disable=attribute-defined-outside-init
@@ -186,7 +186,7 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
                             if power > 0:
                                 self.last_data.mode = self.__last_mode #pylint: disable=attribute-defined-outside-init
                             else:
-                                self.last_data.mode = DrvBasePwrModeE.WAIT
+                                self.last_data.mode = DrvBasePwrModeE.WAIT #pylint: disable=attribute-defined-outside-init
                             self.__wait_4_response = False
                         log.debug(f"Response: {data}")
             elif msg is None:
