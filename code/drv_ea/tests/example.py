@@ -35,7 +35,7 @@ def main():
     '''
     Example usage of drv_ea with a source_ea device.
     '''
-    ea_scpi_conf = DrvScpiSerialConfC(port = '/dev/ttyACM0', separator='\n', baudrate=38400,
+    ea_scpi_conf = DrvScpiSerialConfC(port = '/dev/wattrex/source/EA_2963640425', separator='\n', baudrate=38400,
                                             timeout=1, write_timeout=1)
 
     source = DrvEaDeviceC(config = ea_scpi_conf)

@@ -111,8 +111,8 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         self.__tx_chan.send_data(add_msg)
         self.__rx_chan.delete_until_last()
         self.__wait_4_response: bool = False
-        self.__last_mode: DrvBasePwrModeE = DrvBasePwrModeE.WAIT
-        self.last_data: DrvEaDataC = DrvEaDataC(mode = DrvBasePwrModeE.WAIT,
+        self.__last_mode: DrvBasePwrModeE = DrvBasePwrModeE.DISABLE
+        self.last_data: DrvEaDataC = DrvEaDataC(mode = DrvBasePwrModeE.DISABLE,
                                                 status = DrvBaseStatusE.OK,
                                                 current = 0, voltage = 0, power = 0)
 
@@ -157,8 +157,10 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
                         elif all (x in data for x in ("error", "Error", "ERROR")):
                             self.last_data.status = DrvBaseStatusE.COMM_ERROR #pylint: disable=attribute-defined-outside-init
                         elif 'OFF' in data:
-                            self.last_data.mode = DrvBasePwrModeE.WAIT #pylint: disable=attribute-defined-outside-init
-                        elif 'ON' in data and self.last_data.mode == DrvBasePwrModeE.WAIT:
+                            self.last_data.mode = self.__last_mode #pylint: disable=attribute-defined-outside-init
+                        elif ('ON' in data and
+                              (self.last_data.mode == DrvBasePwrModeE.WAIT or
+                               self.last_data.mode == DrvBasePwrModeE.DISABLE)):
                             self.last_data.mode = self.__last_mode #pylint: disable=attribute-defined-outside-init
                         elif data.startswith('EA'):
                             data = data.split(',')
@@ -186,7 +188,7 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
                             if power > 0:
                                 self.last_data.mode = self.__last_mode #pylint: disable=attribute-defined-outside-init
                             else:
-                                self.last_data.mode = DrvBasePwrModeE.WAIT #pylint: disable=attribute-defined-outside-init
+                                self.last_data.mode = DrvBasePwrModeE.DISABLE #pylint: disable=attribute-defined-outside-init
                             self.__wait_4_response = False
                         log.debug(f"Response: {data}")
             elif msg is None:
@@ -269,7 +271,7 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         return self.last_data
 
 
-    def set_cc_mode(self, curr_ref: int, voltage_limit: int= None) -> None:
+    def set_cc_mode(self, curr_ref: int, voltage_limit: int|None= None) -> None:
         '''
         Use source in constant current mode.
         Sink mode will be set with negative current values.
@@ -314,7 +316,7 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         self.read_buffer()
 
 
-    def set_cv_mode(self, volt_ref: int, current_limit: int= None) -> None:
+    def set_cv_mode(self, volt_ref: int, current_limit: int|None= None) -> None:
         '''
         Use source in constant voltage mode .
         Security current limit can be also set for both sink and source modes. 
@@ -364,6 +366,7 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         Raises:
             - None 
         '''
+        self.__last_mode = DrvBasePwrModeE.DISABLE
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
                                 port = self.__port,
                                 payload = _ScpiCmds.OUTPUT_OFF.value)
