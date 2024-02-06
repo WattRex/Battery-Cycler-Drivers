@@ -119,8 +119,8 @@ class DrvRsDeviceC(DrvBasePwrDeviceC): #pylint: disable=too-many-instance-attrib
                                                              max_volt_limit = 0,
                                                              max_current_limit = 0,
                                                              max_power_limit = 0)
-        self.__last_mode = DrvBasePwrModeE.WAIT
-        self.last_data: DrvRsDataC = DrvRsDataC(mode = DrvBasePwrModeE.WAIT,
+        self.__last_mode = DrvBasePwrModeE.DISABLE
+        self.last_data: DrvRsDataC = DrvRsDataC(mode = DrvBasePwrModeE.DISABLE,
                                                 status = DrvBaseStatusE.OK,
                                                 voltage = 0, current = 0, power = 0)
         self.__initialize_device()
@@ -168,7 +168,7 @@ class DrvRsDeviceC(DrvBasePwrDeviceC): #pylint: disable=too-many-instance-attrib
                                 if power > 0:
                                     self.last_data.mode = self.__last_mode
                                 else:
-                                    self.last_data.mode = DrvBasePwrModeE.WAIT
+                                    self.last_data.mode = DrvBasePwrModeE.DISABLE
                                 self.__wait_4_response = False
                                 log.debug(f"Power: {power}")
                             else:
