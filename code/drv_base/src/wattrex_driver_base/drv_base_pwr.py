@@ -23,12 +23,12 @@ class DrvBasePwrModeE(Enum):
     '''
     Working modes of power devices.
     '''
-    DISABLE = 5
+    DISABLE = 4
     WAIT = 0
-    CV_MODE = 1
-    CC_MODE = 2
+    CC_MODE = 1
+    CV_MODE = 2
     CP_MODE = 3
-    CR_MODE = 4
+    CR_MODE = 5
 
 #######################             CLASSES              #######################
 
