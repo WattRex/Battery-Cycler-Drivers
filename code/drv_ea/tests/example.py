@@ -42,7 +42,7 @@ def main():
 
     try:
         log.info(f"properties: {source.properties.__dict__}")
-        source.set_cc_mode(curr_ref = 10, voltage_limit = 3000)
+        source.set_cc_mode(curr_ref = 1000, voltage_limit = 3000)
 
         for _ in range(10):
             #Obtain data
@@ -54,7 +54,7 @@ def main():
             time.sleep(1.5)
         source.disable()
         init = time.time()
-        while source.last_data.mode != DrvBasePwrModeE.WAIT:
+        while source.last_data.mode != DrvBasePwrModeE.DISABLE:
             source.read_buffer()
             time.sleep(1)
         log.info(f"Time elapsed to disable output: {time.time() - init}")
@@ -69,7 +69,7 @@ def main():
             time.sleep(1.5)
         source.disable()
         init = time.time()
-        while source.last_data.mode != DrvBasePwrModeE.WAIT:
+        while source.last_data.mode != DrvBasePwrModeE.DISABLE:
             source.read_buffer()
             time.sleep(1)
         log.info(f"Time elapsed to disable output: {time.time() - init}")
