@@ -165,9 +165,7 @@ class DrvRsDeviceC(DrvBasePwrDeviceC): #pylint: disable=too-many-instance-attrib
                             if self.__wait_4_response:
                                 self.last_data.power = power #pylint: disable=attribute-defined-outside-init
                                 ##  Power is the one to set to false as is the last value requested
-                                if power > 0:
-                                    self.last_data.mode = self.__last_mode
-                                else:
+                                if power == 0:
                                     self.last_data.mode = DrvBasePwrModeE.DISABLE
                                 self.__wait_4_response = False
                                 log.debug(f"Power: {power}")
@@ -254,8 +252,6 @@ class DrvRsDeviceC(DrvBasePwrDeviceC): #pylint: disable=too-many-instance-attrib
                                     payload = (f":VOLT {round(voltage, 4)}V{self.__separator}"
                                                 f"{_ScpiCmds.OUTPUT_ON.value}"))
             self.__tx_chan.send_data(msg)
-            # self.last_data.mode = DrvBasePwrModeE.CV_MODE
-            self.__last_mode = DrvBasePwrModeE.CV_MODE
             self.last_data.status = DrvBaseStatusC(DrvBaseStatusE.OK)
         else:
             self.disable()
@@ -282,8 +278,6 @@ class DrvRsDeviceC(DrvBasePwrDeviceC): #pylint: disable=too-many-instance-attrib
                                     payload = _ScpiCmds.OUTPUT_ON.value)
 
             self.__tx_chan.send_data(msg)
-            # self.last_data.mode = DrvBasePwrModeE.CC_MODE
-            self.__last_mode = DrvBasePwrModeE.CC_MODE
             self.last_data.status = DrvBaseStatusC(DrvBaseStatusE.OK)
         else:
             self.disable()
