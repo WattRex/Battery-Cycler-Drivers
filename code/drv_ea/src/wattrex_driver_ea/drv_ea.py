@@ -90,6 +90,21 @@ class DrvEaDataC(DrvBasePwrDataC):
 
 class DrvEaDeviceC(DrvBasePwrDeviceC):
     "Principal class of ea power supply device"
+    __instances = []
+
+    def __change_last_mode(self, mode: DrvBasePwrModeE) -> None:
+        ''' Change the last mode of the device.
+        Args:
+            - mode (DrvBasePwrModeE): Mode of the device.
+        '''
+        for i in DrvEaDeviceC.__instances:
+            for j in DrvEaDeviceC.__instances:
+                if i.__port == j.__port:
+                    i.__last_mode = mode                    
+                    j.__last_mode = mode
+                    break
+            
+
     def __init__(self, config: DrvScpiSerialConfC) -> None:
         '''
         Args:
@@ -135,6 +150,7 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         if self.properties.model is None:
             log.error("Device not found")
             raise ConnectionError("Device not found")
+        DrvEaDeviceC.__instances.append(self)
 
     def read_buffer(self) -> None: #pylint: disable=too-many-branches, too-many-statements
         """
@@ -168,6 +184,24 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
                             self.properties.serial_number = data[2] #pylint: disable=attribute-defined-outside-init
                             log.debug(f"Serial number: {data[2]}")
                             log.debug(f"Model: {data[1]}")
+                        elif all(x in data for x in ("V,", "A,", "W")):
+                            meas_data = data.split(',')
+                            voltage = int(float(meas_data[0].replace('V', '')) * _MILI_UNITS)
+                            self.last_data.voltage = voltage #pylint: disable=attribute-defined-outside-init
+                            current = int(float(meas_data[1].replace('A', '')) * _MILI_UNITS)
+                            self.last_data.current = current #pylint: disable=attribute-defined-outside-init
+                            power = int(float(meas_data[2].replace('W', '')) * _MILI_UNITS)
+                            self.last_data.power = power #pylint: disable=attribute-defined-outside-init
+                            log.debug(f"Power: {power} mW, last mode: {self.__last_mode}")
+                            if ((power > 0 or (voltage > 0 and current > 0))
+                                and self.__last_mode != DrvBasePwrModeE.DISABLE):
+                                self.last_data.mode = self.__last_mode #pylint: disable=attribute-defined-outside-init
+                            else:
+                                if self.__last_mode == DrvBasePwrModeE.WAIT:
+                                    self.last_data.mode = DrvBasePwrModeE.WAIT #pylint: disable=attribute-defined-outside-init
+                                else:
+                                    self.last_data.mode = DrvBasePwrModeE.DISABLE #pylint: disable=attribute-defined-outside-init
+                            self.__wait_4_response = False
                         elif "W" in data and len(data.split(' ')) == 2:
                             max_power = int(float(data.split(' ')[0]) * _MILI_UNITS)
                             self.properties.max_power_limit = max_power #pylint: disable=attribute-defined-outside-init
@@ -177,20 +211,6 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
                         elif "A" in data and len(data.split(' ')) == 2:
                             max_curr = int(float(data.split(' ')[0]) * _MILI_UNITS)
                             self.properties.max_current_limit = max_curr #pylint: disable=attribute-defined-outside-init
-                        elif all(x in data for x in ("V,", "A,", "W")):
-                            meas_data = data.split(',')
-                            voltage = int(float(meas_data[0].replace('V', '')) * _MILI_UNITS)
-                            self.last_data.voltage = voltage #pylint: disable=attribute-defined-outside-init
-                            current = int(float(meas_data[1].replace('A', '')) * _MILI_UNITS)
-                            self.last_data.current = current #pylint: disable=attribute-defined-outside-init
-                            power = int(float(meas_data[2].replace('W', '')) * _MILI_UNITS)
-                            self.last_data.power = power #pylint: disable=attribute-defined-outside-init
-                            if ((power > 0 or (voltage > 0 and current > 0))
-                                and self.__last_mode != DrvBasePwrModeE.DISABLE):
-                                self.last_data.mode = self.__last_mode #pylint: disable=attribute-defined-outside-init
-                            else:
-                                self.last_data.mode = DrvBasePwrModeE.DISABLE #pylint: disable=attribute-defined-outside-init
-                            self.__wait_4_response = False
                         log.debug(f"Response: {data}")
             elif msg is None:
                 pass
@@ -286,9 +306,11 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         Raises:
             - None
         '''
-        self.__last_mode = DrvBasePwrModeE.CC_MODE
+        self.__change_last_mode(DrvBasePwrModeE.CC_MODE)
         current = round(float(curr_ref) / _MILI_UNITS, 2)
-        if voltage_limit is None:
+        if current > self.properties.max_current_limit:
+            current = self.properties.max_current_limit
+        if voltage_limit is None or voltage_limit > self.properties.max_volt_limit:
             voltage_limit = self.properties.max_volt_limit
         voltage = round(float(voltage_limit / _MILI_UNITS), 2)
 
@@ -331,7 +353,7 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         Raises:
             - None
         '''
-        self.__last_mode = DrvBasePwrModeE.CV_MODE
+        self.__change_last_mode(DrvBasePwrModeE.CV_MODE)
         voltage = round(float(volt_ref)/_MILI_UNITS, 2)
         current = round(float(current_limit/_MILI_UNITS), 2)
         #Check if the power limit is exceeded
@@ -339,6 +361,10 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
             max_power_limit = self.properties.max_power_limit/_MILI_UNITS
             if voltage * current > max_power_limit:
                 current = max_power_limit / volt_ref
+        elif current > self.properties.max_current_limit:
+            current = self.properties.max_current_limit
+        elif voltage > self.properties.max_volt_limit:
+            voltage = self.properties.max_volt_limit
         else:
             current = 0
             voltage = 0
@@ -358,6 +384,25 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         self.__tx_chan.send_data(msg)
         self.read_buffer()
 
+    def set_wait_mode(self) -> None:
+        ''' Set the device in standby mode.
+        Args:
+            - None
+        Returns:
+            - None
+        Raises:
+            - None 
+        '''
+        log.critical("Disabling SOURCE...")
+        self.__change_last_mode(DrvBasePwrModeE.WAIT)
+        msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
+                                port = self.__port,
+                                payload = _ScpiCmds.OUTPUT_OFF.value)
+        self.__tx_chan.send_data(msg)
+        self.__tx_chan.send_data(DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
+                                port = self.__port,
+                                payload = _ScpiCmds.GET_OUTPUT.value))
+
     def disable(self) -> None:
         ''' Set the device in standby mode.
         Args:
@@ -367,7 +412,8 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         Raises:
             - None 
         '''
-        self.__last_mode = DrvBasePwrModeE.DISABLE
+        log.critical("Disabling SOURCE...")
+        self.__change_last_mode(DrvBasePwrModeE.DISABLE)
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
                                 port = self.__port,
                                 payload = _ScpiCmds.OUTPUT_OFF.value)
@@ -375,7 +421,6 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         self.__tx_chan.send_data(DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE_READ,
                                 port = self.__port,
                                 payload = _ScpiCmds.GET_OUTPUT.value))
-        # self.last_data.mode = DrvBasePwrModeE.WAIT
 
 
     def close(self) -> None:
