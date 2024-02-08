@@ -165,7 +165,7 @@ class DrvRsDeviceC(DrvBasePwrDeviceC): #pylint: disable=too-many-instance-attrib
                             if self.__wait_4_response:
                                 self.last_data.power = power #pylint: disable=attribute-defined-outside-init
                                 ##  Power is the one to set to false as is the last value requested
-                                if power == 0:
+                                if not power > 0:
                                     self.last_data.mode = DrvBasePwrModeE.DISABLE
                                 self.__wait_4_response = False
                                 log.debug(f"Power: {power}")
@@ -283,6 +283,10 @@ class DrvRsDeviceC(DrvBasePwrDeviceC): #pylint: disable=too-many-instance-attrib
             self.disable()
             self.last_data.status = DrvBaseStatusC(DrvBaseStatusE.INTERNAL_ERROR)
 
+    def set_wait_mode(self) ->None:
+        ''' Set the device in WAIT mode.
+        '''
+        self.disable()
 
     def disable(self) -> None:
         ''' Disable power input.
