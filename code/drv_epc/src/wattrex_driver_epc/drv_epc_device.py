@@ -781,6 +781,7 @@ class DrvEpcDeviceC : # pylint: disable= too-many-public-methods
         self.__send_to_can(DrvCanCmdTypeE.REMOVE_FILTER, close_filter)
         self.__device_handler.delete_until_last()
         self.__device_handler.terminate()
+        self.__tx_can.close()
 
 #######################             FUNCTIONS              #######################
 
