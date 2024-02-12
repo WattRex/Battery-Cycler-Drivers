@@ -240,4 +240,5 @@ class DrvBmsDeviceC: #pylint: disable=too-many-instance-attributes
                                 payload = DrvCanFilterC(addr=self.__can_id, mask=0x7FF,
                                                         chan_name=self.__rx_chan_name))
         self.__tx_chan.send_data(del_msg)
+        self.__tx_chan.close()
         self.__rx_chan.terminate()
