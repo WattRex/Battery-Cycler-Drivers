@@ -99,11 +99,10 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         '''
         for i in DrvEaDeviceC.__instances:
             for j in DrvEaDeviceC.__instances:
-                if i.__port == j.__port:
-                    i.__last_mode = mode                    
-                    j.__last_mode = mode
+                if i.__port == j.__port: #pylint: disable=protected-access
+                    i.__last_mode = mode #pylint: disable=protected-access, unused-private-member
+                    j.__last_mode = mode #pylint: disable=protected-access, unused-private-member
                     break
-            
 
     def __init__(self, config: DrvScpiSerialConfC) -> None:
         '''
@@ -174,9 +173,8 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
                             self.last_data.status = DrvBaseStatusE.COMM_ERROR #pylint: disable=attribute-defined-outside-init
                         elif 'OFF' in data:
                             self.last_data.mode = self.__last_mode #pylint: disable=attribute-defined-outside-init
-                        elif ('ON' in data and
-                              (self.last_data.mode == DrvBasePwrModeE.WAIT or
-                               self.last_data.mode == DrvBasePwrModeE.DISABLE)):
+                        elif ('ON' in data and self.last_data.mode in (DrvBasePwrModeE.WAIT,
+                                                                    DrvBasePwrModeE.DISABLE)):
                             self.last_data.mode = self.__last_mode #pylint: disable=attribute-defined-outside-init
                         elif data.startswith('EA'):
                             data = data.split(',')
