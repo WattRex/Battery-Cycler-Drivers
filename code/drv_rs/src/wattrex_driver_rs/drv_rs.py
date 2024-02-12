@@ -119,7 +119,6 @@ class DrvRsDeviceC(DrvBasePwrDeviceC): #pylint: disable=too-many-instance-attrib
                                                              max_volt_limit = 0,
                                                              max_current_limit = 0,
                                                              max_power_limit = 0)
-        self.__last_mode = DrvBasePwrModeE.DISABLE
         self.last_data: DrvRsDataC = DrvRsDataC(mode = DrvBasePwrModeE.DISABLE,
                                                 status = DrvBaseStatusE.OK,
                                                 voltage = 0, current = 0, power = 0)
@@ -165,7 +164,7 @@ class DrvRsDeviceC(DrvBasePwrDeviceC): #pylint: disable=too-many-instance-attrib
                             if self.__wait_4_response:
                                 self.last_data.power = power #pylint: disable=attribute-defined-outside-init
                                 ##  Power is the one to set to false as is the last value requested
-                                if not power > 0:
+                                if power <= 0:
                                     self.last_data.mode = DrvBasePwrModeE.DISABLE
                                 self.__wait_4_response = False
                                 log.debug(f"Power: {power}")
