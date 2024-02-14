@@ -190,8 +190,9 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
                             self.last_data.current = current #pylint: disable=attribute-defined-outside-init
                             power = int(float(meas_data[2].replace('W', '')) * _MILI_UNITS)
                             self.last_data.power = power #pylint: disable=attribute-defined-outside-init
+                            log.debug(f"Voltage: {voltage}, Current: {current}")
                             log.debug(f"Power: {power} mW, last mode: {self.__last_mode}")
-                            if ((power > 0 or (voltage > 0 and current > 0))
+                            if ((power != 0 or (voltage > 0 and current != 0))
                                 and self.__last_mode != DrvBasePwrModeE.DISABLE):
                                 self.last_data.mode = self.__last_mode #pylint: disable=attribute-defined-outside-init
                             else:
