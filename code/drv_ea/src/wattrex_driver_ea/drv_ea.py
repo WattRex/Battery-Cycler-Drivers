@@ -176,10 +176,10 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
                         elif ('ON' in data and self.last_data.mode in (DrvBasePwrModeE.WAIT,
                                                                     DrvBasePwrModeE.DISABLE)):
                             self.last_data.mode = self.__last_mode #pylint: disable=attribute-defined-outside-init
-                        elif data.startswith('EA'):
+                        elif data.startswith('EA') or data.startswith('EPS'):
                             data = data.split(',')
-                            self.properties.model = data[1] #pylint: disable=attribute-defined-outside-init
-                            self.properties.serial_number = data[2] #pylint: disable=attribute-defined-outside-init
+                            self.properties.model = data[1].replace(" ","") #pylint: disable=attribute-defined-outside-init
+                            self.properties.serial_number = data[2].replace(" ", "") #pylint: disable=attribute-defined-outside-init
                             log.debug(f"Serial number: {data[2]}")
                             log.debug(f"Model: {data[1]}")
                         elif all(x in data for x in ("V,", "A,", "W")):
@@ -304,6 +304,7 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         Raises:
             - None
         '''
+        curr_ref = abs(curr_ref)
         self.__change_last_mode(DrvBasePwrModeE.CC_MODE)
         current = round(float(curr_ref) / _MILI_UNITS, 2)
         if current > self.properties.max_current_limit:
@@ -320,6 +321,15 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         else:
             current = 0
             voltage = 0
+        log.critical(self.properties.model)
+        log.critical(self.properties.model.startswith("PSB"))
+        if self.properties.model.startswith("PSB"):
+            msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
+                port = self.__port, payload = "SINK:"+_ScpiCmds.SEND_CURR.value + str(current))
+            log.critical(f"Sending: {msg.payload}")
+            self.__tx_chan.send_data(msg)
+            self.read_buffer()
+
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
                 port = self.__port, payload = _ScpiCmds.SEND_CURR.value + str(current))
         self.__tx_chan.send_data(msg)
@@ -366,6 +376,12 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         else:
             current = 0
             voltage = 0
+        if self.properties.model.startswith("PSB"):
+            msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
+                port = self.__port, payload = "SINK:"+_ScpiCmds.SEND_CURR.value + str(current))
+            self.__tx_chan.send_data(msg)
+            self.read_buffer()
+
         msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
                 port = self.__port, payload = _ScpiCmds.SEND_CURR.value + str(current))
         self.__tx_chan.send_data(msg)
