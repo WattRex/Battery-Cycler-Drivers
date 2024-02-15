@@ -327,7 +327,6 @@ class DrvEaDeviceC(DrvBasePwrDeviceC):
         if self.properties.model.startswith("PSB"):
             msg = DrvScpiCmdDataC(data_type = DrvScpiCmdTypeE.WRITE,
                 port = self.__port, payload = "SINK:"+_ScpiCmds.SEND_CURR.value + str(current))
-            log.critical(f"Sending: {msg.payload}")
             self.__tx_chan.send_data(msg)
             self.read_buffer()
 
