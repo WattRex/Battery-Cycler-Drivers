@@ -11,13 +11,12 @@ from time import sleep
 #######################       THIRD PARTY IMPORTS        #######################
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
-from system_logger_tool import sys_log_logger_get_module_logger
-if __name__ == '__main__':
-    from system_logger_tool import SysLogLoggerC
-    cycler_logger = SysLogLoggerC()
-log = sys_log_logger_get_module_logger(__name__)
+from system_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
+cycler_logger = SysLogLoggerC(file_log_levels='code/log_config.yaml')
+log: Logger = sys_log_logger_get_module_logger(__name__)
 
-from ..src.wattrex_driver_mqtt.drv_mqtt import DrvMqttDriverC #pylint: disable= relative-beyond-top-level
+sys.path.append(os.getcwd()+'/code/drv_mqtt/')
+from src.wattrex_driver_mqtt.drv_mqtt import DrvMqttDriverC #pylint: disable= relative-beyond-top-level
 
 #### Example for bfr ####
 def error(data):
@@ -48,7 +47,7 @@ def main():
     """This function is called when the driver is started.
     It is called when the event loop is started .
     """
-    driver = DrvMqttDriverC(error)
+    driver = DrvMqttDriverC(error, "code/creds.yaml")
     try:
         pwr_ref = 'ctrl/pwr_ref'
         mode_topic = 'ctrl/mode'

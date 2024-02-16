@@ -8,7 +8,7 @@ from __future__ import annotations
 #######################         GENERIC IMPORTS          #######################
 
 #######################       THIRD PARTY IMPORTS        #######################
-from paho.mqtt.client import Client, MQTTv311, MQTTMessage
+from paho.mqtt.client import Client, MQTTv311, MQTTMessage, CallbackAPIVersion
 from paho.mqtt.properties import Properties
 from paho.mqtt.packettypes import PacketTypes
 
@@ -46,7 +46,8 @@ class DrvMqttDriverC:
     def __init__(self, error_callback, cred_path : str) -> None:
         #Connection success callback
         cred = sys_conf_read_config_params(filename=cred_path, section='mqtt')
-        self.__client = Client(protocol=MQTTv311, transport="tcp", reconnect_on_failure=True)
+        self.__client = Client(callback_api_version= CallbackAPIVersion.VERSION2,
+                protocol=MQTTv311, transport="tcp", reconnect_on_failure=True)
         self.__client.username_pw_set(cred['user'], cred['password'])
         self.__client.enable_logger(log)
 
@@ -60,7 +61,7 @@ class DrvMqttDriverC:
         n_attempts = 0
         self.__client.loop(timeout=0.5)
         while not self.__client.is_connected():
-            self.__client.reconnect_delay_set(min_delay=0.5, max_delay=30)
+            self.__client.reconnect_delay_set(min_delay=1, max_delay=30)
             self.__client.loop(timeout=0.5)
             if n_attempts > 10:
                 raise DrvMqttBrokerErrorC('Error connecting to mqtt broker')
@@ -68,7 +69,7 @@ class DrvMqttDriverC:
 
         self.__subs_topics = {}
 
-    def on_connect(self, client, userdata, flags, error_code): #pylint: disable=unused-argument
+    def on_connect(self, client, userdata, flags, error_code, properties): #pylint: disable=unused-argument
         """
         Callback function for successful connection to the broker.
         """

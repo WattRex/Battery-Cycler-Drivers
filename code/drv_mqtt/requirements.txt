@@ -1,2 +1,3 @@
-system_logger_tool>=0.0.3
-paho-mqtt>=1.5.0
+system_logger_tool>=0.2.6
+system_config_tool>=0.2.4
+paho-mqtt>=2.0.0
