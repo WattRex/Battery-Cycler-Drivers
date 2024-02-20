@@ -1,17 +1,15 @@
-build-package-on-pull-request:
-    if: ${{ github.event_name == 'pull_request_review' && github.event.review.state == 'approved' }}
-    name: Build package  ${{ github.event.pull_request.head.ref }}
-    uses: WattRex/System-Tools/.github/workflows/build_python_package.yml@develop
+build-package-on-request:
+    name: Build package  ${{ github.ref_name }}
+    uses: RobertoAldea/System-Tools/.github/workflows/build_python_package_fork_repo.yml@develop
     with:
-      package-name: ${{ github.event.pull_request.head.ref }}
-      package-path: "code/${{ github.event.pull_request.head.ref }}"
-      source-path: "code/${{ github.event.pull_request.head.ref }}/src"
+      package-name: ${{ github.ref_name }}
+      package-path: "code/${{ github.ref_name }}"
+      source-path: "code/${{ github.ref_name }}/src"
       python-version: "3.10"
 
   publish-package:
-    name: Publish package ${{ github.event.pull_request.head.ref }} to PyPi
-    if:     ${{ github.event_name == 'pull_request_review' }} && ${{ github.event.review.state == 'approved' }}
-    needs: build-package-on-pull-request
+    name: Publish package ${{ github.ref_name }} to PyPi
+    needs: build-package-on-request
     runs-on: ubuntu-latest
     environment: development
     permissions:
@@ -21,12 +19,12 @@ build-package-on-pull-request:
       - name: Download a single artifact
         uses: actions/download-artifact@v3
         with:
-          name:  ${{ github.event.pull_request.head.ref }}
-          path: ${{ github.event.pull_request.head.ref }}/dist/
+          name:  ${{ github.ref_name }}
+          path: ${{ github.ref_name }}/dist/
 
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@f8c70e705ffc13c3b4d1221169b84f12a75d6ca8
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
-          packages-dir: ${{ github.event.pull_request.head.ref }}/dist/
+          packages-dir: ${{ github.ref_name }}/dist/
