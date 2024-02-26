@@ -1,4 +1,5 @@
 pyserial>=3.5
-SCPI_sniffer>=0.0.1
-system_logger_tool>=0.0.1
-wattrex_driver_pwr>=0.0.1
+SCPI_sniffer>=0.0.3
+system_logger_tool>=0.2.6
+system_shared_tool>=0.2.14
+wattrex_driver_base>=0.0.3
